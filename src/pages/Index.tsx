@@ -232,37 +232,6 @@ const Index = () => {
           </div>
         </div>
 
-        <div className="absolute bottom-[64px] left-0 right-0 overflow-hidden">
-          <div className="flex transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${carouselIdx * 100}%)` }}>
-            {carouselImages.map((src, i) => (
-              <div key={i} className="w-full shrink-0 h-[220px] md:h-[300px]">
-                <img src={src} alt={`Фото ${i + 1}`} className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-            {carouselImages.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCarouselIdx(i)}
-                className={`w-2 h-2 rounded-full transition-all ${i === carouselIdx ? "bg-white scale-125" : "bg-white/50"}`}
-              />
-            ))}
-          </div>
-          <button
-            onClick={() => setCarouselIdx((carouselIdx - 1 + carouselImages.length) % carouselImages.length)}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/30 hover:bg-black/50 flex items-center justify-center text-white transition-colors"
-          >
-            <Icon name="ChevronLeft" size={20} />
-          </button>
-          <button
-            onClick={() => setCarouselIdx((carouselIdx + 1) % carouselImages.length)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/30 hover:bg-black/50 flex items-center justify-center text-white transition-colors"
-          >
-            <Icon name="ChevronRight" size={20} />
-          </button>
-        </div>
-
         <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-sm">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 grid grid-cols-3 gap-4 text-center">
             {[
@@ -275,6 +244,50 @@ const Index = () => {
                 <p className="text-xs text-gray-500">{s.label}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CAROUSEL */}
+      <section className="bg-white py-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="relative overflow-hidden rounded-2xl" style={{ height: "530px" }}>
+            <div
+              className="flex h-full transition-transform duration-700 ease-in-out"
+              style={{ transform: `translateX(-${carouselIdx * 100}%)` }}
+            >
+              {carouselImages.map((src, i) => (
+                <div key={i} className="shrink-0 w-full h-full flex items-center justify-center bg-gray-50">
+                  <img
+                    src={src}
+                    alt={`Фото ${i + 1}`}
+                    style={{ width: "432px", height: "530px" }}
+                    className="object-cover rounded-2xl shadow-lg"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+              {carouselImages.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCarouselIdx(i)}
+                  className={`w-2.5 h-2.5 rounded-full transition-all ${i === carouselIdx ? "bg-[#3ca615] scale-125" : "bg-gray-300"}`}
+                />
+              ))}
+            </div>
+            <button
+              onClick={() => setCarouselIdx((carouselIdx - 1 + carouselImages.length) % carouselImages.length)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-gray-700 transition-colors"
+            >
+              <Icon name="ChevronLeft" size={22} />
+            </button>
+            <button
+              onClick={() => setCarouselIdx((carouselIdx + 1) % carouselImages.length)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-gray-700 transition-colors"
+            >
+              <Icon name="ChevronRight" size={22} />
+            </button>
           </div>
         </div>
       </section>
