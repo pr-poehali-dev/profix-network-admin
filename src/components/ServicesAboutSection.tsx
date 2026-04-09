@@ -117,7 +117,7 @@ const ServicesAboutSection = () => {
 
             <div className="rounded-3xl overflow-hidden shadow-xl">
               <img
-                src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/2f81ffab-71a0-4f81-b52a-ba8d23d76ecf.png"
+                src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/782196eb-d7c0-4190-8b39-b90929fde10b.png"
                 alt="Доверьтесь профессионалам"
                 className="w-full h-full object-cover"
               />
