@@ -221,11 +221,11 @@ const Index = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Работаем</p>
-                  <p className="text-sm font-bold text-gray-800">Пн–Сб, 9:00–19:00</p>
+                  <p className="text-sm font-bold text-gray-800">Пн–пт, 10:00–18:00, Сб 11:00-18:00</p>
                 </div>
               </div>
               <div className="absolute -top-4 -right-4 bg-[#3ca615] rounded-2xl shadow-xl p-4 text-white">
-                <p className="text-2xl font-oswald font-bold">10+</p>
+                <p className="text-2xl font-oswald font-bold">15+</p>
                 <p className="text-xs opacity-80">лет опыта</p>
               </div>
             </div>
