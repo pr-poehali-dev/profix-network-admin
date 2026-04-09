@@ -41,6 +41,14 @@ const services: { icon: ServiceIcon; title: string; desc: string }[] = [
 
 const navLinks = ["Главная", "Услуги", "О компании", "Контакты"];
 
+const carouselImages = [
+  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/4eb3466b-967c-4846-a9f0-b61e7ee0788a.jpg",
+  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/a6fd7ddd-45c4-4263-9dcb-1e9032247826.jpg",
+  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/3f9e4cac-7b67-465a-82d1-491dfb272cd9.jpg",
+  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/5334d264-7817-42d5-81bd-55e6ebe1c422.jpg",
+  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/2bab8ee4-46e0-4518-9aa3-358619ac6248.jpg",
+];
+
 const Index = () => {
   const [activeSection, setActiveSection] = useState("Главная");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -49,6 +57,14 @@ const Index = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [scrolled, setScrolled] = useState(false);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCarouselIdx((i) => (i + 1) % carouselImages.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -214,6 +230,37 @@ const Index = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="absolute bottom-[64px] left-0 right-0 overflow-hidden">
+          <div className="flex transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${carouselIdx * 100}%)` }}>
+            {carouselImages.map((src, i) => (
+              <div key={i} className="w-full shrink-0 h-[220px] md:h-[300px]">
+                <img src={src} alt={`Фото ${i + 1}`} className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+            {carouselImages.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCarouselIdx(i)}
+                className={`w-2 h-2 rounded-full transition-all ${i === carouselIdx ? "bg-white scale-125" : "bg-white/50"}`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={() => setCarouselIdx((carouselIdx - 1 + carouselImages.length) % carouselImages.length)}
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/30 hover:bg-black/50 flex items-center justify-center text-white transition-colors"
+          >
+            <Icon name="ChevronLeft" size={20} />
+          </button>
+          <button
+            onClick={() => setCarouselIdx((carouselIdx + 1) % carouselImages.length)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/30 hover:bg-black/50 flex items-center justify-center text-white transition-colors"
+          >
+            <Icon name="ChevronRight" size={20} />
+          </button>
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-sm">
