@@ -107,7 +107,7 @@ const ServicesAboutSection = () => {
       </section>
 
       {/* CONTACT INFO BAR */}
-      <section className="py-8 bg-[#ff7f11e8]">
+      <section className="py-8 bg-[#3ca616e8]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-white">
             <div className="flex items-start gap-3">
