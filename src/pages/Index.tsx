@@ -431,7 +431,7 @@ const Index = () => {
             <img
               src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
               alt="ProFiX логотип"
-              className="h-8 w-8 object-contain brightness-0 "
+              className="h-8 w-8 object-contain"
             />
             <span className="font-oswald text-lg font-bold tracking-wide">ProFiX</span>
           </div>
