@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/ui/icon";
 
 type ServiceIcon = "Monitor" | "Network" | "Camera" | "Cpu" | "Printer" | "Shield";
@@ -36,7 +37,22 @@ const services: { icon: ServiceIcon; title: string; desc: string }[] = [
   },
 ];
 
+const useInView = (threshold = 0.15) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setInView(true); },
+      { threshold }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [threshold]);
+  return { ref, inView };
+};
+
 const ServicesAboutSection = () => {
+  const { ref: servicesRef, inView: servicesInView } = useInView();
   return (
     <>
       {/* SERVICES */}
@@ -47,12 +63,16 @@ const ServicesAboutSection = () => {
             <h2 className="font-oswald text-4xl font-bold text-[#0D1B2A]">НАШИ УСЛУГИ</h2>
             <div className="w-16 h-1 bg-[#3ca615] mx-auto mt-4 rounded-full" />
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div ref={servicesRef} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((s, i) => (
               <div
                 key={s.title}
-                className="group p-6 rounded-2xl border border-gray-100 hover:border-[#3ca615] hover:shadow-xl transition-all duration-300 bg-[#F7F9FC] hover:bg-white animate-fade-in-up"
-                style={{ animationDelay: `${i * 0.1}s` }}
+                className="group p-6 rounded-2xl border border-gray-100 hover:border-[#3ca615] hover:shadow-xl transition-all duration-500 bg-[#F7F9FC] hover:bg-white"
+                style={{
+                  opacity: servicesInView ? 1 : 0,
+                  transform: servicesInView ? "translateY(0)" : "translateY(40px)",
+                  transitionDelay: `${i * 0.1}s`,
+                }}
               >
                 <div className="w-12 h-12 rounded-xl bg-[#edf7e8] group-hover:bg-[#3ca615] flex items-center justify-center mb-4 transition-colors">
                   <Icon name={s.icon} size={22} className="text-[#3ca615] group-hover:text-white transition-colors" fallback="Settings" />
