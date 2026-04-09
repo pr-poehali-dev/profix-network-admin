@@ -350,39 +350,12 @@ const Index = () => {
               </div>
             </div>
 
-            <div className="bg-[#3ca615] rounded-3xl p-8 text-white shadow-xl shadow-blue-200">
-              <Icon name="Building2" size={32} className="text-white/60 mb-4" />
-              <h3 className="font-oswald text-2xl font-bold mb-6">КОНТАКТЫ</h3>
-              <div className="space-y-5">
-                <div className="flex items-start gap-3">
-                  <Icon name="MapPin" size={18} className="text-white/60 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-white/50 mb-0.5">Адрес</p>
-                    <p className="font-medium">г. Якутск, ул. Халтурина, 6</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Icon name="Phone" size={18} className="text-white/60 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-white/50 mb-0.5">Телефон</p>
-                    <a href="tel:+79142727187" className="font-medium hover:underline">+7 (914) 272-71-87</a>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Icon name="Mail" size={18} className="text-white/60 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-white/50 mb-0.5">Email</p>
-                    <a href="mailto:727187@it-profix.ru" className="font-medium hover:underline">727187@it-profix.ru</a>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Icon name="Clock" size={18} className="text-white/60 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-white/50 mb-0.5">Режим работы</p>
-                    <p className="font-medium">Пн–Сб: 9:00 – 19:00</p>
-                  </div>
-                </div>
-              </div>
+            <div className="rounded-3xl overflow-hidden shadow-xl">
+              <img
+                src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/fa4bcb2f-6f54-4667-a38a-b680c307956e.jpg"
+                alt="Доверьтесь профессионалам"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
