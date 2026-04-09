@@ -46,6 +46,8 @@ const Index = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", phone: "", email: "", problem: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -65,9 +67,27 @@ const Index = () => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("https://functions.poehali.dev/d9dfa652-a0b7-4233-ba59-2efd338c4f10", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setSubmitted(true);
+      } else {
+        setError(data.error || "Не удалось отправить. Попробуйте позже.");
+      }
+    } catch {
+      setError("Ошибка соединения. Попробуйте ещё раз.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -373,12 +393,28 @@ const Index = () => {
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition-all text-sm resize-none"
                 />
               </div>
+              {error && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+                  <Icon name="AlertCircle" size={16} className="shrink-0" />
+                  {error}
+                </div>
+              )}
               <button
                 type="submit"
-                className="w-full bg-[#1565C0] text-white py-4 rounded-xl font-semibold hover:bg-[#0D47A1] transition-all shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                disabled={loading}
+                className="w-full bg-[#1565C0] text-white py-4 rounded-xl font-semibold hover:bg-[#0D47A1] transition-all shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
-                <Icon name="Send" size={18} />
-                Отправить заявку
+                {loading ? (
+                  <>
+                    <Icon name="Loader2" size={18} className="animate-spin" />
+                    Отправляем...
+                  </>
+                ) : (
+                  <>
+                    <Icon name="Send" size={18} />
+                    Отправить заявку
+                  </>
+                )}
               </button>
               <p className="text-xs text-center text-gray-400">Нажимая кнопку, вы соглашаетесь на обработку персональных данных</p>
             </form>
