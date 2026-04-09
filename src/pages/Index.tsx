@@ -97,9 +97,11 @@ const Index = () => {
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white shadow-md" : "bg-white/80 backdrop-blur"}`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-[#1565C0] flex items-center justify-center">
-              <Icon name="Zap" size={18} className="text-white" />
-            </div>
+            <img
+              src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/cf5b536e-b392-424e-8ddc-5fe2a6a25859.png"
+              alt="ProFiX логотип"
+              className="h-9 w-9 object-contain"
+            />
             <span className="font-oswald text-xl font-bold tracking-wide text-[#1565C0]">ProFiX</span>
           </div>
 
@@ -426,9 +428,11 @@ const Index = () => {
       <footer className="bg-[#0D1B2A] text-white py-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#1565C0] flex items-center justify-center">
-              <Icon name="Zap" size={16} className="text-white" />
-            </div>
+            <img
+              src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/cf5b536e-b392-424e-8ddc-5fe2a6a25859.png"
+              alt="ProFiX логотип"
+              className="h-8 w-8 object-contain brightness-0 invert"
+            />
             <span className="font-oswald text-lg font-bold tracking-wide">ProFiX</span>
           </div>
           <div className="text-center text-gray-400 text-sm">
