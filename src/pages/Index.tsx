@@ -118,7 +118,9 @@ const Index = () => {
               alt="ProFiX логотип"
               className="h-9 w-9 object-contain"
             />
-            <span className="font-oswald text-xl font-bold tracking-wide text-[#3ca615]">ProFiX</span>
+            <span className="font-oswald text-xl font-bold tracking-wide">
+              <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
+            </span>
           </div>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -493,7 +495,9 @@ const Index = () => {
               alt="ProFiX логотип"
               className="h-8 w-8 object-contain"
             />
-            <span className="font-oswald text-lg font-bold tracking-wide">ProFiX</span>
+            <span className="font-oswald text-lg font-bold tracking-wide">
+              <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
+            </span>
           </div>
           <div className="text-center text-gray-500 text-sm">
             <p>г. Якутск, ул. Халтурина, 6</p>
