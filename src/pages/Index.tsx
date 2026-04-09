@@ -235,8 +235,8 @@ const Index = () => {
         <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-sm">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 grid grid-cols-3 gap-4 text-center">
             {[
-              { val: "500+", label: "клиентов" },
-              { val: "10+", label: "лет опыта" },
+              { val: "1000+", label: "клиентов" },
+              { val: "15+", label: "лет опыта" },
               { val: "100%", label: "гарантия" },
             ].map((s) => (
               <div key={s.label}>
