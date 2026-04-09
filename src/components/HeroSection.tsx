@@ -61,7 +61,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
           <div className="hidden md:flex justify-center animate-fade-in">
             <div className="relative">
               <div className="w-80 h-80 rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
-                <img src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/bd0deacb-6569-4bbf-a333-3175875ba8f7.jpg" alt="ProFiX офис" className="w-full h-full object-cover" />
+                <img src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/7f5be0f7-0c52-4d27-afce-209452ae77d9.jpg" alt="ProFiX специалист" className="w-full h-full object-cover" />
               </div>
               <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
