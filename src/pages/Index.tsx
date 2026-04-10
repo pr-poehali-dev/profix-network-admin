@@ -82,6 +82,7 @@ const Index = () => {
         onScrollTo={scrollTo}
       />
       <ServicesAboutSection />
+      <PartnersSection />
       <ContactFooter
         formData={formData}
         submitted={submitted}

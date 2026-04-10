@@ -1,5 +1,4 @@
 import Icon from "@/components/ui/icon";
-import PartnersSection from "@/components/PartnersSection";
 
 const HERO_IMAGE = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/27e6a446-83e0-42ac-9fb3-936312c8e887.jpg";
 
@@ -83,10 +82,6 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="relative z-10">
-          <PartnersSection />
         </div>
 
         <div className="relative z-10 bg-white border-t border-gray-100 shadow-sm">
