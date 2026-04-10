@@ -21,6 +21,7 @@ def handler(event: dict, context) -> dict:
     name = body.get("name", "").strip()
     phone = body.get("phone", "").strip()
     email = body.get("email", "").strip()
+    topic = body.get("topic", "").strip()
     problem = body.get("problem", "").strip()
 
     if not name or not phone or not problem:
@@ -37,7 +38,8 @@ def handler(event: dict, context) -> dict:
     to_email = "727187@it-profix.ru"
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"Новая заявка с сайта от {name}"
+    subject_topic = f" — {topic}" if topic else ""
+    msg["Subject"] = f"Новая заявка с сайта от {name}{subject_topic}"
     msg["From"] = smtp_user
     msg["To"] = to_email
 
@@ -62,6 +64,12 @@ def handler(event: dict, context) -> dict:
                 {"" if not email else f'''<tr style="border-top: 1px solid #e5e7eb;">
                     <td style="padding: 10px 0; color: #6b7280; font-size: 13px;">Email</td>
                     <td style="padding: 10px 0; font-size: 15px;">{email}</td>
+                </tr>'''}
+                {"" if not topic else f'''<tr style="border-top: 1px solid #e5e7eb;">
+                    <td style="padding: 10px 0; color: #6b7280; font-size: 13px;">Тема</td>
+                    <td style="padding: 10px 0; font-size: 15px;">
+                        <span style="background: #edf7e8; color: #2d8a10; font-weight: 600; padding: 3px 10px; border-radius: 20px;">{topic}</span>
+                    </td>
                 </tr>'''}
                 <tr style="border-top: 1px solid #e5e7eb;">
                     <td style="padding: 10px 0; color: #6b7280; font-size: 13px; vertical-align: top;">Проблема</td>
