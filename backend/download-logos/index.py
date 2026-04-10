@@ -5,13 +5,7 @@ import boto3
 import urllib.request
 
 LOGOS = [
-    ("datamobile_1", "https://data-mobile.ru/assets/template/images/common/logo.svg", "image/svg+xml"),
-    ("datamobile_2", "https://data-mobile.ru/assets/template/images/logo.svg", "image/svg+xml"),
-    ("datamobile_3", "https://data-mobile.ru/assets/template/images/logo.png", "image/png"),
-    ("datamobile_4", "https://data-mobile.ru/wp-content/uploads/2021/06/logo_dm.svg", "image/svg+xml"),
-    ("datamobile_5", "https://data-mobile.ru/wp-content/uploads/2020/10/Logo_DataMobile.png", "image/png"),
-    ("datamobile_6", "https://data-mobile.ru/assets/template/images/common/logo-white.svg", "image/svg+xml"),
-    ("datamobile_7", "https://data-mobile.ru/assets/img/logo.svg", "image/svg+xml"),
+    ("poscenter", "https://pos-center.ru/img/favicon.png", "image/png"),
 ]
 
 HEADERS = {
