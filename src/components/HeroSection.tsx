@@ -12,16 +12,8 @@ const carouselImages = [
 
 const carouselSlides = [
   ...carouselImages.map((img) => ({ img, title: "", desc: "" })),
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/e90e02aa-034a-46fb-a4d8-a7901477845e.jpg", title: "ККТ АТОЛ", desc: "Продажа, ремонт и обслуживание онлайн-касс АТОЛ. Регистрация в ФНС." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/9a113b02-5317-45ce-b244-0013000e4284.jpg", title: "ТСД POScenter", desc: "Терминалы сбора данных для склада и торговли. Продажа и обслуживание." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/72be85e6-b560-4799-a9ab-09ac84f06452.jpg", title: "ТСД АТОЛ", desc: "Мобильные терминалы АТОЛ для маркировки и учёта товаров." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/145e3039-6794-430f-b9bd-6e120c8ca007.jpg", title: "Моноблок POScenter", desc: "POS-моноблоки для автоматизации торговли. Настройка и сервис." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/bba62d0a-63bb-4769-be3d-bea6906c63cc.jpg", title: "ККТ POScenter", desc: "Онлайн-кассы POScenter — продажа, регистрация и обслуживание." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/0ff6720b-6be4-4803-b622-ce874183261e.jpg", title: "Внедрение 1С", desc: "Установка, настройка и запуск программ 1С под ключ для вашего бизнеса." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/f33c82cb-b717-4b8e-8018-04a91ea26806.jpg", title: "Консультации по 1С", desc: "Обучение сотрудников и консультации по работе с программами 1С." },
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/89e28943-f50b-4e97-8ae8-27e3b5dc468d.jpg", title: "Разработка в 1С", desc: "Доработка и разработка конфигураций 1С под задачи вашего учёта." },
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/8bf05640-4bf8-462b-8b15-5a1dad499873.jpg", title: "Продажа программ 1С", desc: "Продажа лицензионных программных продуктов 1С для любого бизнеса." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/c2d3b8b9-662f-4ab5-b034-d3b9eafee805.jpg", title: "1С:ИТС", desc: "Подписка 1С ИТС — сопровождение, обновления и поддержка 24/7." },
 ];
 
 interface HeroSectionProps {
