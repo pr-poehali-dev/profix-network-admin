@@ -5,7 +5,7 @@ import boto3
 import urllib.request
 
 LOGOS = [
-    ("poscenter", "https://pos-center.ru/img/favicon.png", "image/png"),
+    ("atol", "https://cdn.poehali.dev/files/ce0768c2-dd4e-4201-9685-5a7b2f50c269.png", "image/png"),
 ]
 
 HEADERS = {

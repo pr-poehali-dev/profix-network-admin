@@ -5,7 +5,7 @@ const partners = [
   { name: "POSCenter", url: "https://pos-center.ru", logo: `${CDN}/poscenter.png` },
   { name: "1С Франчайзи", url: "https://1c.ru", logo: `${CDN}/1c.svg` },
   { name: "Dreamkas", url: "https://dreamkas.ru", logo: `${CDN}/dreamkas.svg` },
-  { name: "АТОЛ", url: "https://atol.ru", logo: `${CDN}/atol.svg` },
+  { name: "АТОЛ", url: "https://atol.ru", logo: `${CDN}/atol.png` },
   { name: "СБИС", url: "https://saby.ru", logo: `${CDN}/saby_6.svg` },
   { name: "ОФД Яндекс", url: "https://ofd.yandex.ru", logo: `${CDN}/ofdyandex_1.svg` },
   { name: "Платформа ОФД", url: "https://platformaofd.ru", logo: `${CDN}/platformaofd.png` },
