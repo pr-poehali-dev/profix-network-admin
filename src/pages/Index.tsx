@@ -76,12 +76,12 @@ const Index = () => {
         onMenuToggle={() => setMenuOpen(!menuOpen)}
         onScrollTo={scrollTo}
       />
+      <PartnersSection />
       <HeroSection
         carouselIdx={carouselIdx}
         onSetCarouselIdx={setCarouselIdx}
         onScrollTo={scrollTo}
       />
-      <PartnersSection />
       <ServicesAboutSection />
       <ContactFooter
         formData={formData}
