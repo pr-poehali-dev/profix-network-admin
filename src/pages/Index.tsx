@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection, { carouselImages } from "@/components/HeroSection";
 import ServicesAboutSection from "@/components/ServicesAboutSection";
+import PartnersSection from "@/components/PartnersSection";
 import ContactFooter from "@/components/ContactFooter";
 
 const Index = () => {
@@ -80,6 +81,7 @@ const Index = () => {
         onSetCarouselIdx={setCarouselIdx}
         onScrollTo={scrollTo}
       />
+      <PartnersSection />
       <ServicesAboutSection />
       <ContactFooter
         formData={formData}
