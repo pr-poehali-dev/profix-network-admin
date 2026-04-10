@@ -11,7 +11,6 @@ const carouselImages = [
 ];
 
 const carouselSlides = [
-  ...carouselImages.map((img) => ({ img, title: "", desc: "" })),
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/89e28943-f50b-4e97-8ae8-27e3b5dc468d.jpg", title: "Разработка в 1С", desc: "Доработка и разработка конфигураций 1С под задачи вашего учёта." },
   { img: "https://cdn.poehali.dev/files/e51a01d7-1ca1-4bf6-bfd8-bd243a339b45.jpg", title: "Продажа программ 1С", desc: "Лицензионные программные продукты 1С для бухгалтерии, торговли и управления." },
   { img: "https://cdn.poehali.dev/files/d61fb839-3cbb-4cb6-af80-b81ed9e2be5e.jpg", title: "Продажа и ремонт торгового оборудования", desc: "Весы, сканеры, принтеры этикеток — продажа, настройка и сервисное обслуживание." },
