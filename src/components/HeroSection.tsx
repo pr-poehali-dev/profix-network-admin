@@ -10,6 +10,15 @@ const carouselImages = [
   "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/2bab8ee4-46e0-4518-9aa3-358619ac6248.jpg",
 ];
 
+const carouselSlides = [
+  ...carouselImages.map((img) => ({ img, title: "", desc: "" })),
+  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/e90e02aa-034a-46fb-a4d8-a7901477845e.jpg", title: "ККТ АТОЛ", desc: "Продажа, ремонт и обслуживание онлайн-касс АТОЛ. Регистрация в ФНС." },
+  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/9a113b02-5317-45ce-b244-0013000e4284.jpg", title: "ТСД POScenter", desc: "Терминалы сбора данных для склада и торговли. Продажа и обслуживание." },
+  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/72be85e6-b560-4799-a9ab-09ac84f06452.jpg", title: "ТСД АТОЛ", desc: "Мобильные терминалы АТОЛ для маркировки и учёта товаров." },
+  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/145e3039-6794-430f-b9bd-6e120c8ca007.jpg", title: "Моноблок POScenter", desc: "POS-моноблоки для автоматизации торговли. Настройка и сервис." },
+  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/bba62d0a-63bb-4769-be3d-bea6906c63cc.jpg", title: "ККТ POScenter", desc: "Онлайн-кассы POScenter — продажа, регистрация и обслуживание." },
+];
+
 interface HeroSectionProps {
   carouselIdx: number;
   onSetCarouselIdx: (idx: number) => void;
@@ -103,24 +112,32 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
       {/* CAROUSEL */}
       <section className="bg-white py-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <h2 className="text-center font-oswald text-2xl font-bold text-[#0D1B2A] mb-2">Торговое оборудование</h2>
+          <p className="text-center text-gray-500 text-sm mb-6">Ремонт, продажа, обслуживание торгового оборудования. Регистрация онлайн-касс.</p>
           <div className="relative overflow-hidden rounded-2xl" style={{ height: "530px" }}>
             <div
               className="flex h-full transition-transform duration-700 ease-in-out"
               style={{ transform: `translateX(-${carouselIdx * 100}%)` }}
             >
-              {carouselImages.map((src, i) => (
-                <div key={i} className="shrink-0 w-full h-full flex items-center justify-center bg-gray-50">
+              {carouselSlides.map((slide, i) => (
+                <div key={i} className="shrink-0 w-full h-full flex items-center justify-center bg-gray-50 relative">
                   <img
-                    src={src}
-                    alt={`Фото ${i + 1}`}
+                    src={slide.img}
+                    alt={slide.title || `Фото ${i + 1}`}
                     style={{ width: "432px", height: "530px" }}
                     className="object-cover rounded-2xl shadow-lg"
                   />
+                  {slide.title && (
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm rounded-xl px-5 py-3 shadow-lg text-center w-72">
+                      <p className="font-oswald font-bold text-[#0D1B2A] text-lg">{slide.title}</p>
+                      <p className="text-gray-500 text-xs mt-0.5">{slide.desc}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-              {carouselImages.map((_, i) => (
+              {carouselSlides.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => onSetCarouselIdx(i)}
@@ -129,13 +146,13 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
               ))}
             </div>
             <button
-              onClick={() => onSetCarouselIdx((carouselIdx - 1 + carouselImages.length) % carouselImages.length)}
+              onClick={() => onSetCarouselIdx((carouselIdx - 1 + carouselSlides.length) % carouselSlides.length)}
               className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-gray-700 transition-colors"
             >
               <Icon name="ChevronLeft" size={22} />
             </button>
             <button
-              onClick={() => onSetCarouselIdx((carouselIdx + 1) % carouselImages.length)}
+              onClick={() => onSetCarouselIdx((carouselIdx + 1) % carouselSlides.length)}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-gray-700 transition-colors"
             >
               <Icon name="ChevronRight" size={22} />
@@ -147,5 +164,5 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
   );
 };
 
-export { carouselImages };
+export { carouselImages, carouselSlides };
 export default HeroSection;

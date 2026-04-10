@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
-import HeroSection, { carouselImages } from "@/components/HeroSection";
+import HeroSection, { carouselSlides } from "@/components/HeroSection";
 import ServicesAboutSection from "@/components/ServicesAboutSection";
 import PartnersSection from "@/components/PartnersSection";
 import ContactFooter from "@/components/ContactFooter";
@@ -17,7 +17,7 @@ const Index = () => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCarouselIdx((i) => (i + 1) % carouselImages.length);
+      setCarouselIdx((i) => (i + 1) % carouselSlides.length);
     }, 3500);
     return () => clearInterval(timer);
   }, []);
