@@ -46,8 +46,17 @@ const ChatWidget = () => {
   const addMessage = (msg: Message) =>
     setMessages((prev) => [...prev, msg]);
 
+  const notifyTelegram = (question: string) => {
+    fetch("https://functions.poehali.dev/27bacb22-5ee1-4b45-8d95-45c4816274e0", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    }).catch(() => {});
+  };
+
   const handleQuick = (q: string) => {
     addMessage({ from: "user", text: q, time: now() });
+    notifyTelegram(q);
     setSending(true);
     setTimeout(() => {
       addMessage({
@@ -64,6 +73,7 @@ const ChatWidget = () => {
     if (!text) return;
     setInput("");
     addMessage({ from: "user", text, time: now() });
+    notifyTelegram(text);
     setSending(true);
     setTimeout(() => {
       addMessage({
