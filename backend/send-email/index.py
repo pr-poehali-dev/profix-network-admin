@@ -3,10 +3,18 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from urllib.request import urlopen, Request
+
+
+def send_telegram(token: str, chat_id: str, text: str) -> None:
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode()
+    req = Request(url, data=data, headers={"Content-Type": "application/json"})
+    urlopen(req, timeout=5)
 
 
 def handler(event: dict, context) -> dict:
-    """Отправляет заявку с сайта ProFiX на почту компании."""
+    """Отправляет заявку с сайта ProFiX на почту и в Telegram."""
 
     cors_headers = {
         "Access-Control-Allow-Origin": "*",
@@ -95,6 +103,24 @@ def handler(event: dict, context) -> dict:
             server.starttls()
             server.login(smtp_user, smtp_password)
             server.sendmail(smtp_user, to_email, msg.as_string())
+
+    tg_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    tg_chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if tg_token and tg_chat_id:
+        topic_line = f"\n🏷 <b>Тема:</b> {topic}" if topic else ""
+        email_line = f"\n📧 <b>Email:</b> {email}" if email else ""
+        tg_text = (
+            f"📩 <b>Новая заявка с сайта ProFiX</b>\n"
+            f"👤 <b>Имя:</b> {name}\n"
+            f"📞 <b>Телефон:</b> {phone}"
+            f"{email_line}"
+            f"{topic_line}\n"
+            f"💬 <b>Сообщение:</b> {problem}"
+        )
+        try:
+            send_telegram(tg_token, tg_chat_id, tg_text)
+        except Exception:
+            pass
 
     return {
         "statusCode": 200,
