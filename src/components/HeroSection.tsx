@@ -13,6 +13,10 @@ const carouselImages = [
 const carouselSlides = [
   ...carouselImages.map((img) => ({ img, title: "", desc: "" })),
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/89e28943-f50b-4e97-8ae8-27e3b5dc468d.jpg", title: "Разработка в 1С", desc: "Доработка и разработка конфигураций 1С под задачи вашего учёта." },
+  { img: "https://cdn.poehali.dev/files/e51a01d7-1ca1-4bf6-bfd8-bd243a339b45.jpg", title: "Продажа программ 1С", desc: "Лицензионные программные продукты 1С для бухгалтерии, торговли и управления." },
+  { img: "https://cdn.poehali.dev/files/d61fb839-3cbb-4cb6-af80-b81ed9e2be5e.jpg", title: "Продажа и ремонт торгового оборудования", desc: "Весы, сканеры, принтеры этикеток — продажа, настройка и сервисное обслуживание." },
+  { img: "https://cdn.poehali.dev/files/298f8dca-1c0c-43c7-8459-325b59898fe8.png", title: "Консультации по 1С", desc: "Обучение сотрудников и консультации по работе с программами 1С." },
+  { img: "https://cdn.poehali.dev/files/4b35d6a2-9280-4470-a235-07c82741ea23.png", title: "Продажа и постановка на учёт онлайн-касс", desc: "Подбор, продажа и регистрация ККТ в ФНС. Работаем со всеми моделями." },
 ];
 
 interface HeroSectionProps {
