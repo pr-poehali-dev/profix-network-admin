@@ -4,6 +4,7 @@ import HeroSection, { carouselSlides } from "@/components/HeroSection";
 import ServicesAboutSection from "@/components/ServicesAboutSection";
 import PartnersSection from "@/components/PartnersSection";
 import ContactFooter from "@/components/ContactFooter";
+import ChatWidget from "@/components/ChatWidget";
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState("Главная");
@@ -93,6 +94,7 @@ const Index = () => {
         onSubmit={handleSubmit}
         onReset={handleReset}
       />
+      <ChatWidget />
     </div>
   );
 };
