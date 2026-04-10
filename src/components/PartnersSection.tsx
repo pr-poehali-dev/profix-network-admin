@@ -7,7 +7,7 @@ const partners = [
   { name: "Dreamkas", url: "https://dreamkas.ru", logo: `${CDN}/dreamkas.svg` },
   { name: "АТОЛ", url: "https://atol.ru", logo: `${CDN}/atol.png` },
   { name: "СБИС", url: "https://saby.ru", logo: `${CDN}/saby.png` },
-  { name: "ОФД Яндекс", url: "https://ofd.yandex.ru", logo: `${CDN}/ofdyandex_1.svg` },
+  { name: "ОФД Яндекс", url: "https://ofd.yandex.ru", logo: `${CDN}/ofdyandex.svg` },
   { name: "Платформа ОФД", url: "https://platformaofd.ru", logo: `${CDN}/platformaofd.png` },
 ];
 
