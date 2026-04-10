@@ -1,6 +1,6 @@
 import Icon from "@/components/ui/icon";
 
-const navLinks = ["Главная", "Услуги", "О компании", "Контакты"];
+const navLinks = ["Главная", "Услуги", "1С", "О компании", "Контакты"];
 
 interface NavbarProps {
   scrolled: boolean;

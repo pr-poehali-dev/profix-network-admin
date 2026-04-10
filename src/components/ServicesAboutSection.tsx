@@ -37,6 +37,45 @@ const services: { icon: ServiceIcon; title: string; desc: string }[] = [
   },
 ];
 
+const onecServices = [
+  {
+    icon: "PackageOpen",
+    title: "Внедрение 1С",
+    desc: "Установка и запуск программ 1С с нуля. Настраиваем под специфику вашего бизнеса, переносим данные из старых систем.",
+    img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/0ff6720b-6be4-4803-b622-ce874183261e.jpg",
+  },
+  {
+    icon: "MessageCircle",
+    title: "Консультации по 1С",
+    desc: "Обучаем сотрудников, отвечаем на вопросы по работе с 1С, помогаем разобраться с учётом и отчётностью.",
+    img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/f33c82cb-b717-4b8e-8018-04a91ea26806.jpg",
+  },
+  {
+    icon: "Code",
+    title: "Разработка в 1С",
+    desc: "Дорабатываем типовые конфигурации и создаём новые модули под ваши задачи. Автоматизируем любые бизнес-процессы.",
+    img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/89e28943-f50b-4e97-8ae8-27e3b5dc468d.jpg",
+  },
+  {
+    icon: "ClipboardList",
+    title: "Решение задач по учёту",
+    desc: "Помогаем наладить бухгалтерский, складской и управленческий учёт. Решаем любые нестандартные ситуации.",
+    img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/0ff6720b-6be4-4803-b622-ce874183261e.jpg",
+  },
+  {
+    icon: "ShoppingCart",
+    title: "Продажа программ 1С",
+    desc: "Официальная продажа лицензионных продуктов 1С: Бухгалтерия, Торговля, Зарплата и другие конфигурации.",
+    img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/8bf05640-4bf8-462b-8b15-5a1dad499873.jpg",
+  },
+  {
+    icon: "RefreshCw",
+    title: "1С:ИТС",
+    desc: "Подписка на информационно-технологическое сопровождение: актуальные обновления, доступ к сервисам и приоритетная поддержка.",
+    img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/c2d3b8b9-662f-4ab5-b034-d3b9eafee805.jpg",
+  },
+];
+
 const useInView = (threshold = 0.15) => {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -85,8 +124,42 @@ const ServicesAboutSection = () => {
         </div>
       </section>
 
+      {/* 1C SERVICES */}
+      <section id="1c" className="py-24 bg-gradient-to-br from-[#edf7e8] to-[#F7F9FC]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-14">
+            <p className="text-[#3ca615] text-sm font-semibold uppercase tracking-widest mb-3">Автоматизация бизнеса</p>
+            <h2 className="font-oswald text-4xl font-bold text-[#0D1B2A]">УСЛУГИ ПО 1С</h2>
+            <div className="w-16 h-1 bg-[#3ca615] mx-auto mt-4 rounded-full" />
+            <p className="text-[#4B5563] mt-4 max-w-xl mx-auto text-sm">Официальный партнёр 1С. Помогаем автоматизировать учёт и бизнес-процессы под ключ.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {onecServices.map((s, i) => (
+              <div
+                key={s.title}
+                className="group rounded-2xl overflow-hidden border border-gray-100 hover:border-[#3ca615] hover:shadow-xl transition-all duration-500 bg-white"
+                style={{ transitionDelay: `${i * 0.08}s` }}
+              >
+                <div className="h-44 overflow-hidden">
+                  <img src={s.img} alt={s.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </div>
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-lg bg-[#edf7e8] group-hover:bg-[#3ca615] flex items-center justify-center transition-colors shrink-0">
+                      <Icon name={s.icon as "Code"} size={18} className="text-[#3ca615] group-hover:text-white transition-colors" fallback="Settings" />
+                    </div>
+                    <h3 className="font-oswald text-lg font-semibold text-[#0D1B2A]">{s.title}</h3>
+                  </div>
+                  <p className="text-[#6B7280] text-sm leading-relaxed">{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ABOUT */}
-      <section id="about" className="py-24 bg-gradient-to-br from-[#edf7e8] to-[#F7F9FC]">
+      <section id="about" className="py-24 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-2 gap-14 items-center">
             <div>

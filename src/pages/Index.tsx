@@ -34,6 +34,7 @@ const Index = () => {
     const id =
       section === "Главная" ? "hero"
       : section === "Услуги" ? "services"
+      : section === "1С" ? "1c"
       : section === "О компании" ? "about"
       : "contacts";
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
