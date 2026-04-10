@@ -1,11 +1,15 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Icon from "@/components/ui/icon";
 
 interface Message {
-  from: "user" | "bot";
+  id?: number;
+  from: "user" | "bot" | "operator";
   text: string;
   time: string;
 }
+
+const CHAT_SEND_URL = "https://functions.poehali.dev/dc27ee8c-eb09-4007-98ec-35f6f9ed8904";
+const CHAT_POLL_URL = "https://functions.poehali.dev/78247096-39f8-4785-b253-89644a37d1b1";
 
 const QUICK_QUESTIONS = [
   "Сколько стоит внедрение 1С?",
@@ -16,19 +20,28 @@ const QUICK_QUESTIONS = [
 ];
 
 const BOT_ANSWERS: Record<string, string> = {
-  "Сколько стоит внедрение 1С?": "Стоимость внедрения 1С зависит от конфигурации и объёма работ. Оставьте заявку — мы свяжемся и рассчитаем под ваши задачи.",
-  "Как зарегистрировать онлайн-кассу?": "Мы поможем подобрать, купить и поставить на учёт ККТ в ФНС под ключ. Позвоните нам или оставьте заявку!",
-  "Какие ТСД вы продаёте?": "Продаём и настраиваем ТСД АТОЛ, POScenter и другие модели. Поддержка Честного знака и интеграция с 1С включены.",
-  "Заправка картриджей — цены?": "Заправляем лазерные и струйные картриджи. Цена зависит от модели. Уточните марку — скажем стоимость сразу.",
-  "Монтаж локальной сети": "Проектируем и монтируем локальные сети для офисов, складов и магазинов. Оставьте заявку — выедем и оценим объём работ.",
+  "Сколько стоит внедрение 1С?": "Стоимость зависит от конфигурации и объёма работ. Оператор уточнит детали — обычно отвечаем за 5 минут.",
+  "Как зарегистрировать онлайн-кассу?": "Поможем подобрать, купить и поставить на учёт ККТ в ФНС под ключ. Оператор свяжется с вами.",
+  "Какие ТСД вы продаёте?": "Продаём ТСД АТОЛ, POScenter и другие. Поддержка Честного знака и интеграция с 1С. Оператор уточнит наличие.",
+  "Заправка картриджей — цены?": "Заправляем лазерные и струйные картриджи. Уточните марку у оператора — назовём стоимость сразу.",
+  "Монтаж локальной сети": "Проектируем и монтируем сети для офисов, складов и магазинов. Оператор уточнит детали и стоимость.",
 };
 
 const now = () =>
   new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 
+const getSessionId = () => {
+  let sid = localStorage.getItem("profix_chat_session");
+  if (!sid) {
+    sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem("profix_chat_session", sid);
+  }
+  return sid;
+};
+
 const GREETING: Message = {
   from: "bot",
-  text: "Здравствуйте! Я помогу ответить на ваши вопросы. Выберите тему или напишите сообщение:",
+  text: "Здравствуйте! Напишите вопрос — наш специалист ответит в ближайшее время. Или выберите тему:",
   time: now(),
 };
 
@@ -37,35 +50,70 @@ const ChatWidget = () => {
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [hasNew, setHasNew] = useState(false);
+  const lastIdRef = useRef(0);
+  const sessionId = useRef(getSessionId());
   const bottomRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open]);
 
-  const addMessage = (msg: Message) =>
-    setMessages((prev) => [...prev, msg]);
+  const pollMessages = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `${CHAT_POLL_URL}?session_id=${sessionId.current}&after_id=${lastIdRef.current}`
+      );
+      const data = await res.json();
+      if (data.messages && data.messages.length > 0) {
+        setMessages((prev) => [
+          ...prev,
+          ...data.messages.map((m: { id: number; text: string; time: string }) => ({
+            id: m.id,
+            from: "operator" as const,
+            text: m.text,
+            time: m.time,
+          })),
+        ]);
+        lastIdRef.current = data.messages[data.messages.length - 1].id;
+        if (!open) setHasNew(true);
+      }
+    } catch (_e) { /* ignore */ }
+  }, [open]);
 
-  const notifyTelegram = (question: string) => {
-    fetch("https://functions.poehali.dev/27bacb22-5ee1-4b45-8d95-45c4816274e0", {
+  useEffect(() => {
+    pollRef.current = setInterval(pollMessages, 4000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [pollMessages]);
+
+  useEffect(() => {
+    if (open) setHasNew(false);
+  }, [open]);
+
+  const sendToBackend = (text: string) => {
+    fetch(CHAT_SEND_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ session_id: sessionId.current, text }),
     }).catch(() => {});
   };
 
+  const addMessage = (msg: Message) =>
+    setMessages((prev) => [...prev, msg]);
+
   const handleQuick = (q: string) => {
     addMessage({ from: "user", text: q, time: now() });
-    notifyTelegram(q);
+    sendToBackend(q);
     setSending(true);
     setTimeout(() => {
       addMessage({
         from: "bot",
-        text: BOT_ANSWERS[q] || "Спасибо за вопрос! Мы свяжемся с вами в ближайшее время.",
+        text: BOT_ANSWERS[q] || "Вопрос передан оператору. Ожидайте ответа.",
         time: now(),
       });
       setSending(false);
-    }, 700);
+    }, 600);
   };
 
   const handleSend = () => {
@@ -73,16 +121,16 @@ const ChatWidget = () => {
     if (!text) return;
     setInput("");
     addMessage({ from: "user", text, time: now() });
-    notifyTelegram(text);
+    sendToBackend(text);
     setSending(true);
     setTimeout(() => {
       addMessage({
         from: "bot",
-        text: "Спасибо за вопрос! Наш специалист свяжется с вами в ближайшее время. Или позвоните нам: +7 (914) 272-71-87",
+        text: "Вопрос передан оператору. Обычно отвечаем за 5 минут. Или звоните: +7 (914) 272-71-87",
         time: now(),
       });
       setSending(false);
-    }, 800);
+    }, 600);
   };
 
   return (
@@ -109,8 +157,13 @@ const ChatWidget = () => {
                 <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
                   msg.from === "user"
                     ? "bg-[#1565C0] text-white rounded-br-sm"
+                    : msg.from === "operator"
+                    ? "bg-[#edf7e8] text-gray-800 rounded-bl-sm shadow-sm border border-green-100"
                     : "bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100"
                 }`}>
+                  {msg.from === "operator" && (
+                    <p className="text-[10px] text-[#3ca615] font-semibold mb-1">Оператор</p>
+                  )}
                   <p>{msg.text}</p>
                   <p className={`text-[10px] mt-1 ${msg.from === "user" ? "text-blue-200" : "text-gray-400"}`}>{msg.time}</p>
                 </div>
@@ -160,7 +213,12 @@ const ChatWidget = () => {
         onClick={() => setOpen(!open)}
         className="fixed bottom-4 right-4 z-50 w-14 h-14 bg-[#1565C0] rounded-full shadow-lg flex items-center justify-center hover:bg-[#1255a8] transition-all hover:scale-105">
         <Icon name={open ? "X" : "MessageCircle"} size={26} className="text-white" />
-        {!open && (
+        {!open && hasNew && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+            <span className="text-white text-[9px] font-bold">!</span>
+          </span>
+        )}
+        {!open && !hasNew && (
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#3ca615] rounded-full border-2 border-white" />
         )}
       </button>

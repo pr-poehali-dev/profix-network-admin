@@ -1,5 +1,7 @@
 {
-  "chat-notify": "https://functions.poehali.dev/27bacb22-5ee1-4b45-8d95-45c4816274e0",
+  "chat-send": "https://functions.poehali.dev/dc27ee8c-eb09-4007-98ec-35f6f9ed8904",
+  "chat-poll": "https://functions.poehali.dev/78247096-39f8-4785-b253-89644a37d1b1",
+  "tg-webhook": "https://functions.poehali.dev/c517fd40-4c2d-43f0-a3a9-17a4f22aa3ce",
   "download-logos": "https://functions.poehali.dev/e1236642-235f-444e-91a0-bddf7695149f",
   "send-email": "https://functions.poehali.dev/d9dfa652-a0b7-4233-ba59-2efd338c4f10"
 }
