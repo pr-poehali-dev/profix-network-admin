@@ -1,7 +1,7 @@
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
 
 const partners = [
-  { name: "DataMobile", url: "https://datamobile.ru", logo: null },
+  { name: "DataMobile", url: "https://data-mobile.ru", logo: `${CDN}/datamobile_1.svg` },
   { name: "POSCenter", url: "https://poscenter.ru", logo: null },
   { name: "1С Франчайзи", url: "https://1c.ru", logo: `${CDN}/1c.svg` },
   { name: "Dreamkas", url: "https://dreamkas.ru", logo: `${CDN}/dreamkas.svg` },

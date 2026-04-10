@@ -5,14 +5,13 @@ import boto3
 import urllib.request
 
 LOGOS = [
-    ("datamobile", "https://data-mobile.ru/wp-content/uploads/logo-dm.png", "image/png"),
-    ("poscenter", "https://pos-center.ru/img/logo.png", "image/png"),
-    ("1c", "https://1c.ru/fav.svg", "image/svg+xml"),
-    ("dreamkas", "https://dreamkas.ru/favicon.svg", "image/svg+xml"),
-    ("atol", "https://atol.ru/local/templates/main_new/images/logo.svg", "image/svg+xml"),
-    ("saby", "https://online.sbis.ru/shared/disk/f2bc2e3d-b9ab-4a32-94a5-4c3be7d8de7e", "image/png"),
-    ("ofd-yandex", "https://ofd.yandex.ru/favicon.ico", "image/x-icon"),
-    ("platformaofd", "https://platformaofd.ru/wp-content/uploads/2024/09/logo-ofd-1200-675.png", "image/png"),
+    ("datamobile_1", "https://data-mobile.ru/assets/template/images/common/logo.svg", "image/svg+xml"),
+    ("datamobile_2", "https://data-mobile.ru/assets/template/images/logo.svg", "image/svg+xml"),
+    ("datamobile_3", "https://data-mobile.ru/assets/template/images/logo.png", "image/png"),
+    ("datamobile_4", "https://data-mobile.ru/wp-content/uploads/2021/06/logo_dm.svg", "image/svg+xml"),
+    ("datamobile_5", "https://data-mobile.ru/wp-content/uploads/2020/10/Logo_DataMobile.png", "image/png"),
+    ("datamobile_6", "https://data-mobile.ru/assets/template/images/common/logo-white.svg", "image/svg+xml"),
+    ("datamobile_7", "https://data-mobile.ru/assets/img/logo.svg", "image/svg+xml"),
 ]
 
 HEADERS = {
