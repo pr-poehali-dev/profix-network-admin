@@ -13,7 +13,6 @@ const carouselImages = [
 const carouselSlides = [
   ...carouselImages.map((img) => ({ img, title: "", desc: "" })),
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/89e28943-f50b-4e97-8ae8-27e3b5dc468d.jpg", title: "Разработка в 1С", desc: "Доработка и разработка конфигураций 1С под задачи вашего учёта." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/8bf05640-4bf8-462b-8b15-5a1dad499873.jpg", title: "Продажа программ 1С", desc: "Продажа лицензионных программных продуктов 1С для любого бизнеса." },
 ];
 
 interface HeroSectionProps {
