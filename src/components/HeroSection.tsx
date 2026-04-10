@@ -3,19 +3,15 @@ import Icon from "@/components/ui/icon";
 const HERO_IMAGE = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/27e6a446-83e0-42ac-9fb3-936312c8e887.jpg";
 
 const carouselImages = [
-  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/46d63e46-f342-4d79-bb6b-55d21373256b.jpg",
-  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/bc8453d4-baa0-4e33-b1d7-47a3797a43ae.jpg",
-  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/a0289068-e9c0-4de3-a07c-3d411ae80cb2.jpg",
-  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/650eb8b2-6f57-46bd-8e0c-139c059a46af.jpg",
-  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/fdb11e9e-7b86-41e0-b20c-f0fa50975d4c.jpg",
+  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/4eb3466b-967c-4846-a9f0-b61e7ee0788a.jpg",
+  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/a6fd7ddd-45c4-4263-9dcb-1e9032247826.jpg",
+  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/3f9e4cac-7b67-465a-82d1-491dfb272cd9.jpg",
+  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/5334d264-7817-42d5-81bd-55e6ebe1c422.jpg",
+  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/2bab8ee4-46e0-4518-9aa3-358619ac6248.jpg",
 ];
 
 const carouselSlides = [
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/46d63e46-f342-4d79-bb6b-55d21373256b.jpg", title: "Программы 1С", desc: "Продажа, внедрение и сопровождение программных продуктов 1С." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/bc8453d4-baa0-4e33-b1d7-47a3797a43ae.jpg", title: "Онлайн-кассы (ККТ)", desc: "Продажа, регистрация в ФНС и обслуживание онлайн-касс." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/a0289068-e9c0-4de3-a07c-3d411ae80cb2.jpg", title: "Терминалы сбора данных (ТСД)", desc: "Поставка и настройка ТСД для склада, торговли и маркировки." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/650eb8b2-6f57-46bd-8e0c-139c059a46af.jpg", title: "POS-оборудование", desc: "Моноблоки и POS-системы для автоматизации торговых точек." },
-  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/fdb11e9e-7b86-41e0-b20c-f0fa50975d4c.jpg", title: "Автоматизация склада", desc: "Внедрение учёта и маркировки товаров с помощью ТСД и 1С." },
+  ...carouselImages.map((img) => ({ img, title: "", desc: "" })),
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/e90e02aa-034a-46fb-a4d8-a7901477845e.jpg", title: "ККТ АТОЛ", desc: "Продажа, ремонт и обслуживание онлайн-касс АТОЛ. Регистрация в ФНС." },
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/9a113b02-5317-45ce-b244-0013000e4284.jpg", title: "ТСД POScenter", desc: "Терминалы сбора данных для склада и торговли. Продажа и обслуживание." },
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/72be85e6-b560-4799-a9ab-09ac84f06452.jpg", title: "ТСД АТОЛ", desc: "Мобильные терминалы АТОЛ для маркировки и учёта товаров." },
