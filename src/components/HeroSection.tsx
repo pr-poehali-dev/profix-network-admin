@@ -21,6 +21,9 @@ const carouselSlides = [
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/5399c578-756a-444a-82da-0852f5c8f36e.jpg", title: "Сенсорные моноблоки POScenter", desc: "Автоматизация розничных продаж, продуктовых магазинов и кафе." },
   { img: "https://cdn.poehali.dev/files/205678e3-04aa-4a48-9776-3cd9038727f9.jpg", title: "ПО Data-Mobile для ТСД", desc: "Программное обеспечение для терминалов: маркировка, склад, инвентаризация." },
   { img: "https://cdn.poehali.dev/files/c317a926-8fb7-47b2-b842-cf98ed72656f.jpg", title: "Интеграция с Честным знаком", desc: "Подключение ТСД к системе маркировки. Продажа, настройка и сопровождение." },
+  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/a7576981-9ffe-4132-8897-c9a94227b773.jpg", title: "Администрирование серверов", desc: "Настройка, обслуживание и поддержка серверного оборудования для вашего бизнеса." },
+  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/e22ee190-d9dc-47e1-b594-58e158c75c54.jpg", title: "Монтаж локальных сетей", desc: "Проектирование и прокладка локальных сетей в офисе, складе или магазине." },
+  { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/31bbac8e-d82e-40ea-ac8a-efb2d047e846.jpg", title: "Заправка картриджей", desc: "Заправка и восстановление лазерных и струйных картриджей. Быстро и недорого." },
 ];
 
 interface HeroSectionProps {
