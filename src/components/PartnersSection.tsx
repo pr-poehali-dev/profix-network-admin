@@ -1,12 +1,14 @@
+const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
+
 const partners = [
-  { name: "DataMobile", url: "https://datamobile.ru", logo: "https://datamobile.ru/wp-content/uploads/2021/06/logo_dm.svg" },
-  { name: "POSCenter", url: "https://poscenter.ru", logo: "https://poscenter.ru/local/templates/main/img/logo.svg" },
-  { name: "1С Франчайзи", url: "https://1c.ru", logo: "https://1c.ru/i/logo.png" },
-  { name: "Dreamkas", url: "https://dreamkas.ru", logo: "https://dreamkas.ru/static/images/logo.svg" },
-  { name: "АТОЛ", url: "https://atol.ru", logo: "https://atol.ru/local/templates/main_new/images/logo.svg" },
-  { name: "СБИС", url: "https://saby.ru", logo: "https://saby.ru/cdn/images/logo-saby.svg" },
-  { name: "ОФД Яндекс", url: "https://ofd.yandex.ru", logo: "https://yastatic.net/s3/home/services/Taxi/logo/logo__wordmark_ru.svg" },
-  { name: "Платформа ОФД", url: "https://platformaofd.ru", logo: "https://platformaofd.ru/images/logo.svg" },
+  { name: "DataMobile", url: "https://datamobile.ru", logo: null },
+  { name: "POSCenter", url: "https://poscenter.ru", logo: null },
+  { name: "1С Франчайзи", url: "https://1c.ru", logo: `${CDN}/1c.svg` },
+  { name: "Dreamkas", url: "https://dreamkas.ru", logo: `${CDN}/dreamkas.svg` },
+  { name: "АТОЛ", url: "https://atol.ru", logo: `${CDN}/atol.svg` },
+  { name: "СБИС", url: "https://saby.ru", logo: null },
+  { name: "ОФД Яндекс", url: "https://ofd.yandex.ru", logo: null },
+  { name: "Платформа ОФД", url: "https://platformaofd.ru", logo: `${CDN}/platformaofd.png` },
 ];
 
 const PartnersSection = () => {
@@ -26,23 +28,19 @@ const PartnersSection = () => {
               className="flex flex-col items-center gap-2 group"
             >
               <div className="h-12 flex items-center justify-center grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100 transition-all duration-300">
-                <img
-                  src={p.logo}
-                  alt={p.name}
-                  className="max-h-10 max-w-[90px] object-contain"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    target.style.display = "none";
-                    const sibling = target.nextElementSibling as HTMLElement;
-                    if (sibling) sibling.style.display = "flex";
-                  }}
-                />
-                <span
-                  className="hidden items-center justify-center text-xs font-semibold text-gray-600 text-center leading-tight"
-                  style={{ display: "none" }}
-                >
-                  {p.name}
-                </span>
+                {p.logo ? (
+                  <img
+                    src={p.logo}
+                    alt={p.name}
+                    className="max-h-10 max-w-[90px] object-contain"
+                  />
+                ) : (
+                  <div className="h-10 px-3 flex items-center justify-center rounded border border-gray-200 bg-gray-50 group-hover:border-[#3ca615] transition-colors">
+                    <span className="text-xs font-bold text-gray-500 group-hover:text-[#3ca615] text-center leading-tight">
+                      {p.name}
+                    </span>
+                  </div>
+                )}
               </div>
               <span className="text-[11px] text-gray-400 group-hover:text-[#3ca615] transition-colors text-center leading-tight">
                 {p.name}

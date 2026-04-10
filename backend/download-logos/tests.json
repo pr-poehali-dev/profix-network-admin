@@ -1,0 +1,10 @@
+{
+  "tests": [
+    {
+      "name": "Download logos",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}
