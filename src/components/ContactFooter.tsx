@@ -1,9 +1,25 @@
 import Icon from "@/components/ui/icon";
 
+const topics = [
+  "Услуги по 1С",
+  "Внедрение 1С",
+  "Консультации по 1С",
+  "Разработка в 1С",
+  "Продажа программ 1С",
+  "1С:ИТС",
+  "Торговое оборудование (ККТ, ТСД)",
+  "Ремонт компьютеров",
+  "Видеонаблюдение",
+  "Монтаж сетей",
+  "Заправка картриджей",
+  "Другой вопрос",
+];
+
 interface FormData {
   name: string;
   phone: string;
   email: string;
+  topic: string;
   problem: string;
 }
 
@@ -85,6 +101,25 @@ const ContactFooter = ({
                   placeholder="your@email.ru"
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-[#3ca615] focus:ring-2 focus:ring-[#3ca615]/20 transition-all text-sm"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#374151] mb-1.5">Тема обращения *</label>
+                <div className="flex flex-wrap gap-2">
+                  {topics.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => onFormChange({ ...formData, topic: t })}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        formData.topic === t
+                          ? "bg-[#3ca615] text-white border-[#3ca615]"
+                          : "bg-white text-[#374151] border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615]"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#374151] mb-1.5">Описание проблемы *</label>

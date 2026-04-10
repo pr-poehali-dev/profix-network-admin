@@ -8,7 +8,7 @@ import ContactFooter from "@/components/ContactFooter";
 const Index = () => {
   const [activeSection, setActiveSection] = useState("Главная");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: "", phone: "", email: "", problem: "" });
+  const [formData, setFormData] = useState({ name: "", phone: "", email: "", topic: "", problem: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -65,7 +65,7 @@ const Index = () => {
 
   const handleReset = () => {
     setSubmitted(false);
-    setFormData({ name: "", phone: "", email: "", problem: "" });
+    setFormData({ name: "", phone: "", email: "", topic: "", problem: "" });
   };
 
   return (
