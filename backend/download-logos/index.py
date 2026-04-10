@@ -5,7 +5,7 @@ import boto3
 import urllib.request
 
 LOGOS = [
-    ("atol", "https://cdn.poehali.dev/files/ce0768c2-dd4e-4201-9685-5a7b2f50c269.png", "image/png"),
+    ("saby", "https://cdn.poehali.dev/files/5467360d-36ef-4903-b64b-69ef06b8c401.png", "image/png"),
 ]
 
 HEADERS = {
