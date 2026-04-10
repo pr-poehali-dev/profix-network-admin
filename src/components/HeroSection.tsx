@@ -21,7 +21,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
   return (
     <>
       {/* HERO */}
-      <section id="hero" className="pt-16 min-h-screen flex items-center relative overflow-hidden">
+      <section id="hero" className="pt-16 flex flex-col relative overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center opacity-10"
           style={{ backgroundImage: `url(${HERO_IMAGE})` }}
@@ -32,7 +32,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8]" style={{ opacity: 0.50 }} />
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 grid md:grid-cols-2 gap-12 items-center">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 grid md:grid-cols-2 gap-12 items-center min-h-[calc(100vh-theme(spacing.16))]">
           <div className="animate-fade-in-up">
             <div className="inline-flex items-center gap-2 bg-[#3ca615]/10 text-[#3ca615] px-4 py-2 rounded-full text-sm font-medium mb-6">
               <Icon name="MapPin" size={14} />
@@ -85,7 +85,11 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-sm">
+        <div className="relative z-10">
+          <PartnersSection />
+        </div>
+
+        <div className="relative z-10 bg-white border-t border-gray-100 shadow-sm">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 grid grid-cols-3 gap-4 text-center">
             {[
               { val: "1000+", label: "клиентов" },
@@ -100,8 +104,6 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
           </div>
         </div>
       </section>
-
-      <PartnersSection />
 
       {/* CAROUSEL */}
       <section className="bg-white py-10">
