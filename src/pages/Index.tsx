@@ -81,7 +81,6 @@ const Index = () => {
         onSetCarouselIdx={setCarouselIdx}
         onScrollTo={scrollTo}
       />
-      <PartnersSection />
       <ServicesAboutSection />
       <ContactFooter
         formData={formData}
