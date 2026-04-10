@@ -141,7 +141,7 @@ const ContactFooter = ({
           </div>
           <div className="text-center text-gray-500 text-sm">
             <p>г. Якутск, ул. Халтурина, 6</p>
-            <p className="mt-1">© 2024 ProFiX. Все права защищены.</p>
+            <p className="mt-1">© 2026 ProFiX. Все права защищены.</p>
           </div>
           <div className="flex flex-col items-end gap-1 text-sm">
             <a href="tel:+79142727187" className="text-gray-900 hover:text-[#3ca615] transition-colors flex items-center gap-1.5">
