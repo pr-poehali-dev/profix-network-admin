@@ -21,9 +21,7 @@ CORS = {
 
 def get_conn():
     schema = os.environ.get("MAIN_DB_SCHEMA", "public")
-    dsn = os.environ["DATABASE_URL"]
-    sep = "&" if "?" in dsn else "?"
-    return psycopg2.connect(dsn + sep + "options=-c%20search_path%3D" + schema)
+    return psycopg2.connect(os.environ["DATABASE_URL"], options=f"-c search_path={schema}")
 
 
 

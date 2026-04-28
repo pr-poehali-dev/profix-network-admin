@@ -69,9 +69,7 @@ def handler(event: dict, context) -> dict:
         return {"statusCode": 200, "headers": CORS, "body": ""}
 
     _schema = os.environ.get("MAIN_DB_SCHEMA", "public")
-    _dsn = os.environ["DATABASE_URL"]
-    _sep = "&" if "?" in _dsn else "?"
-    conn = psycopg2.connect(_dsn + _sep + "options=-c%20search_path%3D" + _schema)
+    conn = psycopg2.connect(os.environ["DATABASE_URL"], options=f"-c search_path={_schema}")
     try:
         if event.get("httpMethod") == "POST":
             body = json.loads(event.get("body") or "{}")
