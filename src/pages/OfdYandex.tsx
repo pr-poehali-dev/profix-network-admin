@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
+import PartnerContactForm from "@/components/PartnerContactForm";
 
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
 
@@ -141,6 +142,18 @@ const OfdYandexPage = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Форма заявки */}
+      <section className="py-14 bg-[#F7F9FC]">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8">
+            <p className="text-[#3ca615] text-sm font-semibold uppercase tracking-widest mb-2">Оставить заявку</p>
+            <h2 className="font-oswald text-3xl font-bold text-[#0D1B2A]">Получить консультацию</h2>
+            <p className="text-[#6B7280] mt-2">Заполните форму — мы свяжемся с вами в ближайшее время</p>
+          </div>
+          <PartnerContactForm accentColor="#FF6600" defaultTopic="Торговое оборудование (ККТ, ТСД)" />
         </div>
       </section>
 
