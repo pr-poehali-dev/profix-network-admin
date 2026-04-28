@@ -144,7 +144,7 @@ def handler(event: dict, context) -> dict:
         else:
             if not tg_chat_id:
                 conn.close()
-                return err("Telegram не привязан. Напишите боту /start и повторите.")
+                return err("Telegram не привязан. Перейдите в кабинет и нажмите «Привязать Telegram».")
 
         code = str(secrets.randbelow(900000) + 100000)
         expires = datetime.now() + timedelta(minutes=10)
