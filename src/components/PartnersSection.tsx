@@ -2,13 +2,13 @@ const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290d
 
 const partners = [
   { name: "DataMobile", url: "/datamobile", logo: `${CDN}/datamobile_1.svg` },
-  { name: "POSCenter", url: "https://pos-center.ru", logo: `${CDN}/poscenter.png` },
-  { name: "1С Франчайзи", url: "https://1c.ru", logo: `${CDN}/1c.svg` },
-  { name: "Dreamkas", url: "https://dreamkas.ru", logo: `${CDN}/dreamkas.svg` },
-  { name: "АТОЛ", url: "https://atol.ru", logo: `${CDN}/atol.png` },
-  { name: "СБИС", url: "https://saby.ru", logo: `${CDN}/saby.png` },
-  { name: "ОФД Яндекс", url: "https://ofd.yandex.ru", logo: `${CDN}/ofdyandex.svg` },
-  { name: "Платформа ОФД", url: "https://platformaofd.ru", logo: `${CDN}/platformaofd.png` },
+  { name: "POSCenter", url: "/poscenter", logo: `${CDN}/poscenter.png` },
+  { name: "1С Франчайзи", url: "/1c", logo: `${CDN}/1c.svg` },
+  { name: "Dreamkas", url: "/dreamkas", logo: `${CDN}/dreamkas.svg` },
+  { name: "АТОЛ", url: "/atol", logo: `${CDN}/atol.png` },
+  { name: "СБИС", url: "/sbis", logo: `${CDN}/saby.png` },
+  { name: "ОФД Яндекс", url: "/ofd-yandex", logo: `${CDN}/ofdyandex.svg` },
+  { name: "Платформа ОФД", url: "/platforma-ofd", logo: `${CDN}/platformaofd.png` },
 ];
 
 const PartnersSection = () => {
