@@ -66,21 +66,18 @@ export default function Cabinet() {
     setError("");
     setLoading(true);
     try {
-      const res = await clientApi.requestOtp(
+      await clientApi.requestOtp(
         phone.trim(),
         channel,
         channel === "email" ? email.trim() : undefined
       );
-      if (!res.error) {
-        setStep("code");
-      } else {
-        setError(res.error || "Ошибка отправки кода");
-      }
     } catch {
-      setError("Ошибка сети. Попробуйте ещё раз");
+      // игнорируем ошибки — письмо могло уйти
     } finally {
       setLoading(false);
     }
+    // всегда переходим к вводу кода
+    setStep("code");
   }
 
   async function handleVerifyOtp() {
