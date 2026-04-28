@@ -117,7 +117,7 @@ def handler(event: dict, context) -> dict:
         conn = get_conn()
         cur = conn.cursor()
 
-        cur.execute(f"SELECT id, email, telegram_chat_id FROM {SC}.clients WHERE phone = %s", (phone,))
+        cur.execute(f"SELECT id, email, telegram_id FROM {SC}.clients WHERE phone = %s", (phone,))
         row = cur.fetchone()
 
         if not row:
@@ -125,7 +125,7 @@ def handler(event: dict, context) -> dict:
                 conn.close()
                 return err("Для нового клиента укажите email")
             cur.execute(
-                f"INSERT INTO {SC}.clients (phone, email) VALUES (%s, %s) RETURNING id, email, telegram_chat_id",
+                f"INSERT INTO {SC}.clients (phone, email) VALUES (%s, %s) RETURNING id, email, telegram_id",
                 (phone, email or None)
             )
             row = cur.fetchone()
