@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { techApi, techSession, Ticket, STATUS_COLORS } from "@/lib/crm-api";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 const STATUS_OPTIONS = [
   { value: "new", label: "Новая" },
   { value: "in_progress", label: "В работе" },
@@ -37,6 +42,24 @@ export default function TechPortal() {
   const [statusComment, setStatusComment] = useState("");
   const [filter, setFilter] = useState("active");
   const [saving, setSaving] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  // PWA установка
+  useEffect(() => {
+    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener("beforeinstallprompt", handler);
+    setIsInstalled(window.matchMedia("(display-mode: standalone)").matches);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  async function handleInstall() {
+    if (!installPrompt) return;
+    const prompt = installPrompt as BeforeInstallPromptEvent;
+    prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+    if (outcome === "accepted") { setIsInstalled(true); setInstallPrompt(null); }
+  }
 
   // Проверка сохранённого токена
   useEffect(() => {
@@ -198,6 +221,16 @@ export default function TechPortal() {
             <h1 className="font-oswald text-3xl font-bold text-[#0D1B2A]">Портал специалиста</h1>
           </div>
 
+          {!isInstalled && installPrompt && (
+            <button
+              onClick={handleInstall}
+              className="w-full flex items-center justify-center gap-2 bg-[#3ca615] text-white rounded-xl py-3 text-sm font-semibold mb-5 hover:bg-[#2d8a10] transition"
+            >
+              <Icon name="Download" size={16} />
+              Установить приложение на телефон
+            </button>
+          )}
+
           {error && (
             <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
               <Icon name="AlertCircle" size={16} className="text-red-500 shrink-0" />
@@ -285,6 +318,15 @@ export default function TechPortal() {
             <p className="font-semibold text-sm text-[#111827]">{tech?.name}</p>
             <p className="text-xs text-gray-400">{tech?.specialization || "Технический специалист"}</p>
           </div>
+          {!isInstalled && installPrompt && (
+            <button
+              onClick={handleInstall}
+              className="flex items-center gap-1.5 text-sm text-white bg-[#3ca615] px-3 py-1.5 rounded-lg hover:bg-[#2d8a10] transition-colors mr-1"
+            >
+              <Icon name="Download" size={15} />
+              Установить
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"

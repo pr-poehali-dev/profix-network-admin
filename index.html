@@ -14,6 +14,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;900&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link rel="icon" type="image/png" href="https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ProFiX">
+    <meta name="theme-color" content="#3ca615">
+    <link rel="apple-touch-icon" href="https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png">
     <style>link[rel="icon"]{border-radius:50%}</style>
     <meta property="og:title" content="Поехали!">
     <meta property="og:description" content="Ваш личный программист, который делает сайты в 30 раз быстрее обычного.">
@@ -38,6 +45,13 @@
 <body>
 <div id="root"></div>
 <script type="module" src="/src/main.tsx"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js");
+    });
+  }
+</script>
 
 <!-- Yandex.Metrika counter -->
 <script type="text/javascript">

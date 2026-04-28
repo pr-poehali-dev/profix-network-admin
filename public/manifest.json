@@ -1,0 +1,26 @@
+{
+  "name": "ProFiX — Тех специалист",
+  "short_name": "ProFiX",
+  "description": "Личный кабинет технического специалиста ProFiX",
+  "start_url": "/techportal",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D1B2A",
+  "theme_color": "#3ca615",
+  "icons": [
+    {
+      "src": "https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "ru"
+}
