@@ -7,6 +7,7 @@ import PartnersSection from "@/components/PartnersSection";
 import ContactFooter from "@/components/ContactFooter";
 import ChatWidget from "@/components/ChatWidget";
 import ReviewsSection from "@/components/ReviewsSection";
+import MapSection from "@/components/MapSection";
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState("Главная");
@@ -94,6 +95,7 @@ const Index = () => {
       <ServicesAboutSection />
       <PartnersSection />
       <ReviewsSection />
+      <MapSection />
       <ContactFooter
         formData={formData}
         submitted={submitted}
