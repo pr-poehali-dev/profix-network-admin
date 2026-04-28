@@ -18,11 +18,11 @@ CORS = {
     "Access-Control-Allow-Headers": "Content-Type, X-Authorization, Authorization",
 }
 
+SC = os.environ.get("MAIN_DB_SCHEMA", "public")
+
 
 def get_conn():
-    schema = os.environ.get("MAIN_DB_SCHEMA", "public")
-    return psycopg2.connect(os.environ["DATABASE_URL"], options=f"-c search_path={schema}")
-
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
 def ok(data: dict):
@@ -98,7 +98,7 @@ def handler(event: dict, context) -> dict:
         password = body.get("password", "profix2024")
         pw_hash = hash_password(password)
         safe_login = login.replace("'", "")
-        cur2.execute(f"UPDATE managers SET password_hash = '{pw_hash}', role = 'admin' WHERE login = '{safe_login}' OR username = '{safe_login}'")
+        cur2.execute(f"UPDATE {SC}.managers SET password_hash = '{pw_hash}', role = 'admin' WHERE login = '{safe_login}' OR username = '{safe_login}'")
         updated = cur2.rowcount
         conn2.commit()
         cur2.close()
@@ -108,7 +108,7 @@ def handler(event: dict, context) -> dict:
     # ── КЛИЕНТ: запрос OTP ──────────────────────────────────────────────────
     if action == "client_request_otp":
         phone = body.get("phone", "").strip()
-        channel = body.get("channel", "email")  # email | telegram
+        channel = body.get("channel", "email")
         email = body.get("email", "").strip()
 
         if not phone:
@@ -117,8 +117,7 @@ def handler(event: dict, context) -> dict:
         conn = get_conn()
         cur = conn.cursor()
 
-        # Найти или создать клиента
-        cur.execute(f"SELECT id, email, telegram_chat_id FROM clients WHERE phone = %s", (phone,))
+        cur.execute(f"SELECT id, email, telegram_chat_id FROM {SC}.clients WHERE phone = %s", (phone,))
         row = cur.fetchone()
 
         if not row:
@@ -126,7 +125,7 @@ def handler(event: dict, context) -> dict:
                 conn.close()
                 return err("Для нового клиента укажите email")
             cur.execute(
-                f"INSERT INTO clients (phone, email) VALUES (%s, %s) RETURNING id, email, telegram_chat_id",
+                f"INSERT INTO {SC}.clients (phone, email) VALUES (%s, %s) RETURNING id, email, telegram_chat_id",
                 (phone, email or None)
             )
             row = cur.fetchone()
@@ -140,7 +139,7 @@ def handler(event: dict, context) -> dict:
                 return err("Email не привязан к аккаунту. Укажите email.")
             send_to_email = email or client_email
             if email and not client_email:
-                cur.execute(f"UPDATE clients SET email = %s WHERE id = %s", (email, client_id))
+                cur.execute(f"UPDATE {SC}.clients SET email = %s WHERE id = %s", (email, client_id))
                 conn.commit()
         else:
             if not tg_chat_id:
@@ -151,7 +150,7 @@ def handler(event: dict, context) -> dict:
         expires = datetime.now() + timedelta(minutes=10)
 
         cur.execute(
-            f"INSERT INTO client_otp (phone, code, channel, expires_at) VALUES (%s, %s, %s, %s)",
+            f"INSERT INTO {SC}.client_otp (phone, code, channel, expires_at) VALUES (%s, %s, %s, %s)",
             (phone, code, channel, expires)
         )
         conn.commit()
@@ -177,7 +176,7 @@ def handler(event: dict, context) -> dict:
         cur = conn.cursor()
 
         cur.execute(
-            f"""SELECT id FROM client_otp
+            f"""SELECT id FROM {SC}.client_otp
                WHERE phone=%s AND code=%s AND used=FALSE AND expires_at > NOW()
                ORDER BY created_at DESC LIMIT 1""",
             (phone, code)
@@ -187,15 +186,15 @@ def handler(event: dict, context) -> dict:
             conn.close()
             return err("Неверный или истёкший код")
 
-        cur.execute(f"UPDATE client_otp SET used=TRUE WHERE id=%s", (otp_row[0],))
+        cur.execute(f"UPDATE {SC}.client_otp SET used=TRUE WHERE id=%s", (otp_row[0],))
 
-        cur.execute(f"SELECT id, name, phone, email FROM clients WHERE phone=%s", (phone,))
+        cur.execute(f"SELECT id, name, phone, email FROM {SC}.clients WHERE phone=%s", (phone,))
         client = cur.fetchone()
 
         token = make_token()
         expires = datetime.now() + timedelta(days=30)
         cur.execute(
-            f"INSERT INTO client_sessions (client_id, token, expires_at) VALUES (%s, %s, %s)",
+            f"INSERT INTO {SC}.client_sessions (client_id, token, expires_at) VALUES (%s, %s, %s)",
             (client[0], token, expires)
         )
         conn.commit()
@@ -220,7 +219,7 @@ def handler(event: dict, context) -> dict:
 
         pw_hash = hash_password(password)
         cur.execute(
-            f"SELECT id, COALESCE(name, full_name), role FROM managers WHERE (login=%s OR username=%s) AND password_hash=%s",
+            f"SELECT id, COALESCE(name, full_name), role FROM {SC}.managers WHERE (login=%s OR username=%s) AND password_hash=%s",
             (login, login, pw_hash)
         )
         mgr = cur.fetchone()
@@ -231,7 +230,7 @@ def handler(event: dict, context) -> dict:
         token = make_token()
         expires = datetime.now() + timedelta(days=7)
         cur.execute(
-            f"INSERT INTO manager_sessions (manager_id, token, expires_at) VALUES (%s, %s, %s)",
+            f"INSERT INTO {SC}.manager_sessions (manager_id, token, expires_at) VALUES (%s, %s, %s)",
             (mgr[0], token, expires)
         )
         conn.commit()
@@ -251,8 +250,8 @@ def handler(event: dict, context) -> dict:
         conn = get_conn()
         cur = conn.cursor()
         cur.execute(
-            f"""SELECT m.role FROM manager_sessions ms
-               JOIN managers m ON m.id = ms.manager_id
+            f"""SELECT m.role FROM {SC}.manager_sessions ms
+               JOIN {SC}.managers m ON m.id = ms.manager_id
                WHERE ms.token=%s AND ms.expires_at > NOW()""",
             (token,)
         )
@@ -271,7 +270,7 @@ def handler(event: dict, context) -> dict:
             return err("Заполните все поля")
 
         cur.execute(
-            f"INSERT INTO managers (username, login, password_hash, full_name, name, role) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+            f"INSERT INTO {SC}.managers (username, login, password_hash, full_name, name, role) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
             (login, login, hash_password(password), name, name, role)
         )
         new_id = cur.fetchone()[0]
@@ -291,7 +290,7 @@ def handler(event: dict, context) -> dict:
         conn = get_conn()
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, name, phone, specialization FROM technicians WHERE id=%s AND pin_code=%s AND is_active=TRUE",
+            f"SELECT id, name, phone, specialization FROM {SC}.technicians WHERE id=%s AND pin_code=%s AND is_active=TRUE",
             (int(tech_id), pin)
         )
         tech = cur.fetchone()
@@ -302,7 +301,7 @@ def handler(event: dict, context) -> dict:
         token = make_token()
         expires = datetime.now() + timedelta(days=30)
         cur.execute(
-            "INSERT INTO technician_sessions (technician_id, token, expires_at) VALUES (%s, %s, %s)",
+            f"INSERT INTO {SC}.technician_sessions (technician_id, token, expires_at) VALUES (%s, %s, %s)",
             (tech[0], token, expires)
         )
         conn.commit()
@@ -317,7 +316,7 @@ def handler(event: dict, context) -> dict:
     if action == "technicians_list":
         conn = get_conn()
         cur = conn.cursor()
-        cur.execute("SELECT id, name, specialization FROM technicians WHERE is_active=TRUE ORDER BY name")
+        cur.execute(f"SELECT id, name, specialization FROM {SC}.technicians WHERE is_active=TRUE ORDER BY name")
         techs = [{"id": r[0], "name": r[1], "specialization": r[2]} for r in cur.fetchall()]
         cur.close()
         conn.close()
@@ -336,8 +335,8 @@ def handler(event: dict, context) -> dict:
 
         if role == "client":
             cur.execute(
-                f"""SELECT c.id, c.name, c.phone, c.email FROM client_sessions cs
-                   JOIN clients c ON c.id = cs.client_id
+                f"""SELECT c.id, c.name, c.phone, c.email FROM {SC}.client_sessions cs
+                   JOIN {SC}.clients c ON c.id = cs.client_id
                    WHERE cs.token=%s AND cs.expires_at > NOW()""",
                 (token,)
             )
@@ -348,8 +347,8 @@ def handler(event: dict, context) -> dict:
             return ok({"valid": True, "client": {"id": row[0], "name": row[1], "phone": row[2], "email": row[3]}})
         elif role == "technician":
             cur.execute(
-                """SELECT t.id, t.name, t.phone, t.specialization FROM technician_sessions ts
-                   JOIN technicians t ON t.id = ts.technician_id
+                f"""SELECT t.id, t.name, t.phone, t.specialization FROM {SC}.technician_sessions ts
+                   JOIN {SC}.technicians t ON t.id = ts.technician_id
                    WHERE ts.token=%s AND ts.expires_at > NOW()""",
                 (token,)
             )
@@ -360,8 +359,8 @@ def handler(event: dict, context) -> dict:
             return ok({"valid": True, "technician": {"id": row[0], "name": row[1], "phone": row[2], "specialization": row[3]}})
         else:
             cur.execute(
-                f"""SELECT m.id, COALESCE(m.name, m.full_name), m.role FROM manager_sessions ms
-                   JOIN managers m ON m.id = ms.manager_id
+                f"""SELECT m.id, COALESCE(m.name, m.full_name), m.role FROM {SC}.manager_sessions ms
+                   JOIN {SC}.managers m ON m.id = ms.manager_id
                    WHERE ms.token=%s AND ms.expires_at > NOW()""",
                 (token,)
             )
@@ -371,7 +370,7 @@ def handler(event: dict, context) -> dict:
                 return err("Сессия истекла", 401)
             return ok({"valid": True, "manager": {"id": row[0], "name": row[1], "role": row[2]}})
 
-    # ── КЛИЕНТ: обновление профиля (имя, telegram_id) ───────────────────────
+    # ── КЛИЕНТ: обновление профиля ───────────────────────────────────────────
     if action == "client_update_profile":
         auth = (event.get("headers") or {}).get("X-Authorization", "") or \
                (event.get("headers") or {}).get("Authorization", "")
@@ -382,7 +381,7 @@ def handler(event: dict, context) -> dict:
         conn = get_conn()
         cur = conn.cursor()
         cur.execute(
-            "SELECT client_id FROM client_sessions WHERE token=%s AND expires_at > NOW()",
+            f"SELECT client_id FROM {SC}.client_sessions WHERE token=%s AND expires_at > NOW()",
             (token,)
         )
         row = cur.fetchone()
@@ -403,12 +402,12 @@ def handler(event: dict, context) -> dict:
         vals.append(client_id)
 
         if len(sets) > 1:
-            cur.execute(f"UPDATE clients SET {', '.join(sets)} WHERE id = %s", vals)
+            cur.execute(f"UPDATE {SC}.clients SET {', '.join(sets)} WHERE id = %s", vals)
             conn.commit()
 
-        cur.execute("SELECT id, name, phone, email, telegram_id FROM clients WHERE id = %s", (client_id,))
+        cur.execute(f"SELECT id, name, phone, email FROM {SC}.clients WHERE id = %s", (client_id,))
         c = cur.fetchone()
         cur.close(); conn.close()
-        return ok({"client": {"id": c[0], "name": c[1], "phone": c[2], "email": c[3], "telegram_id": c[4]}})
+        return ok({"client": {"id": c[0], "name": c[1], "phone": c[2], "email": c[3]}})
 
     return err("Неизвестное действие")

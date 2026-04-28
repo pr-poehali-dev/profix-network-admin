@@ -9,6 +9,8 @@ CORS = {
     "Access-Control-Allow-Headers": "Content-Type",
 }
 
+SC = os.environ.get("MAIN_DB_SCHEMA", "public")
+
 
 def handle_send(body, conn):
     """POST — отправить сообщение из чата сайта."""
@@ -18,10 +20,10 @@ def handle_send(body, conn):
         return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Нет session_id или текста"}, ensure_ascii=False)}
 
     cur = conn.cursor()
-    cur.execute("SELECT session_id FROM chat_sessions WHERE session_id = %s", (session_id,))
+    cur.execute(f"SELECT session_id FROM {SC}.chat_sessions WHERE session_id = %s", (session_id,))
     if not cur.fetchone():
-        cur.execute("INSERT INTO chat_sessions (session_id) VALUES (%s)", (session_id,))
-    cur.execute("INSERT INTO chat_messages (session_id, from_role, text) VALUES (%s, 'user', %s)", (session_id, text))
+        cur.execute(f"INSERT INTO {SC}.chat_sessions (session_id) VALUES (%s)", (session_id,))
+    cur.execute(f"INSERT INTO {SC}.chat_messages (session_id, from_role, text) VALUES (%s, 'user', %s)", (session_id, text))
     conn.commit()
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -39,7 +41,7 @@ def handle_send(body, conn):
         tg_resp = json.loads(resp.read())
         tg_message_id = tg_resp.get("result", {}).get("message_id")
         if tg_message_id:
-            cur.execute("UPDATE chat_sessions SET tg_message_id = %s, updated_at = NOW() WHERE session_id = %s", (tg_message_id, session_id))
+            cur.execute(f"UPDATE {SC}.chat_sessions SET tg_message_id = %s, updated_at = NOW() WHERE session_id = %s", (tg_message_id, session_id))
             conn.commit()
     cur.close()
     return {"statusCode": 200, "headers": CORS, "body": json.dumps({"ok": True}, ensure_ascii=False)}
@@ -54,7 +56,7 @@ def handle_poll(params, conn):
 
     cur = conn.cursor()
     cur.execute(
-        "SELECT id, from_role, text, created_at FROM chat_messages WHERE session_id = %s AND id > %s AND from_role = 'operator' ORDER BY created_at ASC",
+        f"SELECT id, from_role, text, created_at FROM {SC}.chat_messages WHERE session_id = %s AND id > %s AND from_role = 'operator' ORDER BY created_at ASC",
         (session_id, after_id),
     )
     rows = cur.fetchall()
@@ -68,8 +70,7 @@ def handler(event: dict, context) -> dict:
     if event.get("httpMethod") == "OPTIONS":
         return {"statusCode": 200, "headers": CORS, "body": ""}
 
-    _schema = os.environ.get("MAIN_DB_SCHEMA", "public")
-    conn = psycopg2.connect(os.environ["DATABASE_URL"], options=f"-c search_path={_schema}")
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     try:
         if event.get("httpMethod") == "POST":
             body = json.loads(event.get("body") or "{}")

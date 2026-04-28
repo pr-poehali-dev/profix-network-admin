@@ -26,17 +26,12 @@ def handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "Нет session_id"}, ensure_ascii=False),
         }
 
-    _schema = os.environ.get("MAIN_DB_SCHEMA", "public")
-    conn = psycopg2.connect(os.environ["DATABASE_URL"], options=f"-c search_path={_schema}")
+    _sc = os.environ.get("MAIN_DB_SCHEMA", "public")
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     cur = conn.cursor()
 
     cur.execute(
-        """
-        SELECT id, from_role, text, created_at
-        FROM chat_messages
-        WHERE session_id = %s AND id > %s AND from_role = 'operator'
-        ORDER BY created_at ASC
-        """,
+        f"SELECT id, from_role, text, created_at FROM {_sc}.chat_messages WHERE session_id = %s AND id > %s AND from_role = 'operator' ORDER BY created_at ASC",
         (session_id, after_id),
     )
     rows = cur.fetchall()

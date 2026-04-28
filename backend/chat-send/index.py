@@ -27,16 +27,16 @@ def handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "Нет session_id или текста"}, ensure_ascii=False),
         }
 
-    _schema = os.environ.get("MAIN_DB_SCHEMA", "public")
-    conn = psycopg2.connect(os.environ["DATABASE_URL"], options=f"-c search_path={_schema}")
+    _sc = os.environ.get("MAIN_DB_SCHEMA", "public")
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     cur = conn.cursor()
 
-    cur.execute("SELECT session_id FROM chat_sessions WHERE session_id = %s", (session_id,))
+    cur.execute(f"SELECT session_id FROM {_sc}.chat_sessions WHERE session_id = %s", (session_id,))
     if not cur.fetchone():
-        cur.execute("INSERT INTO chat_sessions (session_id) VALUES (%s)", (session_id,))
+        cur.execute(f"INSERT INTO {_sc}.chat_sessions (session_id) VALUES (%s)", (session_id,))
 
     cur.execute(
-        "INSERT INTO chat_messages (session_id, from_role, text) VALUES (%s, 'user', %s)",
+        f"INSERT INTO {_sc}.chat_messages (session_id, from_role, text) VALUES (%s, 'user', %s)",
         (session_id, text),
     )
     conn.commit()
@@ -64,7 +64,7 @@ def handler(event: dict, context) -> dict:
 
         if tg_message_id:
             cur.execute(
-                "UPDATE chat_sessions SET tg_message_id = %s, updated_at = NOW() WHERE session_id = %s",
+                f"UPDATE {_sc}.chat_sessions SET tg_message_id = %s, updated_at = NOW() WHERE session_id = %s",
                 (tg_message_id, session_id),
             )
             conn.commit()

@@ -18,8 +18,7 @@ def hash_password(pw: str) -> str:
 
 
 def get_conn():
-    schema = os.environ.get("MAIN_DB_SCHEMA", "public")
-    return psycopg2.connect(os.environ["DATABASE_URL"], options=f"-c search_path={schema}")
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
 def handler(event: dict, context) -> dict:

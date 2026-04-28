@@ -59,12 +59,12 @@ def handler(event: dict, context) -> dict:
 
     replied_message_id = reply_to.get("message_id")
 
-    _schema = os.environ.get("MAIN_DB_SCHEMA", "public")
-    conn = psycopg2.connect(os.environ["DATABASE_URL"], options=f"-c search_path={_schema}")
+    _sc = os.environ.get("MAIN_DB_SCHEMA", "public")
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     cur = conn.cursor()
 
     cur.execute(
-        "SELECT session_id FROM chat_sessions WHERE tg_message_id = %s",
+        f"SELECT session_id FROM {_sc}.chat_sessions WHERE tg_message_id = %s",
         (replied_message_id,),
     )
     row = cur.fetchone()
@@ -72,11 +72,11 @@ def handler(event: dict, context) -> dict:
     if row:
         session_id = row[0]
         cur.execute(
-            "INSERT INTO chat_messages (session_id, from_role, text) VALUES (%s, 'operator', %s)",
+            f"INSERT INTO {_sc}.chat_messages (session_id, from_role, text) VALUES (%s, 'operator', %s)",
             (session_id, text),
         )
         cur.execute(
-            "UPDATE chat_sessions SET updated_at = NOW() WHERE session_id = %s",
+            f"UPDATE {_sc}.chat_sessions SET updated_at = NOW() WHERE session_id = %s",
             (session_id,),
         )
         conn.commit()

@@ -15,33 +15,21 @@ CORS = {
 }
 
 STATUS_LABELS = {
-    "new": "Новая",
-    "in_progress": "В работе",
-    "waiting": "Ожидание",
-    "done": "Выполнена",
-    "cancelled": "Отменена",
+    "new": "Новая", "in_progress": "В работе", "waiting": "Ожидание",
+    "done": "Выполнена", "cancelled": "Отменена",
+}
+PRIORITY_LABELS = {
+    "low": "Низкий", "normal": "Обычный", "high": "Высокий", "urgent": "Срочный",
+}
+STATUS_EMOJI = {
+    "new": "🆕", "in_progress": "🔧", "waiting": "⏳", "done": "✅", "cancelled": "❌",
 }
 
-PRIORITY_LABELS = {
-    "low": "Низкий",
-    "normal": "Обычный",
-    "high": "Высокий",
-    "urgent": "Срочный",
-}
+SC = os.environ.get("MAIN_DB_SCHEMA", "public")
 
 
 def get_conn():
-    schema = os.environ.get("MAIN_DB_SCHEMA", "public")
-    return psycopg2.connect(os.environ["DATABASE_URL"], options=f"-c search_path={schema}")
-
-
-STATUS_EMOJI = {
-    "new": "🆕",
-    "in_progress": "🔧",
-    "waiting": "⏳",
-    "done": "✅",
-    "cancelled": "❌",
-}
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
 def send_tg(chat_id: int, text: str) -> None:
@@ -60,9 +48,9 @@ def send_tg(chat_id: int, text: str) -> None:
 def notify_client_status(conn, ticket_id: int, new_status: str) -> None:
     cur = conn.cursor()
     cur.execute(
-        """SELECT c.telegram_id, c.name, t.title
-           FROM tickets t
-           LEFT JOIN clients c ON c.id = t.client_id
+        f"""SELECT c.telegram_id, c.name, t.title
+           FROM {SC}.tickets t
+           LEFT JOIN {SC}.clients c ON c.id = t.client_id
            WHERE t.id = %s""",
         (ticket_id,)
     )
@@ -109,7 +97,7 @@ def get_session(event, conn):
         return None
     cur = conn.cursor()
     cur.execute(
-        "SELECT client_id FROM client_sessions WHERE token=%s AND expires_at > NOW()",
+        f"SELECT client_id FROM {SC}.client_sessions WHERE token=%s AND expires_at > NOW()",
         (token,)
     )
     row = cur.fetchone()
@@ -117,8 +105,8 @@ def get_session(event, conn):
         cur.close()
         return ("client", row[0], None)
     cur.execute(
-        """SELECT ms.manager_id, m.role FROM manager_sessions ms
-           JOIN managers m ON m.id = ms.manager_id
+        f"""SELECT ms.manager_id, m.role FROM {SC}.manager_sessions ms
+           JOIN {SC}.managers m ON m.id = ms.manager_id
            WHERE ms.token=%s AND ms.expires_at > NOW()""",
         (token,)
     )
@@ -126,18 +114,15 @@ def get_session(event, conn):
     cur.close()
     if row:
         return ("manager", row[0], row[1])
-
-    # Проверяем токен техника
     cur2 = conn.cursor()
     cur2.execute(
-        "SELECT technician_id FROM technician_sessions WHERE token=%s AND expires_at > NOW()",
+        f"SELECT technician_id FROM {SC}.technician_sessions WHERE token=%s AND expires_at > NOW()",
         (token,)
     )
     row = cur2.fetchone()
     cur2.close()
     if row:
         return ("technician", row[0], None)
-
     return None
 
 
@@ -165,28 +150,28 @@ def handler(event: dict, context) -> dict:
     if method == "GET" and action == "list":
         if role == "client":
             cur.execute(
-                """SELECT t.id, t.title, t.status, t.priority, t.amount, t.paid,
+                f"""SELECT t.id, t.title, t.status, t.priority, t.amount, t.paid,
                           t.created_at, t.updated_at,
                           COALESCE(m.name, m.full_name) as manager_name,
                           tech.name as technician_name,
                           t.scheduled_date, t.scheduled_hour
-                   FROM tickets t
-                   LEFT JOIN managers m ON m.id = t.manager_id
-                   LEFT JOIN technicians tech ON tech.id = t.technician_id
+                   FROM {SC}.tickets t
+                   LEFT JOIN {SC}.managers m ON m.id = t.manager_id
+                   LEFT JOIN {SC}.technicians tech ON tech.id = t.technician_id
                    WHERE t.client_id = %s
                    ORDER BY t.created_at DESC""",
                 (user_id,)
             )
         elif role == "technician":
             cur.execute(
-                """SELECT t.id, t.title, t.status, t.priority, t.amount, t.paid,
+                f"""SELECT t.id, t.title, t.status, t.priority, t.amount, t.paid,
                           t.created_at, t.updated_at,
                           COALESCE(m.name, m.full_name) as manager_name,
                           c.name as client_name, c.phone,
                           t.scheduled_date, t.scheduled_hour
-                   FROM tickets t
-                   LEFT JOIN managers m ON m.id = t.manager_id
-                   LEFT JOIN clients c ON c.id = t.client_id
+                   FROM {SC}.tickets t
+                   LEFT JOIN {SC}.managers m ON m.id = t.manager_id
+                   LEFT JOIN {SC}.clients c ON c.id = t.client_id
                    WHERE t.technician_id = %s
                    ORDER BY t.scheduled_date ASC NULLS LAST, t.created_at DESC""",
                 (user_id,)
@@ -214,10 +199,10 @@ def handler(event: dict, context) -> dict:
                           COALESCE(m.name, m.full_name) as manager_name,
                           tech.name as technician_name,
                           t.scheduled_date, t.scheduled_hour
-                   FROM tickets t
-                   LEFT JOIN clients c ON c.id = t.client_id
-                   LEFT JOIN managers m ON m.id = t.manager_id
-                   LEFT JOIN technicians tech ON tech.id = t.technician_id
+                   FROM {SC}.tickets t
+                   LEFT JOIN {SC}.clients c ON c.id = t.client_id
+                   LEFT JOIN {SC}.managers m ON m.id = t.manager_id
+                   LEFT JOIN {SC}.technicians tech ON tech.id = t.technician_id
                    {where_sql}
                    ORDER BY t.scheduled_date ASC NULLS LAST, t.created_at DESC""",
                 where_vals
@@ -261,17 +246,17 @@ def handler(event: dict, context) -> dict:
     if method == "GET" and action == "get":
         ticket_id = int(params.get("id", 0))
         cur.execute(
-            """SELECT t.id, t.title, t.description, t.status, t.priority,
+            f"""SELECT t.id, t.title, t.description, t.status, t.priority,
                       t.amount, t.paid, t.source, t.created_at, t.updated_at,
                       c.name, c.phone, c.email,
                       COALESCE(m.name, m.full_name) as manager_name,
                       t.client_id, t.manager_id,
                       tech.id, tech.name, tech.phone,
                       t.scheduled_date, t.scheduled_hour, t.tech_notes
-               FROM tickets t
-               LEFT JOIN clients c ON c.id = t.client_id
-               LEFT JOIN managers m ON m.id = t.manager_id
-               LEFT JOIN technicians tech ON tech.id = t.technician_id
+               FROM {SC}.tickets t
+               LEFT JOIN {SC}.clients c ON c.id = t.client_id
+               LEFT JOIN {SC}.managers m ON m.id = t.manager_id
+               LEFT JOIN {SC}.technicians tech ON tech.id = t.technician_id
                WHERE t.id = %s""",
             (ticket_id,)
         )
@@ -285,7 +270,7 @@ def handler(event: dict, context) -> dict:
             return err("Доступ запрещён", 403)
 
         if role == "technician":
-            cur.execute("SELECT technician_id FROM tickets WHERE id=%s", (ticket_id,))
+            cur.execute(f"SELECT technician_id FROM {SC}.tickets WHERE id=%s", (ticket_id,))
             tr = cur.fetchone()
             if not tr or tr[0] != user_id:
                 cur.close(); conn.close()
@@ -307,14 +292,14 @@ def handler(event: dict, context) -> dict:
         }
 
         cur.execute(
-            """SELECT tc.id, tc.author_type, tc.text, tc.created_at,
+            f"""SELECT tc.id, tc.author_type, tc.text, tc.created_at,
                       CASE WHEN tc.author_type='client' THEN cl.name
                            WHEN tc.author_type='technician' THEN tech.name
                            ELSE COALESCE(m.name, m.full_name) END as author_name
-               FROM ticket_comments tc
-               LEFT JOIN clients cl ON tc.author_type='client' AND cl.id=tc.author_id
-               LEFT JOIN managers m ON tc.author_type='manager' AND m.id=tc.author_id
-               LEFT JOIN technicians tech ON tc.author_type='technician' AND tech.id=tc.author_id
+               FROM {SC}.ticket_comments tc
+               LEFT JOIN {SC}.clients cl ON tc.author_type='client' AND cl.id=tc.author_id
+               LEFT JOIN {SC}.managers m ON tc.author_type='manager' AND m.id=tc.author_id
+               LEFT JOIN {SC}.technicians tech ON tc.author_type='technician' AND tech.id=tc.author_id
                WHERE tc.ticket_id = %s ORDER BY tc.created_at ASC""",
             (ticket_id,)
         )
@@ -349,7 +334,7 @@ def handler(event: dict, context) -> dict:
             c_id, source, m_id = client_id_param, "manual", user_id
 
         cur.execute(
-            """INSERT INTO tickets (client_id, manager_id, title, description, priority, amount,
+            f"""INSERT INTO {SC}.tickets (client_id, manager_id, title, description, priority, amount,
                                    source, technician_id, scheduled_date, scheduled_hour, tech_notes)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
             (c_id, m_id, title, description, priority, amount,
@@ -377,21 +362,18 @@ def handler(event: dict, context) -> dict:
                                 ("scheduled_hour", "scheduled_hour")]:
                 if body.get(field) is not None:
                     sets.append(f"{col} = %s"); vals.append(body[field])
-            # technician_id может быть null
             if "technician_id" in body:
                 sets.append("technician_id = %s"); vals.append(body["technician_id"])
         else:
-            # Технник может менять только статус и добавлять tech_notes
             if body.get("status"):
                 sets.append("status = %s"); vals.append(body["status"])
             if body.get("tech_notes") is not None:
                 sets.append("tech_notes = %s"); vals.append(body["tech_notes"])
 
         vals.append(ticket_id)
-        cur.execute(f"UPDATE tickets SET {', '.join(sets)} WHERE id = %s", vals)
+        cur.execute(f"UPDATE {SC}.tickets SET {', '.join(sets)} WHERE id = %s", vals)
         conn.commit()
 
-        # Telegram-уведомление клиенту при смене статуса
         new_status = body.get("status")
         if new_status:
             notify_client_status(conn, ticket_id, new_status)
@@ -408,19 +390,19 @@ def handler(event: dict, context) -> dict:
             return err("Текст пустой")
 
         if role == "client":
-            cur.execute("SELECT id FROM tickets WHERE id=%s AND client_id=%s", (ticket_id, user_id))
+            cur.execute(f"SELECT id FROM {SC}.tickets WHERE id=%s AND client_id=%s", (ticket_id, user_id))
             if not cur.fetchone():
                 cur.close(); conn.close()
                 return err("Заявка не найдена", 404)
 
         if role == "technician":
-            cur.execute("SELECT id FROM tickets WHERE id=%s AND technician_id=%s", (ticket_id, user_id))
+            cur.execute(f"SELECT id FROM {SC}.tickets WHERE id=%s AND technician_id=%s", (ticket_id, user_id))
             if not cur.fetchone():
                 cur.close(); conn.close()
                 return err("Заявка не найдена", 404)
 
         cur.execute(
-            "INSERT INTO ticket_comments (ticket_id, author_type, author_id, text) VALUES (%s,%s,%s,%s) RETURNING id",
+            f"INSERT INTO {SC}.ticket_comments (ticket_id, author_type, author_id, text) VALUES (%s,%s,%s,%s) RETURNING id",
             (ticket_id, role, user_id, text)
         )
         new_id = cur.fetchone()[0]
@@ -433,15 +415,15 @@ def handler(event: dict, context) -> dict:
         if role != "manager":
             cur.close(); conn.close()
             return err("Доступ запрещён", 403)
-        cur.execute("SELECT COUNT(*) FROM tickets")
+        cur.execute(f"SELECT COUNT(*) FROM {SC}.tickets")
         total = cur.fetchone()[0]
-        cur.execute("SELECT status, COUNT(*) FROM tickets GROUP BY status")
+        cur.execute(f"SELECT status, COUNT(*) FROM {SC}.tickets GROUP BY status")
         by_status = {r[0]: r[1] for r in cur.fetchall()}
-        cur.execute("SELECT COUNT(*) FROM clients")
+        cur.execute(f"SELECT COUNT(*) FROM {SC}.clients")
         clients_count = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*) FROM tickets WHERE paid=TRUE")
+        cur.execute(f"SELECT COUNT(*) FROM {SC}.tickets WHERE paid=TRUE")
         paid_count = cur.fetchone()[0]
-        cur.execute("SELECT COALESCE(SUM(amount),0) FROM tickets WHERE paid=TRUE")
+        cur.execute(f"SELECT COALESCE(SUM(amount),0) FROM {SC}.tickets WHERE paid=TRUE")
         revenue = float(cur.fetchone()[0])
         cur.close(); conn.close()
         return ok({"total": total, "by_status": by_status, "clients": clients_count,
@@ -453,8 +435,8 @@ def handler(event: dict, context) -> dict:
             cur.close(); conn.close()
             return err("Доступ запрещён", 403)
         cur.execute(
-            """SELECT c.id, c.name, c.phone, c.email, c.created_at, COUNT(t.id) as tc
-               FROM clients c LEFT JOIN tickets t ON t.client_id = c.id
+            f"""SELECT c.id, c.name, c.phone, c.email, c.created_at, COUNT(t.id) as tc
+               FROM {SC}.clients c LEFT JOIN {SC}.tickets t ON t.client_id = c.id
                GROUP BY c.id ORDER BY c.created_at DESC"""
         )
         clients = [
@@ -470,7 +452,7 @@ def handler(event: dict, context) -> dict:
         if role != "manager":
             cur.close(); conn.close()
             return err("Доступ запрещён", 403)
-        cur.execute("SELECT id, login, COALESCE(name, full_name), role, created_at FROM managers ORDER BY id")
+        cur.execute(f"SELECT id, login, COALESCE(name, full_name), role, created_at FROM {SC}.managers ORDER BY id")
         managers = [{"id": r[0], "login": r[1], "name": r[2], "role": r[3],
                      "created_at": r[4].isoformat() if r[4] else None}
                     for r in cur.fetchall()]
@@ -480,10 +462,10 @@ def handler(event: dict, context) -> dict:
     # ── ТЕХ СПЕЦИАЛИСТЫ ──────────────────────────────────────────────────────
     if method == "GET" and action == "technicians":
         cur.execute(
-            """SELECT t.id, t.name, t.phone, t.email, t.specialization, t.is_active,
+            f"""SELECT t.id, t.name, t.phone, t.email, t.specialization, t.is_active,
                       COUNT(tk.id) FILTER (WHERE tk.status NOT IN ('done','cancelled')) as active_tickets
-               FROM technicians t
-               LEFT JOIN tickets tk ON tk.technician_id = t.id
+               FROM {SC}.technicians t
+               LEFT JOIN {SC}.tickets tk ON tk.technician_id = t.id
                WHERE t.is_active = TRUE
                GROUP BY t.id ORDER BY t.name"""
         )
@@ -507,7 +489,7 @@ def handler(event: dict, context) -> dict:
             cur.close(); conn.close()
             return err("Укажите имя специалиста")
         cur.execute(
-            "INSERT INTO technicians (name, phone, email, specialization) VALUES (%s,%s,%s,%s) RETURNING id",
+            f"INSERT INTO {SC}.technicians (name, phone, email, specialization) VALUES (%s,%s,%s,%s) RETURNING id",
             (name, phone or None, email or None, spec or None)
         )
         new_id = cur.fetchone()[0]
@@ -522,9 +504,9 @@ def handler(event: dict, context) -> dict:
         if not tech_id:
             cur.close(); conn.close()
             return err("Укажите technician_id")
-        q = """SELECT t.id, t.title, t.status, t.scheduled_date, t.scheduled_hour,
+        q = f"""SELECT t.id, t.title, t.status, t.scheduled_date, t.scheduled_hour,
                       c.name as client_name, c.phone as client_phone
-               FROM tickets t LEFT JOIN clients c ON c.id = t.client_id
+               FROM {SC}.tickets t LEFT JOIN {SC}.clients c ON c.id = t.client_id
                WHERE t.technician_id = %s AND t.status NOT IN ('done','cancelled')"""
         vals = [int(tech_id)]
         if date:
