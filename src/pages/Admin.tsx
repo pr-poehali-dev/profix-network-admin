@@ -15,12 +15,12 @@ export default function Admin() {
   const navigate = useNavigate();
 
   const [loggedIn, setLoggedIn] = useState(false);
-  const [manager, setManager] = useState<any>(null);
+  const [manager, setManager] = useState<{ id: number; name: string; role: string } | null>(null);
   const [section, setSection] = useState("dashboard");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [managers, setManagers] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [managers, setManagers] = useState<{ id: number; login: string; name: string; role: string }[]>([]);
+  const [stats, setStats] = useState<{ total: number; by_status: Record<string, number>; clients: number; paid: number; revenue: number } | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,7 @@ export default function Admin() {
         try {
           setLoading(true);
           const res = await managerApi.verifyToken(token);
-          if (res.ok && res.manager) {
+          if (res.valid && res.manager) {
             setManager(res.manager);
             setLoggedIn(true);
             await loadDashboard();
@@ -62,7 +62,7 @@ export default function Admin() {
         managerApi.getStats(),
         managerApi.getTickets(),
       ]);
-      if (statsRes.stats) setStats(statsRes.stats);
+      if (statsRes.total !== undefined) setStats(statsRes);
       if (ticketsRes.tickets) setTickets(ticketsRes.tickets);
     } catch {
       setError("Не удалось загрузить данные");
@@ -114,7 +114,7 @@ export default function Admin() {
     setLoading(true);
     try {
       const res = await managerApi.login(loginForm.login.trim(), loginForm.password.trim());
-      if (res.ok && res.token) {
+      if (res.token) {
         managerSession.set(res.token);
         setManager(res.manager);
         setLoggedIn(true);

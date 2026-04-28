@@ -13,7 +13,7 @@ export default function Cabinet() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [client, setClient] = useState<any>(null);
+  const [client, setClient] = useState<{ id: number; name?: string; phone: string; email?: string } | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [view, setView] = useState<"list" | "ticket" | "new">("list");
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -27,7 +27,7 @@ export default function Cabinet() {
         try {
           setLoading(true);
           const res = await clientApi.verifyToken(token);
-          if (res.ok && res.client) {
+          if (res.valid && res.client) {
             setClient(res.client);
             setStep("cabinet");
             await loadTickets();
@@ -45,7 +45,7 @@ export default function Cabinet() {
     try {
       const res = await clientApi.getTickets();
       if (res.tickets) setTickets(res.tickets);
-    } catch (e: any) {
+    } catch {
       setError("Не удалось загрузить заявки");
     }
   }
@@ -84,7 +84,7 @@ export default function Cabinet() {
     setLoading(true);
     try {
       const res = await clientApi.verifyOtp(phone.trim(), code.trim());
-      if (res.ok && res.token) {
+      if (res.token) {
         clientSession.set(res.token);
         setClient(res.client);
         setStep("cabinet");
