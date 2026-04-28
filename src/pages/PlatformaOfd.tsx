@@ -51,13 +51,24 @@ const PlatformaOfdPage = () => {
         canonical="/platforma-ofd"
       />
       <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
-          <button onClick={() => navigate("/")} className="flex items-center gap-2 text-[#374151] hover:text-[#3ca615] transition-colors">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
+          <button onClick={() => navigate("/")} className="flex items-center gap-1.5 text-[#374151] hover:text-[#3ca615] transition-colors">
             <Icon name="ChevronLeft" size={20} />
-            <span className="text-sm font-medium">На главную</span>
+          </button>
+          <button onClick={() => navigate("/")} className="flex items-center gap-1.5">
+            <img
+              src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
+              alt="ProFiX"
+              className="h-8 w-8 object-contain"
+            />
+            <span className="font-oswald text-lg font-bold tracking-wide hidden sm:block">
+              <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
+            </span>
           </button>
           <div className="w-px h-6 bg-gray-200" />
-          <img src={`${CDN}/platformaofd.png`} alt="Платформа ОФД" className="h-7 object-contain" />
+          <div className="flex items-center gap-2">
+            <img src={`${CDN}/platformaofd.png`} alt="Платформа ОФД" className="h-7 object-contain" />
+          </div>
           <div className="ml-auto">
             <a href="tel:+79142727187" className="hidden sm:flex items-center gap-2 bg-[#3ca615] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2d8a10] transition-colors">
               <Icon name="Phone" size={15} />
