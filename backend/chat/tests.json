@@ -1,8 +1,8 @@
 {
   "tests": [
     {
-      "name": "Download logos",
-      "method": "GET",
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
       "path": "/",
       "expectedStatus": 200
     }

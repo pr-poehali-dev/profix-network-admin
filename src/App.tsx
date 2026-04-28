@@ -14,6 +14,8 @@ import Sbis from "./pages/Sbis";
 import OfdYandex from "./pages/OfdYandex";
 import PlatformaOfd from "./pages/PlatformaOfd";
 import OnecFranchise from "./pages/OnecFranchise";
+import Cabinet from "./pages/Cabinet";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,8 @@ const App = () => (
           <Route path="/ofd-yandex" element={<OfdYandex />} />
           <Route path="/platforma-ofd" element={<PlatformaOfd />} />
           <Route path="/1c" element={<OnecFranchise />} />
+          <Route path="/cabinet" element={<Cabinet />} />
+          <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

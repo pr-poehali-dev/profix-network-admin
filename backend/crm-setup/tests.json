@@ -1,0 +1,13 @@
+{
+  "tests": [
+    {
+      "name": "Create admin",
+      "method": "POST",
+      "path": "/",
+      "body": {},
+      "expectedStatus": 200,
+      "expectedBody": {"message": "string"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

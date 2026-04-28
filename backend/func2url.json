@@ -1,3 +1,10 @@
 {
-  "download-logos": "https://functions.poehali.dev/e1236642-235f-444e-91a0-bddf7695149f"
+  "crm-setup": "https://functions.poehali.dev/de513386-5c5b-4afe-adfd-1995f23504f8",
+  "chat-send": "https://functions.poehali.dev/52fdb994-24e1-4c9a-ab41-fef309251496",
+  "chat-poll": "https://functions.poehali.dev/41cfa64a-33a9-4226-847a-d2a2e2e3d987",
+  "crm-auth": "https://functions.poehali.dev/1f14f246-0908-4c88-86de-62840b1d4e1c",
+  "crm-tickets": "https://functions.poehali.dev/80771697-657a-4565-8f5f-b8553431f806",
+  "chat": "https://functions.poehali.dev/d4399d35-ac69-43a4-b31f-193799e459e0",
+  "tg-webhook": "https://functions.poehali.dev/c517fd40-4c2d-43f0-a3a9-17a4f22aa3ce",
+  "send-email": "https://functions.poehali.dev/d9dfa652-a0b7-4233-ba59-2efd338c4f10"
 }
