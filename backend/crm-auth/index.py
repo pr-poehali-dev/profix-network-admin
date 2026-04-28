@@ -279,9 +279,54 @@ def handler(event: dict, context) -> dict:
         conn.close()
         return ok({"id": new_id, "login": login, "name": name, "role": role})
 
+    # ── ТЕХНИК: вход по ID + PIN ─────────────────────────────────────────────
+    if action == "technician_login":
+        tech_id = body.get("technician_id")
+        pin = body.get("pin", "").strip()
+
+        if not tech_id or not pin:
+            return err("Укажите ID специалиста и PIN")
+
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, name, phone, specialization FROM technicians WHERE id=%s AND pin_code=%s AND is_active=TRUE",
+            (int(tech_id), pin)
+        )
+        tech = cur.fetchone()
+        if not tech:
+            conn.close()
+            return err("Неверный PIN или специалист не найден", 401)
+
+        token = make_token()
+        expires = datetime.now() + timedelta(days=30)
+        cur.execute(
+            "INSERT INTO technician_sessions (technician_id, token, expires_at) VALUES (%s, %s, %s)",
+            (tech[0], token, expires)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        return ok({
+            "token": token,
+            "technician": {"id": tech[0], "name": tech[1], "phone": tech[2], "specialization": tech[3]}
+        })
+
+    # ── ТЕХНИК: список для выбора при входе ──────────────────────────────────
+    if action == "technicians_list":
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, specialization FROM technicians WHERE is_active=TRUE ORDER BY name")
+        techs = [{"id": r[0], "name": r[1], "specialization": r[2]} for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+        return ok({"technicians": techs})
+
     # ── ПРОВЕРКА ТОКЕНА ─────────────────────────────────────────────────────
     if action == "verify_token":
         auth = (event.get("headers") or {}).get("X-Authorization", "")
+        if not auth:
+            auth = (event.get("headers") or {}).get("Authorization", "")
         token = auth.replace("Bearer ", "").strip()
         role = body.get("role", "client")
 
@@ -300,6 +345,18 @@ def handler(event: dict, context) -> dict:
             if not row:
                 return err("Сессия истекла", 401)
             return ok({"valid": True, "client": {"id": row[0], "name": row[1], "phone": row[2], "email": row[3]}})
+        elif role == "technician":
+            cur.execute(
+                """SELECT t.id, t.name, t.phone, t.specialization FROM technician_sessions ts
+                   JOIN technicians t ON t.id = ts.technician_id
+                   WHERE ts.token=%s AND ts.expires_at > NOW()""",
+                (token,)
+            )
+            row = cur.fetchone()
+            conn.close()
+            if not row:
+                return err("Сессия истекла", 401)
+            return ok({"valid": True, "technician": {"id": row[0], "name": row[1], "phone": row[2], "specialization": row[3]}})
         else:
             cur.execute(
                 f"""SELECT m.id, COALESCE(m.name, m.full_name), m.role FROM manager_sessions ms

@@ -61,6 +61,12 @@ async function putTickets(body: object, token: string) {
   return res.json();
 }
 
+export const techSession = {
+  get: () => localStorage.getItem("crm_tech_token"),
+  set: (token: string) => localStorage.setItem("crm_tech_token", token),
+  clear: () => localStorage.removeItem("crm_tech_token"),
+};
+
 // ── API клиента ──────────────────────────────────────────────────────────────
 
 export const clientApi = {
@@ -82,6 +88,32 @@ export const clientApi = {
 
   addComment: (ticket_id: number, text: string) =>
     postTickets({ action: "comment", ticket_id, text }, clientSession.get()!),
+};
+
+// ── API техника ──────────────────────────────────────────────────────────────
+
+export const techApi = {
+  getTechniciansList: () => postAuth({ action: "technicians_list" }),
+
+  login: (technician_id: number, pin: string) =>
+    postAuth({ action: "technician_login", technician_id, pin }),
+
+  verifyToken: (token: string) =>
+    postAuthWithToken({ action: "verify_token", role: "technician" }, token),
+
+  getTickets: () => getTickets({ action: "list" }, techSession.get()!),
+
+  getTicket: (id: number) => getTickets({ action: "get", id: String(id) }, techSession.get()!),
+
+  updateStatus: (id: number, status: string) =>
+    putTickets({ action: "update", id, status }, techSession.get()!),
+
+  addComment: (ticket_id: number, text: string) =>
+    fetch(TICKETS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${techSession.get()}` },
+      body: JSON.stringify({ action: "comment", ticket_id, text }),
+    }).then(r => r.json()),
 };
 
 // ── API менеджера ────────────────────────────────────────────────────────────

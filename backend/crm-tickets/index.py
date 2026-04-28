@@ -44,7 +44,8 @@ def err(msg, code=400):
 
 
 def get_session(event, conn):
-    auth = (event.get("headers") or {}).get("X-Authorization", "")
+    headers = event.get("headers") or {}
+    auth = headers.get("X-Authorization", "") or headers.get("Authorization", "")
     token = auth.replace("Bearer ", "").strip()
     if not token:
         return None

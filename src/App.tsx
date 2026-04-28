@@ -16,6 +16,7 @@ import PlatformaOfd from "./pages/PlatformaOfd";
 import OnecFranchise from "./pages/OnecFranchise";
 import Cabinet from "./pages/Cabinet";
 import Admin from "./pages/Admin";
+import TechPortal from "./pages/TechPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/1c" element={<OnecFranchise />} />
           <Route path="/cabinet" element={<Cabinet />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/techportal" element={<TechPortal />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
