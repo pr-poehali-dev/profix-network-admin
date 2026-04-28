@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { clientApi, clientSession, Ticket, STATUS_COLORS, PRIORITY_COLORS } from "@/lib/crm-api";
 
+const BOT_USERNAME = "ProFiXBot"; // замени на реальный username бота если другой
+
 export default function Cabinet() {
   const navigate = useNavigate();
 
@@ -13,7 +15,11 @@ export default function Cabinet() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [client, setClient] = useState<{ id: number; name?: string; phone: string; email?: string } | null>(null);
+  const [client, setClient] = useState<{ id: number; name?: string; phone: string; email?: string; telegram_id?: number | null } | null>(null);
+  const [profileName, setProfileName] = useState("");
+  const [profileTgId, setProfileTgId] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [view, setView] = useState<"list" | "ticket" | "new">("list");
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -29,6 +35,8 @@ export default function Cabinet() {
           const res = await clientApi.verifyToken(token);
           if (res.valid && res.client) {
             setClient(res.client);
+            setProfileName(res.client.name || "");
+            setProfileTgId(res.client.telegram_id ? String(res.client.telegram_id) : "");
             setStep("cabinet");
             await loadTickets();
           }
@@ -87,6 +95,8 @@ export default function Cabinet() {
       if (res.token) {
         clientSession.set(res.token);
         setClient(res.client);
+        setProfileName(res.client?.name || "");
+        setProfileTgId(res.client?.telegram_id ? String(res.client.telegram_id) : "");
         setStep("cabinet");
         await loadTickets();
       } else {
@@ -158,6 +168,26 @@ export default function Cabinet() {
       setError("Ошибка сети. Попробуйте ещё раз");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSaveProfile() {
+    setProfileSaving(true);
+    setProfileSuccess(false);
+    try {
+      const res = await clientApi.updateProfile({
+        name: profileName.trim() || undefined,
+        telegram_id: profileTgId.trim() ? parseInt(profileTgId.trim()) : null,
+      });
+      if (res.client) {
+        setClient(res.client);
+        setProfileSuccess(true);
+        setTimeout(() => setProfileSuccess(false), 3000);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setProfileSaving(false);
     }
   }
 
@@ -444,6 +474,67 @@ export default function Cabinet() {
                 ))}
               </div>
             )}
+
+            {/* Профиль и Telegram */}
+            <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <Icon name="User" size={15} />
+                Профиль и уведомления
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">Ваше имя</label>
+                  <input
+                    type="text"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    placeholder="Как к вам обращаться?"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/30 focus:border-[#3ca615] transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1.5">
+                    <Icon name="Send" size={12} />
+                    Telegram ID для уведомлений
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={profileTgId}
+                      onChange={(e) => setProfileTgId(e.target.value)}
+                      placeholder="Ваш Telegram ID"
+                      className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/30 focus:border-[#3ca615] transition"
+                    />
+                    <a
+                      href={`https://t.me/${BOT_USERNAME}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2.5 rounded-xl border border-gray-200 text-gray-500 hover:text-[#3ca615] hover:border-[#3ca615] text-xs transition flex items-center gap-1 whitespace-nowrap"
+                    >
+                      <Icon name="ExternalLink" size={12} />
+                      Бот
+                    </a>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    Напишите боту <a href={`https://t.me/${BOT_USERNAME}`} target="_blank" rel="noopener noreferrer" className="text-[#3ca615] hover:underline">@{BOT_USERNAME}</a> команду /id — он пришлёт ваш ID
+                  </p>
+                </div>
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={profileSaving}
+                  className="w-full py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "#3ca615" }}
+                >
+                  {profileSaving ? (
+                    <><Icon name="Loader2" size={14} className="animate-spin" />Сохранение...</>
+                  ) : profileSuccess ? (
+                    <><Icon name="Check" size={14} />Сохранено!</>
+                  ) : (
+                    "Сохранить"
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
+import SharedFooter from "@/components/SharedFooter";
 
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
 
@@ -179,12 +180,7 @@ const DreamkasPage = () => {
         </div>
       </section>
 
-      <footer className="bg-white border-t border-gray-100 py-6">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-400">
-          <span>© 2024 ProFiX — официальный партнёр Дримкас</span>
-          <a href="https://dreamkas.ru" target="_blank" rel="noopener noreferrer" className="hover:text-[#2e7d32] transition-colors">dreamkas.ru</a>
-        </div>
-      </footer>
+      <SharedFooter />
     </div>
   );
 };

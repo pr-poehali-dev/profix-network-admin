@@ -1,10 +1,24 @@
 import json
 import os
 import psycopg2
+from urllib.request import urlopen, Request as URequest
+
+
+def send_tg(chat_id: int, text: str) -> None:
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not token:
+        return
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode()
+    req = URequest(url, data=data, headers={"Content-Type": "application/json"})
+    try:
+        urlopen(req, timeout=5)
+    except Exception:
+        pass
 
 
 def handler(event: dict, context) -> dict:
-    """Получает ответы от оператора из Telegram и сохраняет в БД."""
+    """Получает сообщения из Telegram: ответы оператора + команда /id для клиентов."""
 
     cors_headers = {
         "Access-Control-Allow-Origin": "*",
@@ -21,9 +35,25 @@ def handler(event: dict, context) -> dict:
     if not message:
         return {"statusCode": 200, "headers": cors_headers, "body": "ok"}
 
-    reply_to = message.get("reply_to_message", {})
+    chat_id = message.get("chat", {}).get("id")
     text = message.get("text", "").strip()
 
+    # Команда /id — клиент узнаёт свой Telegram ID для кабинета
+    if text in ("/id", "/start"):
+        user = message.get("from", {})
+        first_name = user.get("first_name", "")
+        tg_id = user.get("id", chat_id)
+        reply = (
+            f"👋 Привет{', ' + first_name if first_name else ''}!\n\n"
+            f"🆔 Ваш Telegram ID: <code>{tg_id}</code>\n\n"
+            f"Скопируйте этот номер и вставьте в личный кабинет на сайте ProFiX "
+            f"в поле «Telegram ID» — и вы будете получать уведомления об изменении статуса заявок."
+        )
+        send_tg(chat_id, reply)
+        return {"statusCode": 200, "headers": cors_headers, "body": "ok"}
+
+    # Ответ оператора на сообщение из чата сайта
+    reply_to = message.get("reply_to_message", {})
     if not reply_to or not text:
         return {"statusCode": 200, "headers": cors_headers, "body": "ok"}
 

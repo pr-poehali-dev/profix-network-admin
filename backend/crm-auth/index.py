@@ -370,4 +370,44 @@ def handler(event: dict, context) -> dict:
                 return err("Сессия истекла", 401)
             return ok({"valid": True, "manager": {"id": row[0], "name": row[1], "role": row[2]}})
 
+    # ── КЛИЕНТ: обновление профиля (имя, telegram_id) ───────────────────────
+    if action == "client_update_profile":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        if not token:
+            return err("Необходима авторизация", 401)
+
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT client_id FROM client_sessions WHERE token=%s AND expires_at > NOW()",
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return err("Сессия истекла", 401)
+        client_id = row[0]
+
+        name = body.get("name", "").strip()
+        telegram_id = body.get("telegram_id")
+
+        sets, vals = [], []
+        if name:
+            sets.append("name = %s"); vals.append(name)
+        if telegram_id is not None:
+            sets.append("telegram_id = %s"); vals.append(int(telegram_id) if telegram_id else None)
+        sets.append("updated_at = NOW()")
+        vals.append(client_id)
+
+        if len(sets) > 1:
+            cur.execute(f"UPDATE clients SET {', '.join(sets)} WHERE id = %s", vals)
+            conn.commit()
+
+        cur.execute("SELECT id, name, phone, email, telegram_id FROM clients WHERE id = %s", (client_id,))
+        c = cur.fetchone()
+        cur.close(); conn.close()
+        return ok({"client": {"id": c[0], "name": c[1], "phone": c[2], "email": c[3], "telegram_id": c[4]}})
+
     return err("Неизвестное действие")

@@ -88,6 +88,9 @@ export const clientApi = {
 
   addComment: (ticket_id: number, text: string) =>
     postTickets({ action: "comment", ticket_id, text }, clientSession.get()!),
+
+  updateProfile: (data: { name?: string; telegram_id?: number | null }) =>
+    postAuthWithToken({ action: "client_update_profile", ...data }, clientSession.get()!),
 };
 
 // ── API техника ──────────────────────────────────────────────────────────────

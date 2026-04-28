@@ -5,6 +5,7 @@ import json
 import os
 import psycopg2
 from datetime import datetime
+from urllib.request import urlopen, Request as URequest
 
 
 CORS = {
@@ -31,6 +32,62 @@ PRIORITY_LABELS = {
 
 def get_conn():
     return psycopg2.connect(os.environ["DATABASE_URL"])
+
+
+STATUS_EMOJI = {
+    "new": "🆕",
+    "in_progress": "🔧",
+    "waiting": "⏳",
+    "done": "✅",
+    "cancelled": "❌",
+}
+
+
+def send_tg(chat_id: int, text: str) -> None:
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not token or not chat_id:
+        return
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode()
+    req = URequest(url, data=data, headers={"Content-Type": "application/json"})
+    try:
+        urlopen(req, timeout=5)
+    except Exception:
+        pass
+
+
+def notify_client_status(conn, ticket_id: int, new_status: str) -> None:
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT c.telegram_id, c.name, t.title
+           FROM tickets t
+           LEFT JOIN clients c ON c.id = t.client_id
+           WHERE t.id = %s""",
+        (ticket_id,)
+    )
+    row = cur.fetchone()
+    cur.close()
+    if not row or not row[0]:
+        return
+    tg_id, client_name, title = row
+    emoji = STATUS_EMOJI.get(new_status, "📋")
+    status_label = STATUS_LABELS.get(new_status, new_status)
+    greeting = f"Здравствуйте{', ' + client_name if client_name else ''}!"
+    text = (
+        f"{greeting}\n\n"
+        f"{emoji} <b>Статус вашей заявки изменён</b>\n\n"
+        f"📌 <b>Заявка:</b> {title}\n"
+        f"📊 <b>Новый статус:</b> {status_label}\n\n"
+    )
+    if new_status == "in_progress":
+        text += "Наш специалист приступил к работе. Если есть вопросы — пишите в ответ."
+    elif new_status == "waiting":
+        text += "Работа временно приостановлена. Мы свяжемся с вами в ближайшее время."
+    elif new_status == "done":
+        text += "Заявка выполнена! Спасибо, что обратились в ProFiX. 🙏"
+    elif new_status == "cancelled":
+        text += "Заявка отменена. Если у вас остались вопросы — звоните: +7 (914) 272-71-87."
+    send_tg(tg_id, text)
 
 
 def ok(data):
@@ -332,6 +389,12 @@ def handler(event: dict, context) -> dict:
         vals.append(ticket_id)
         cur.execute(f"UPDATE tickets SET {', '.join(sets)} WHERE id = %s", vals)
         conn.commit()
+
+        # Telegram-уведомление клиенту при смене статуса
+        new_status = body.get("status")
+        if new_status:
+            notify_client_status(conn, ticket_id, new_status)
+
         cur.close(); conn.close()
         return ok({"updated": True})
 

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
+import SharedFooter from "@/components/SharedFooter";
 
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/datamobile";
 
@@ -346,14 +347,7 @@ const DataMobilePage = () => {
       </section>
 
       {/* Подвал */}
-      <footer className="bg-white border-t border-gray-100 py-6">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-400">
-          <span>© 2024 ProFiX — официальный партнёр DataMobile</span>
-          <a href="https://data-mobile.ru" target="_blank" rel="noopener noreferrer" className="hover:text-[#1565C0] transition-colors">
-            data-mobile.ru
-          </a>
-        </div>
-      </footer>
+      <SharedFooter />
     </div>
   );
 };
