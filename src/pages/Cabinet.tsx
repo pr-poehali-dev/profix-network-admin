@@ -493,31 +493,59 @@ export default function Cabinet() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1.5">
+                  <label className="block text-xs font-medium text-gray-500 mb-2 flex items-center gap-1.5">
                     <Icon name="Send" size={12} />
                     Telegram ID для уведомлений
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      value={profileTgId}
-                      onChange={(e) => setProfileTgId(e.target.value)}
-                      placeholder="Ваш Telegram ID"
-                      className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/30 focus:border-[#3ca615] transition"
-                    />
+
+                  {/* Инструкция */}
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 mb-3">
+                    <p className="text-xs font-semibold text-blue-700 mb-2 flex items-center gap-1.5">
+                      <Icon name="Info" size={13} />
+                      Как подключить Telegram-уведомления?
+                    </p>
+                    <ol className="text-xs text-blue-700 space-y-1.5 list-none">
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-blue-200 text-blue-800 font-bold flex items-center justify-center shrink-0 text-[10px] mt-0.5">1</span>
+                        <span>Откройте Telegram и найдите бота <a href={`https://t.me/${BOT_USERNAME}`} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">@{BOT_USERNAME}</a></span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-blue-200 text-blue-800 font-bold flex items-center justify-center shrink-0 text-[10px] mt-0.5">2</span>
+                        <span>Нажмите <span className="font-semibold">«Старт»</span> или отправьте команду <span className="font-mono bg-blue-100 px-1 rounded">/id</span></span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-blue-200 text-blue-800 font-bold flex items-center justify-center shrink-0 text-[10px] mt-0.5">3</span>
+                        <span>Бот пришлёт ваш ID — скопируйте число и вставьте ниже</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-blue-200 text-blue-800 font-bold flex items-center justify-center shrink-0 text-[10px] mt-0.5">4</span>
+                        <span>Нажмите <span className="font-semibold">«Сохранить»</span> — готово!</span>
+                      </li>
+                    </ol>
                     <a
                       href={`https://t.me/${BOT_USERNAME}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-2.5 rounded-xl border border-gray-200 text-gray-500 hover:text-[#3ca615] hover:border-[#3ca615] text-xs transition flex items-center gap-1 whitespace-nowrap"
+                      className="mt-3 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-blue-700 transition"
                     >
-                      <Icon name="ExternalLink" size={12} />
-                      Бот
+                      <Icon name="Send" size={12} />
+                      Открыть бота в Telegram
                     </a>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1.5">
-                    Напишите боту <a href={`https://t.me/${BOT_USERNAME}`} target="_blank" rel="noopener noreferrer" className="text-[#3ca615] hover:underline">@{BOT_USERNAME}</a> команду /id — он пришлёт ваш ID
-                  </p>
+
+                  <input
+                    type="number"
+                    value={profileTgId}
+                    onChange={(e) => setProfileTgId(e.target.value)}
+                    placeholder="Вставьте ваш Telegram ID сюда"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/30 focus:border-[#3ca615] transition"
+                  />
+                  {profileTgId && (
+                    <p className="text-xs text-[#3ca615] mt-1.5 flex items-center gap-1">
+                      <Icon name="CheckCircle" size={11} />
+                      ID введён — нажмите «Сохранить»
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={handleSaveProfile}
