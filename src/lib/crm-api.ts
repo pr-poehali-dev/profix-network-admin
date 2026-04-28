@@ -116,9 +116,27 @@ export const managerApi = {
   getClients: () => getTickets({ action: "clients" }, managerSession.get()!),
 
   getManagers: () => getTickets({ action: "managers" }, managerSession.get()!),
+
+  getTechnicians: () => getTickets({ action: "technicians" }, managerSession.get()!),
+
+  createTechnician: (data: object) =>
+    postTickets({ action: "technician_create", ...data }, managerSession.get()!),
+
+  getSchedule: (technician_id: number, date?: string) =>
+    getTickets({ action: "schedule", technician_id: String(technician_id), ...(date ? { date } : {}) }, managerSession.get()!),
 };
 
 // ── Типы ─────────────────────────────────────────────────────────────────────
+
+export interface Technician {
+  id: number;
+  name: string;
+  phone?: string;
+  email?: string;
+  specialization?: string;
+  is_active: boolean;
+  active_tickets?: number;
+}
 
 export interface Ticket {
   id: number;
@@ -135,6 +153,11 @@ export interface Ticket {
   manager_name?: string;
   client_name?: string;
   client_phone?: string;
+  technician_name?: string;
+  technician?: { id: number; name: string; phone?: string } | null;
+  scheduled_date?: string | null;
+  scheduled_hour?: number | null;
+  tech_notes?: string | null;
   comments?: Comment[];
   client?: { name?: string; phone?: string; email?: string };
 }
