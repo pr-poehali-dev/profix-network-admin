@@ -71,7 +71,6 @@ export default function Cabinet() {
         channel,
         channel === "email" ? email.trim() : undefined
       );
-      console.log("OTP response:", JSON.stringify(res));
       if (res.sent || res.ok) {
         setStep("code");
       } else {
