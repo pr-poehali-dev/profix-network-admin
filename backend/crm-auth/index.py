@@ -18,7 +18,7 @@ CORS = {
     "Access-Control-Allow-Headers": "Content-Type, X-Authorization, Authorization",
 }
 
-SC = os.environ.get("MAIN_DB_SCHEMA", "public")
+SC = os.environ.get("MAIN_DB_SCHEMA") or "public"
 
 
 def get_conn():
