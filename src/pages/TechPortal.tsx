@@ -179,7 +179,7 @@ export default function TechPortal() {
   // ── ЭКРАН ЗАГРУЗКИ ───────────────────────────────────────────────────────
   if (loading && step !== "portal") {
     return (
-      <div className="min-h-screen bg-[#F7F9FC] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8] flex items-center justify-center">
         <Icon name="Loader2" size={32} className="animate-spin text-[#3ca615]" />
       </div>
     );
@@ -188,14 +188,14 @@ export default function TechPortal() {
   // ── ФОРМА ВХОДА ─────────────────────────────────────────────────────────
   if (step !== "portal") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#1b2e1b] to-[#111827] flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
+      <div className="min-h-screen bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8] flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 w-full max-w-sm">
           <div className="text-center mb-7">
             <div className="w-14 h-14 bg-[#edf7e8] rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Icon name="Wrench" size={28} className="text-[#3ca615]" />
             </div>
-            <h1 className="text-xl font-bold text-[#111827]">Портал специалиста</h1>
-            <p className="text-gray-400 text-sm mt-1">ProFiX — технический отдел</p>
+            <p className="text-[#3ca615] text-sm font-semibold uppercase tracking-widest mb-2">ProFiX</p>
+            <h1 className="font-oswald text-3xl font-bold text-[#0D1B2A]">Портал специалиста</h1>
           </div>
 
           {error && (
@@ -260,7 +260,7 @@ export default function TechPortal() {
               <button
                 onClick={handleLogin}
                 disabled={loading || !pin.trim()}
-                className="w-full bg-[#3ca615] text-white py-3 rounded-xl font-semibold hover:bg-[#2d8a10] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                className="w-full bg-[#3ca615] text-white py-3 rounded-xl font-semibold shadow-lg shadow-green-200 hover:shadow-green-300 hover:-translate-y-0.5 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? <Icon name="Loader2" size={18} className="animate-spin" /> : <Icon name="LogIn" size={18} />}
                 Войти
@@ -466,7 +466,7 @@ export default function TechPortal() {
             {/* Статистика */}
             <div className="grid grid-cols-3 gap-3 mb-5">
               {[
-                { label: "Активных", count: tickets.filter(t => !["done","cancelled"].includes(t.status)).length, color: "text-[#1565C0]", bg: "bg-[#EBF3FF]", icon: "Clock" },
+                { label: "Активных", count: tickets.filter(t => !["done","cancelled"].includes(t.status)).length, color: "text-[#3ca615]", bg: "bg-[#edf7e8]", icon: "Clock" },
                 { label: "Сегодня", count: tickets.filter(t => t.scheduled_date === new Date().toISOString().split("T")[0]).length, color: "text-[#3ca615]", bg: "bg-[#edf7e8]", icon: "Calendar" },
                 { label: "Выполнено", count: tickets.filter(t => t.status === "done").length, color: "text-gray-600", bg: "bg-gray-100", icon: "CheckCircle" },
               ].map(s => (
@@ -521,7 +521,7 @@ export default function TechPortal() {
                   <button
                     key={t.id}
                     onClick={() => openTicket(t)}
-                    className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:border-[#3ca615] hover:shadow-md transition-all"
+                    className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:border-[#3ca615] hover:shadow-xl transition-all"
                   >
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex-1 min-w-0">

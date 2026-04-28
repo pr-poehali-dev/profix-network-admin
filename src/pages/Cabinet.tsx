@@ -207,17 +207,16 @@ export default function Cabinet() {
 
   if (step === "phone" || step === "code") {
     return (
-      <div className="min-h-screen bg-[#F7F9FC] flex items-center justify-center px-4 font-golos">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 w-full max-w-md">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#3ca615" }}>
-              <Icon name="User" size={20} color="white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">Личный кабинет</h1>
-              <p className="text-sm text-gray-500">Войдите по номеру телефона</p>
-            </div>
+      <div className="min-h-screen bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8] flex items-center justify-center px-4 font-golos">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-8 w-full max-w-md">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="font-oswald text-xl font-bold tracking-wide">
+              <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
+            </span>
           </div>
+          <p className="text-[#3ca615] text-sm font-semibold uppercase tracking-widest mb-2">Личный кабинет</p>
+          <h1 className="font-oswald text-3xl font-bold text-[#0D1B2A] mb-6">Личный кабинет</h1>
+          <p className="text-sm text-gray-500 mb-6">Войдите по номеру телефона</p>
 
           {step === "phone" && (
             <div className="space-y-5">
@@ -292,8 +291,7 @@ export default function Cabinet() {
               <button
                 onClick={handleRequestOtp}
                 disabled={loading}
-                className="w-full py-3 rounded-xl font-medium text-white text-sm transition disabled:opacity-60"
-                style={{ backgroundColor: "#3ca615" }}
+                className="w-full py-3 rounded-xl bg-[#3ca615] font-semibold text-white text-sm shadow-lg shadow-green-200 hover:shadow-green-300 hover:-translate-y-0.5 transition-all disabled:opacity-60"
               >
                 {loading ? "Отправка..." : "Получить код"}
               </button>
@@ -334,8 +332,7 @@ export default function Cabinet() {
               <button
                 onClick={handleVerifyOtp}
                 disabled={loading}
-                className="w-full py-3 rounded-xl font-medium text-white text-sm transition disabled:opacity-60"
-                style={{ backgroundColor: "#3ca615" }}
+                className="w-full py-3 rounded-xl bg-[#3ca615] font-semibold text-white text-sm shadow-lg shadow-green-200 hover:shadow-green-300 hover:-translate-y-0.5 transition-all disabled:opacity-60"
               >
                 {loading ? "Проверка..." : "Войти"}
               </button>
@@ -369,9 +366,9 @@ export default function Cabinet() {
                 <Icon name="ArrowLeft" size={18} />
               </button>
             )}
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#3ca615" }}>
-              <Icon name="LayoutDashboard" size={16} color="white" />
-            </div>
+            <span className="font-oswald text-lg font-bold tracking-wide">
+              <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
+            </span>
             <span className="font-semibold text-gray-900">
               {view === "list" && "Мои заявки"}
               {view === "new" && "Новая заявка"}
@@ -477,7 +474,7 @@ export default function Cabinet() {
 
             {/* Профиль и Telegram */}
             <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <h3 className="font-oswald text-base font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <Icon name="User" size={15} />
                 Профиль и уведомления
               </h3>
