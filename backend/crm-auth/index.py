@@ -89,6 +89,21 @@ def handler(event: dict, context) -> dict:
     body = json.loads(event.get("body") or "{}")
     action = body.get("action", "")
 
+    # ── ПЕРВИЧНАЯ НАСТРОЙКА / СБРОС ПАРОЛЯ ADMIN ─────────────────────────────
+    if action == "setup_admin":
+        conn2 = get_conn()
+        cur2 = conn2.cursor()
+        login = body.get("login", "admin")
+        password = body.get("password", "profix2024")
+        pw_hash = hash_password(password)
+        safe_login = login.replace("'", "")
+        cur2.execute(f"UPDATE managers SET password_hash = '{pw_hash}', role = 'admin' WHERE login = '{safe_login}' OR username = '{safe_login}'")
+        updated = cur2.rowcount
+        conn2.commit()
+        cur2.close()
+        conn2.close()
+        return ok({"message": f"Пароль обновлён для {updated} менеджеров", "login": safe_login, "password": password})
+
     # ── КЛИЕНТ: запрос OTP ──────────────────────────────────────────────────
     if action == "client_request_otp":
         phone = body.get("phone", "").strip()
@@ -202,9 +217,10 @@ def handler(event: dict, context) -> dict:
         conn = get_conn()
         cur = conn.cursor()
 
+        pw_hash = hash_password(password)
         cur.execute(
-            f"SELECT id, name, role FROM managers WHERE login=%s AND password_hash=%s",
-            (login, hash_password(password))
+            f"SELECT id, COALESCE(name, full_name), role FROM managers WHERE (login=%s OR username=%s) AND password_hash=%s",
+            (login, login, pw_hash)
         )
         mgr = cur.fetchone()
         if not mgr:
@@ -254,8 +270,8 @@ def handler(event: dict, context) -> dict:
             return err("Заполните все поля")
 
         cur.execute(
-            f"INSERT INTO managers (login, password_hash, name, role) VALUES (%s, %s, %s, %s) RETURNING id",
-            (login, hash_password(password), name, role)
+            f"INSERT INTO managers (username, login, password_hash, full_name, name, role) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+            (login, login, hash_password(password), name, name, role)
         )
         new_id = cur.fetchone()[0]
         conn.commit()
@@ -286,7 +302,7 @@ def handler(event: dict, context) -> dict:
             return ok({"valid": True, "client": {"id": row[0], "name": row[1], "phone": row[2], "email": row[3]}})
         else:
             cur.execute(
-                f"""SELECT m.id, m.name, m.role FROM manager_sessions ms
+                f"""SELECT m.id, COALESCE(m.name, m.full_name), m.role FROM manager_sessions ms
                    JOIN managers m ON m.id = ms.manager_id
                    WHERE ms.token=%s AND ms.expires_at > NOW()""",
                 (token,)
@@ -296,31 +312,5 @@ def handler(event: dict, context) -> dict:
             if not row:
                 return err("Сессия истекла", 401)
             return ok({"valid": True, "manager": {"id": row[0], "name": row[1], "role": row[2]}})
-
-    # ── ПЕРВИЧНАЯ НАСТРОЙКА (без авторизации, только с секретом) ────────────
-    if action == "setup_admin":
-        secret = body.get("secret", "")
-        if secret != os.environ.get("JWT_SECRET", ""):
-            conn.close()
-            return err("Неверный секрет", 403)
-
-        login = body.get("login", "admin")
-        password = body.get("password", "profix2024")
-        name = body.get("name", "Администратор")
-
-        cur.execute("SELECT id FROM managers WHERE login = %s", (login,))
-        if cur.fetchone():
-            conn.close()
-            return ok({"message": f"Менеджер '{login}' уже существует"})
-
-        cur.execute(
-            "INSERT INTO managers (login, password_hash, name, role) VALUES (%s, %s, %s, 'admin') RETURNING id",
-            (login, hash_password(password), name)
-        )
-        new_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-        conn.close()
-        return ok({"message": f"Admin создан", "id": new_id, "login": login})
 
     return err("Неизвестное действие")

@@ -5,6 +5,19 @@
       "method": "OPTIONS",
       "path": "/",
       "expectedStatus": 200
+    },
+    {
+      "name": "Manager login",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "manager_login",
+        "login": "admin",
+        "password": "profix2024"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {"token": "string"},
+      "bodyMatcher": "partial"
     }
   ]
 }
