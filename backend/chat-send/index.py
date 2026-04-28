@@ -27,7 +27,7 @@ def handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "Нет session_id или текста"}, ensure_ascii=False),
         }
 
-    _sc = os.environ.get("MAIN_DB_SCHEMA", "public")
+    _sc = os.environ.get("MAIN_DB_SCHEMA") or "t_p83689144_profix_network_admin"
     conn = psycopg2.connect(os.environ["DATABASE_URL"])
     cur = conn.cursor()
 

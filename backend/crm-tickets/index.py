@@ -25,7 +25,7 @@ STATUS_EMOJI = {
     "new": "🆕", "in_progress": "🔧", "waiting": "⏳", "done": "✅", "cancelled": "❌",
 }
 
-SC = os.environ.get("MAIN_DB_SCHEMA", "public")
+SC = os.environ.get("MAIN_DB_SCHEMA") or "t_p83689144_profix_network_admin"
 
 
 def get_conn():

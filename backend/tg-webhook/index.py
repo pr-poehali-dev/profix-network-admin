@@ -59,7 +59,7 @@ def handler(event: dict, context) -> dict:
 
     replied_message_id = reply_to.get("message_id")
 
-    _sc = os.environ.get("MAIN_DB_SCHEMA", "public")
+    _sc = os.environ.get("MAIN_DB_SCHEMA") or "t_p83689144_profix_network_admin"
     conn = psycopg2.connect(os.environ["DATABASE_URL"])
     cur = conn.cursor()
 

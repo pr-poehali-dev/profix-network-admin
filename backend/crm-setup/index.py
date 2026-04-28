@@ -29,7 +29,7 @@ def handler(event: dict, context) -> dict:
     conn = get_conn()
     cur = conn.cursor()
 
-    sc = os.environ.get("MAIN_DB_SCHEMA", "public")
+    sc = os.environ.get("MAIN_DB_SCHEMA") or "t_p83689144_profix_network_admin"
 
     cur.execute("SELECT id, login, name, role FROM " + sc + ".managers WHERE login = 'admin'")
     existing = cur.fetchone()
