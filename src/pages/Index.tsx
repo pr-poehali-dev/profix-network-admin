@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import HeroSection, { carouselSlides } from "@/components/HeroSection";
 import ServicesAboutSection from "@/components/ServicesAboutSection";
@@ -71,6 +72,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
+      <SEO
+        title="IT-сервис и автоматизация бизнеса"
+        description="ProFiX в Якутске — внедрение 1С, торговое оборудование (кассы, ТСД), ремонт компьютеров, видеонаблюдение, монтаж сетей, заправка картриджей."
+        keywords="1С Якутск, онлайн-касса Якутск, ТСД, ремонт компьютеров Якутск, видеонаблюдение Якутск"
+        canonical="/"
+      />
       <Navbar
         scrolled={scrolled}
         activeSection={activeSection}

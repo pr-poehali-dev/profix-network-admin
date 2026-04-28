@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 
@@ -42,6 +43,12 @@ const OnecFranchisePage = () => {
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
+      <SEO
+        title="1С Франчайзи — внедрение и сопровождение 1С"
+        description="Авторизованный партнёр 1С в Якутске. Продажа, внедрение и сопровождение 1С:Розница, 1С:Бухгалтерия, 1С:Зарплата. Обучение и техподдержка."
+        keywords="1С Якутск, внедрение 1С, 1С Розница, 1С Бухгалтерия, франчайзи 1С"
+        canonical="/1c"
+      />
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
           <button onClick={() => navigate("/")} className="flex items-center gap-2 text-[#374151] hover:text-[#3ca615] transition-colors">

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 
@@ -42,6 +43,12 @@ const SbisPage = () => {
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
+      <SEO
+        title="СБИС — электронный документооборот и отчётность"
+        description="Официальный партнёр СБИС в Якутске. Подключение ЭДО, сдача электронной отчётности, CRM, бухгалтерия и кадровый учёт. Настройка и обучение."
+        keywords="СБИС Якутск, ЭДО, электронная отчётность, сдача отчётности онлайн, СБИС подключить"
+        canonical="/sbis"
+      />
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
           <button onClick={() => navigate("/")} className="flex items-center gap-2 text-[#374151] hover:text-[#3ca615] transition-colors">

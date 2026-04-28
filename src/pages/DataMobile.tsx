@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 
@@ -98,6 +99,12 @@ const DataMobilePage = () => {
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
+      <SEO
+        title="DataMobile — ПО для склада и торговли"
+        description="Официальный партнёр DataMobile в Якутске. Продажа и внедрение ПО для автоматизации склада и торгового зала. DataMobile Стандарт, Online, модули Маркировка и RFID."
+        keywords="DataMobile Якутск, ПО для склада, автоматизация склада, DataMobile купить"
+        canonical="/datamobile"
+      />
       {/* Шапка */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
