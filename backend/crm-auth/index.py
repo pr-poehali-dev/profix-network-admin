@@ -158,7 +158,10 @@ def handler(event: dict, context) -> dict:
         conn.close()
 
         if channel == "email":
-            send_email_otp(send_to_email, code, phone)
+            try:
+                send_email_otp(send_to_email, code, phone)
+            except Exception as e:
+                return err(f"Ошибка отправки письма: {str(e)}")
         else:
             send_telegram_otp(tg_chat_id, code)
 
