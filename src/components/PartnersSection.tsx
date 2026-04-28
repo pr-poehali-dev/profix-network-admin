@@ -20,12 +20,23 @@ const PartnersSection = () => {
     <section className="bg-white border-b border-gray-100 py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Заголовок */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-6">
           <div className="flex-1 h-px bg-gray-100" />
           <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 whitespace-nowrap">
             Официальные партнёры и поставщики
           </p>
           <div className="flex-1 h-px bg-gray-100" />
+        </div>
+
+        {/* Баннер с коллажем логотипов */}
+        <div className="relative rounded-2xl overflow-hidden mb-6 border border-gray-100 shadow-sm">
+          <img
+            src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/f0d9b5b6-10e3-4b22-916b-14572a6cc17d.jpg"
+            alt="Партнёры ProFiX"
+            className="w-full h-32 sm:h-40 object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-white/60 via-transparent to-white/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
         </div>
 
         {/* Сетка карточек */}
