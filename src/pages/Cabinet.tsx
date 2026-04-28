@@ -71,7 +71,7 @@ export default function Cabinet() {
         channel,
         channel === "email" ? email.trim() : undefined
       );
-      if (res.ok) {
+      if (res.sent || res.ok) {
         setStep("code");
       } else {
         setError(res.error || "Ошибка отправки кода");
