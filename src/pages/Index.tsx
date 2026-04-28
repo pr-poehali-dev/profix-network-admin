@@ -20,7 +20,7 @@ const Index = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setCarouselIdx((i) => (i + 1) % carouselSlides.length);
-    }, 3500);
+    }, 4500);
     return () => clearInterval(timer);
   }, []);
 

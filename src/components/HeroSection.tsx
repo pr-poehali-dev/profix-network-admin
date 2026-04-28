@@ -118,53 +118,90 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
       </section>
 
       {/* CAROUSEL */}
-      <section className="bg-white py-10">
+      <section className="bg-white py-10 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <h2 className="text-center font-oswald text-2xl font-bold text-[#0D1B2A] mb-2">Торговое оборудование</h2>
           <p className="text-center text-gray-500 text-sm mb-6">Ремонт, продажа, обслуживание торгового оборудования. Регистрация онлайн-касс.</p>
-          <div className="relative overflow-hidden rounded-2xl" style={{ height: "530px" }}>
-            <div
-              className="flex h-full transition-transform duration-700 ease-in-out"
-              style={{ transform: `translateX(-${carouselIdx * 100}%)` }}
+
+          <div className="relative">
+            {/* Стрелки */}
+            <button
+              onClick={() => onSetCarouselIdx((carouselIdx - 1 + carouselSlides.length) % carouselSlides.length)}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-10 h-10 rounded-full bg-white hover:bg-[#edf7e8] shadow-lg border border-gray-100 flex items-center justify-center text-gray-600 hover:text-[#3ca615] transition-all"
             >
-              {carouselSlides.map((slide, i) => (
-                <div key={i} className="shrink-0 w-full h-full flex items-center justify-center bg-gray-50 relative">
-                  <img
-                    src={slide.img}
-                    alt={slide.title || `Фото ${i + 1}`}
-                    style={{ width: "432px", height: "530px" }}
-                    className="object-cover rounded-2xl shadow-lg"
-                  />
-                  {slide.title && (
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm rounded-xl px-5 py-3 shadow-lg text-center w-72">
-                      <p className="font-oswald font-bold text-[#0D1B2A] text-lg">{slide.title}</p>
-                      <p className="text-gray-500 text-xs mt-0.5">{slide.desc}</p>
+              <Icon name="ChevronLeft" size={20} />
+            </button>
+            <button
+              onClick={() => onSetCarouselIdx((carouselIdx + 1) % carouselSlides.length)}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-10 h-10 rounded-full bg-white hover:bg-[#edf7e8] shadow-lg border border-gray-100 flex items-center justify-center text-gray-600 hover:text-[#3ca615] transition-all"
+            >
+              <Icon name="ChevronRight" size={20} />
+            </button>
+
+            {/* Трек — 3 карточки видны одновременно */}
+            <div className="overflow-hidden mx-6">
+              <div
+                className="flex gap-4 transition-transform duration-700 ease-in-out"
+                style={{ transform: `translateX(-${carouselIdx * (100 / 3)}%)` }}
+              >
+                {carouselSlides.map((slide, i) => {
+                  const isActive = i === carouselIdx;
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => onSetCarouselIdx(i)}
+                      className={`shrink-0 cursor-pointer rounded-2xl overflow-hidden transition-all duration-500 ${
+                        isActive
+                          ? "shadow-2xl scale-100 opacity-100"
+                          : "shadow-md scale-95 opacity-70 hover:opacity-90 hover:scale-[0.97]"
+                      }`}
+                      style={{ width: "calc(33.333% - 11px)" }}
+                    >
+                      <div className="relative" style={{ height: "260px" }}>
+                        <img
+                          src={slide.img}
+                          alt={slide.title || `Фото ${i + 1}`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        {/* Градиент снизу */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        {/* Подпись */}
+                        {slide.title && (
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <p className={`font-oswald font-bold text-white leading-tight transition-all duration-300 ${isActive ? "text-base" : "text-sm"}`}>
+                              {slide.title}
+                            </p>
+                            {isActive && (
+                              <p className="text-white/70 text-xs mt-1 leading-snug line-clamp-2">{slide.desc}</p>
+                            )}
+                          </div>
+                        )}
+                        {/* Зелёная рамка у активной */}
+                        {isActive && (
+                          <div className="absolute inset-0 rounded-2xl ring-2 ring-[#3ca615] ring-inset pointer-events-none" />
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
+                  );
+                })}
+              </div>
             </div>
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+
+            {/* Точки */}
+            <div className="flex justify-center gap-1.5 mt-5">
               {carouselSlides.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => onSetCarouselIdx(i)}
-                  className={`w-2.5 h-2.5 rounded-full transition-all ${i === carouselIdx ? "bg-[#3ca615] scale-125" : "bg-gray-300"}`}
+                  className={`transition-all duration-300 rounded-full ${
+                    i === carouselIdx
+                      ? "w-6 h-2 bg-[#3ca615]"
+                      : "w-2 h-2 bg-gray-200 hover:bg-gray-300"
+                  }`}
                 />
               ))}
             </div>
-            <button
-              onClick={() => onSetCarouselIdx((carouselIdx - 1 + carouselSlides.length) % carouselSlides.length)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-gray-700 transition-colors"
-            >
-              <Icon name="ChevronLeft" size={22} />
-            </button>
-            <button
-              onClick={() => onSetCarouselIdx((carouselIdx + 1) % carouselSlides.length)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-gray-700 transition-colors"
-            >
-              <Icon name="ChevronRight" size={22} />
-            </button>
           </div>
         </div>
       </section>
