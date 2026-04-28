@@ -249,14 +249,14 @@ def handler(event: dict, context) -> dict:
         }
 
         cur.execute(
-            """SELECT tc.id, tc.author_role, tc.text, tc.created_at,
-                      CASE WHEN tc.author_role='client' THEN cl.name
-                           WHEN tc.author_role='technician' THEN tech.name
+            """SELECT tc.id, tc.author_type, tc.text, tc.created_at,
+                      CASE WHEN tc.author_type='client' THEN cl.name
+                           WHEN tc.author_type='technician' THEN tech.name
                            ELSE COALESCE(m.name, m.full_name) END as author_name
                FROM ticket_comments tc
-               LEFT JOIN clients cl ON tc.author_role='client' AND cl.id=tc.author_id
-               LEFT JOIN managers m ON tc.author_role='manager' AND m.id=tc.author_id
-               LEFT JOIN technicians tech ON tc.author_role='technician' AND tech.id=tc.author_id
+               LEFT JOIN clients cl ON tc.author_type='client' AND cl.id=tc.author_id
+               LEFT JOIN managers m ON tc.author_type='manager' AND m.id=tc.author_id
+               LEFT JOIN technicians tech ON tc.author_type='technician' AND tech.id=tc.author_id
                WHERE tc.ticket_id = %s ORDER BY tc.created_at ASC""",
             (ticket_id,)
         )
@@ -356,7 +356,7 @@ def handler(event: dict, context) -> dict:
                 return err("Заявка не найдена", 404)
 
         cur.execute(
-            "INSERT INTO ticket_comments (ticket_id, author_role, author_id, text) VALUES (%s,%s,%s,%s) RETURNING id",
+            "INSERT INTO ticket_comments (ticket_id, author_type, author_id, text) VALUES (%s,%s,%s,%s) RETURNING id",
             (ticket_id, role, user_id, text)
         )
         new_id = cur.fetchone()[0]
