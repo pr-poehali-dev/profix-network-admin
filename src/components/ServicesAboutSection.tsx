@@ -54,7 +54,7 @@ const onecServices = [
     icon: "Code",
     title: "Разработка в 1С",
     desc: "Дорабатываем типовые конфигурации и создаём новые модули под ваши задачи. Автоматизируем любые бизнес-процессы.",
-    img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/89e28943-f50b-4e97-8ae8-27e3b5dc468d.jpg",
+    img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/20d3842e-5872-4e56-90d7-06eef03bbd66.jpg",
   },
   {
     icon: "ClipboardList",
@@ -66,7 +66,7 @@ const onecServices = [
     icon: "ShoppingCart",
     title: "Продажа программ 1С",
     desc: "Официальная продажа лицензионных продуктов 1С: Бухгалтерия, Торговля, Зарплата и другие конфигурации.",
-    img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/4f4c5695-a2b2-48ed-a89f-cbf622a4684c.jpg",
+    img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/813ecc5e-77fe-4c35-9b2e-6775fc6ea9c2.jpg",
   },
   {
     icon: "RefreshCw",

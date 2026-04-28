@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 
@@ -29,6 +29,28 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
   const navigate = useNavigate();
   const location = useLocation();
   const isOnMain = location.pathname === "/";
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Закрываем при клике вне меню
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setPartnersOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setPartnersOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    closeTimer.current = setTimeout(() => setPartnersOpen(false), 200);
+  };
 
   const handleNavClick = (section: string) => {
     if (isOnMain) {
@@ -76,11 +98,15 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
             </button>
           ))}
 
-          {/* Выпадающее меню партнёров */}
-          <div className="relative" onMouseLeave={() => setPartnersOpen(false)}>
+          {/* Выпадающее меню партнёров — устойчивое к курсору */}
+          <div
+            ref={dropdownRef}
+            className="relative"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
             <button
-              onMouseEnter={() => setPartnersOpen(true)}
-              onClick={() => setPartnersOpen(!partnersOpen)}
+              onClick={() => setPartnersOpen((v) => !v)}
               className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 partnersOpen
                   ? "bg-[#3ca615] text-white"
@@ -90,17 +116,27 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
               Партнёры
               <Icon name="ChevronDown" size={14} className={`transition-transform ${partnersOpen ? "rotate-180" : ""}`} />
             </button>
+
             {partnersOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 w-52 z-50">
-                {PARTNER_LINKS.map((p) => (
-                  <button
-                    key={p.path}
-                    onClick={() => { navigate(p.path); setPartnersOpen(false); }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors"
-                  >
-                    {p.name}
-                  </button>
-                ))}
+              <div
+                className="absolute top-full left-0 bg-white rounded-xl shadow-xl border border-gray-100 z-50"
+                style={{ marginTop: "4px", minWidth: "200px" }}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                {/* Невидимый мост между кнопкой и меню */}
+                <div className="absolute -top-2 left-0 right-0 h-2" />
+                <div className="py-1.5">
+                  {PARTNER_LINKS.map((p) => (
+                    <button
+                      key={p.path}
+                      onClick={() => { navigate(p.path); setPartnersOpen(false); }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors"
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -142,7 +178,6 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
             </button>
           ))}
 
-          {/* Мобильное меню партнёров */}
           <button
             onClick={() => setMobilePartnersOpen(!mobilePartnersOpen)}
             className="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] flex items-center justify-between"
