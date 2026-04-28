@@ -39,7 +39,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
       <section id="hero" className="pt-16 flex flex-col relative overflow-hidden">
         {/* Фон с логотипами партнёров */}
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-top"
           style={{ backgroundImage: `url(https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/c51dd0c8-e4af-445e-a177-afcf7f18d4b5.jpg)`, opacity: 1 }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#edf7e8]/70 via-[#F7F9FC]/50 to-[#d4f0c8]/70" />
