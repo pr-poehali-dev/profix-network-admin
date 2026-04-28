@@ -4,6 +4,8 @@ CRM заявки: создание, просмотр, смена статуса,
 import json
 import os
 import psycopg2
+import smtplib
+from email.mime.text import MIMEText
 from datetime import datetime
 from urllib.request import urlopen, Request as URequest
 
@@ -45,10 +47,71 @@ def send_tg(chat_id: int, text: str) -> None:
         pass
 
 
+def send_email_status(to_email: str, client_name: str, title: str, status_label: str, emoji: str, ticket_id: int) -> None:
+    host = os.environ.get("SMTP_HOST", "")
+    port = int(os.environ.get("SMTP_PORT", "465"))
+    user = os.environ.get("SMTP_USER", "")
+    pwd = os.environ.get("SMTP_PASSWORD", "")
+    if not host or not user or not pwd:
+        return
+
+    greeting = f"Здравствуйте{', ' + client_name if client_name else ''}!"
+    status_text = {
+        "Новая": "Ваша заявка принята в работу.",
+        "В работе": "Наш специалист приступил к работе над вашей заявкой.",
+        "Ожидание": "Работа по заявке временно приостановлена. Мы свяжемся с вами в ближайшее время.",
+        "Выполнена": "Ваша заявка успешно выполнена! Спасибо, что обратились в ProFiX.",
+        "Отменена": "Заявка была отменена. Если есть вопросы — звоните: +7 (914) 272-71-87.",
+    }.get(status_label, "")
+
+    html = f"""
+    <html><body style="font-family:Arial,sans-serif;color:#1a1a1a;max-width:600px;margin:0 auto;padding:20px;">
+      <div style="background:#3ca615;padding:24px;border-radius:12px 12px 0 0;">
+        <h1 style="color:white;margin:0;font-size:20px;">ProFiX — Обновление заявки</h1>
+      </div>
+      <div style="background:#f7f9fc;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;">
+        <p style="font-size:15px;margin:0 0 16px;">{greeting}</p>
+        <div style="background:white;border-radius:10px;padding:16px;border:1px solid #e5e7eb;margin-bottom:16px;">
+          <p style="margin:0 0 8px;color:#6b7280;font-size:13px;">Заявка #{ticket_id}</p>
+          <p style="margin:0 0 12px;font-weight:700;font-size:16px;">{title}</p>
+          <div style="display:inline-block;background:#edf7e8;color:#2d8a10;font-weight:700;padding:6px 14px;border-radius:20px;font-size:14px;">
+            {emoji} {status_label}
+          </div>
+        </div>
+        <p style="font-size:14px;color:#374151;margin:0 0 16px;">{status_text}</p>
+        <a href="https://pfx.su/cabinet" style="display:inline-block;background:#3ca615;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+          Открыть кабинет
+        </a>
+        <p style="margin-top:20px;font-size:12px;color:#9ca3af;">
+          Это письмо отправлено автоматически. Телефон: +7 (914) 272-71-87
+        </p>
+      </div>
+    </body></html>
+    """
+
+    msg = MIMEText(html, "html", "utf-8")
+    msg["Subject"] = f"{emoji} Заявка ProFiX: {status_label} — {title}"
+    msg["From"] = user
+    msg["To"] = to_email
+
+    try:
+        if port == 465:
+            with smtplib.SMTP_SSL(host, port) as s:
+                s.login(user, pwd)
+                s.sendmail(user, to_email, msg.as_string())
+        else:
+            with smtplib.SMTP(host, port) as s:
+                s.starttls()
+                s.login(user, pwd)
+                s.sendmail(user, to_email, msg.as_string())
+    except Exception:
+        pass
+
+
 def notify_client_status(conn, ticket_id: int, new_status: str) -> None:
     cur = conn.cursor()
     cur.execute(
-        f"""SELECT c.telegram_id, c.name, t.title
+        f"""SELECT c.telegram_id, c.name, t.title, c.email
            FROM {SC}.tickets t
            LEFT JOIN {SC}.clients c ON c.id = t.client_id
            WHERE t.id = %s""",
@@ -56,9 +119,9 @@ def notify_client_status(conn, ticket_id: int, new_status: str) -> None:
     )
     row = cur.fetchone()
     cur.close()
-    if not row or not row[0]:
+    if not row:
         return
-    tg_id, client_name, title = row
+    tg_id, client_name, title, client_email = row
     emoji = STATUS_EMOJI.get(new_status, "📋")
     status_label = STATUS_LABELS.get(new_status, new_status)
     greeting = f"Здравствуйте{', ' + client_name if client_name else ''}!"
@@ -76,7 +139,10 @@ def notify_client_status(conn, ticket_id: int, new_status: str) -> None:
         text += "Заявка выполнена! Спасибо, что обратились в ProFiX. 🙏"
     elif new_status == "cancelled":
         text += "Заявка отменена. Если у вас остались вопросы — звоните: +7 (914) 272-71-87."
-    send_tg(tg_id, text)
+    if tg_id:
+        send_tg(tg_id, text)
+    if client_email:
+        send_email_status(client_email, client_name, title, status_label, emoji, ticket_id)
 
 
 def ok(data):
