@@ -106,13 +106,22 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
           </div>
         </nav>
 
-        <a
-          href="tel:+79142727187"
-          className="hidden md:flex items-center gap-2 bg-[#3ca615] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2d8a10] transition-colors"
-        >
-          <Icon name="Phone" size={15} />
-          +7 (914) 272-71-87
-        </a>
+        <div className="hidden md:flex items-center gap-2">
+          <button
+            onClick={() => navigate("/cabinet")}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors"
+          >
+            <Icon name="User" size={15} />
+            Кабинет
+          </button>
+          <a
+            href="tel:+79142727187"
+            className="flex items-center gap-2 bg-[#3ca615] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2d8a10] transition-colors"
+          >
+            <Icon name="Phone" size={15} />
+            +7 (914) 272-71-87
+          </a>
+        </div>
 
         <button className="md:hidden p-2 rounded-lg hover:bg-gray-100" onClick={onMenuToggle}>
           <Icon name={menuOpen ? "X" : "Menu"} size={22} />
@@ -155,7 +164,14 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
             </div>
           )}
 
-          <a href="tel:+79142727187" className="mt-2 flex items-center gap-2 bg-[#3ca615] text-white px-4 py-3 rounded-lg text-sm font-medium justify-center">
+          <button
+            onClick={() => { navigate("/cabinet"); onMenuToggle(); }}
+            className="flex items-center gap-2 border border-gray-200 text-[#374151] px-4 py-3 rounded-lg text-sm font-medium justify-center hover:border-[#3ca615] hover:text-[#3ca615] transition-colors"
+          >
+            <Icon name="User" size={15} />
+            Личный кабинет
+          </button>
+          <a href="tel:+79142727187" className="mt-1 flex items-center gap-2 bg-[#3ca615] text-white px-4 py-3 rounded-lg text-sm font-medium justify-center">
             <Icon name="Phone" size={15} />
             +7 (914) 272-71-87
           </a>
