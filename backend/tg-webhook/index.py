@@ -59,7 +59,10 @@ def handler(event: dict, context) -> dict:
 
     replied_message_id = reply_to.get("message_id")
 
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    _schema = os.environ.get("MAIN_DB_SCHEMA", "public")
+    _dsn = os.environ["DATABASE_URL"]
+    _sep = "&" if "?" in _dsn else "?"
+    conn = psycopg2.connect(_dsn + _sep + "options=-c%20search_path%3D" + _schema)
     cur = conn.cursor()
 
     cur.execute(
