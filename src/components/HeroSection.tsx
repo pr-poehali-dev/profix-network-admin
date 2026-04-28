@@ -46,16 +46,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
           style={{ backgroundImage: `url(https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/d7a247af-9874-4bc9-8052-5c087495fdb7.png)`, opacity: 1 }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8]" style={{ opacity: 0.50 }} />
-        {/* Коллаж логотипов партнёров — декоративный фон снизу */}
-        <div className="absolute bottom-0 left-0 right-0 h-48 overflow-hidden pointer-events-none">
-          <img
-            src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/f0d9b5b6-10e3-4b22-916b-14572a6cc17d.jpg"
-            alt=""
-            className="w-full h-full object-cover object-top"
-            style={{ opacity: 0.08 }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/80 to-transparent" />
-        </div>
+
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 grid md:grid-cols-2 gap-12 items-center min-h-[calc(100vh-theme(spacing.16))]">
           <div className="animate-fade-in-up">
