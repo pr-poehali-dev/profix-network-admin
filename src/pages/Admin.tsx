@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { managerApi, managerSession, Ticket, Client, Technician } from "@/lib/crm-api";
+import { managerApi, managerSession, reviewsApi, Ticket, Client, Technician } from "@/lib/crm-api";
 import AdminLogin from "@/components/admin/AdminLogin";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import {
@@ -39,6 +39,7 @@ export default function Admin() {
   const [loginForm, setLoginForm] = useState({ login: "", password: "" });
   const [newManager, setNewManager] = useState({ login: "", password: "", name: "", role: "manager" });
   const [newTech, setNewTech] = useState({ name: "", phone: "", specialization: "" });
+  const [reviews, setReviews] = useState<{ id: number; name: string; rating: number; text: string; published: boolean; created_at: string; service?: string }[]>([]);
   const [editFields, setEditFields] = useState<EditFields>({
     status: "",
     priority: "",
@@ -111,6 +112,19 @@ export default function Admin() {
       if (res.technicians) setTechnicians(res.technicians);
     } catch {
       setError("Не удалось загрузить специалистов");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadReviews = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = managerSession.get()!;
+      const res = await reviewsApi.getAll(token);
+      if (res.reviews) setReviews(res.reviews);
+    } catch {
+      setError("Не удалось загрузить отзывы");
     } finally {
       setLoading(false);
     }
@@ -189,6 +203,7 @@ export default function Admin() {
     if (s === "clients") loadClients();
     if (s === "managers") loadManagers();
     if (s === "technicians") loadTechnicians();
+    if (s === "reviews") loadReviews();
   }
 
   function handleFilterChange(f: string) {
@@ -454,6 +469,60 @@ export default function Admin() {
             onNewManagerChange={setNewManager}
             onCreateManager={handleCreateManager}
           />
+        )}
+
+        {section === "reviews" && (
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-xl font-bold text-gray-900">Отзывы клиентов</h1>
+              <button
+                onClick={loadReviews}
+                className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition"
+              >
+                Обновить
+              </button>
+            </div>
+            {reviews.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400">
+                Отзывов пока нет
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {reviews.map(r => (
+                  <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex gap-0.5">
+                            {Array.from({ length: 5 }, (_, i) => (
+                              <span key={i} className={i < r.rating ? "text-yellow-400" : "text-gray-200"}>★</span>
+                            ))}
+                          </div>
+                          <span className="font-medium text-sm text-gray-800">{r.name}</span>
+                          <span className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString("ru-RU")}</span>
+                          {r.service && <span className="text-xs text-gray-400">— {r.service}</span>}
+                        </div>
+                        <p className="text-sm text-gray-700">«{r.text}»</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          await reviewsApi.publish(r.id, !r.published, managerSession.get()!);
+                          await loadReviews();
+                        }}
+                        className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition ${
+                          r.published
+                            ? "bg-green-50 text-green-700 hover:bg-red-50 hover:text-red-600"
+                            : "bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700"
+                        }`}
+                      >
+                        {r.published ? "Опубликован" : "Опубликовать"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Индикатор загрузки */}

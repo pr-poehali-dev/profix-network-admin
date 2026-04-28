@@ -19,6 +19,7 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
     { key: "tickets", label: "Заявки", icon: "Ticket" },
     { key: "clients", label: "Клиенты", icon: "Users" },
     { key: "technicians", label: "Тех специалисты", icon: "Wrench" },
+    { key: "reviews", label: "Отзывы", icon: "Star" },
     ...(manager?.role === "admin" ? [{ key: "managers", label: "Менеджеры", icon: "UserCheck" }] : []),
   ];
 

@@ -1,5 +1,6 @@
 const AUTH_URL = "https://functions.poehali.dev/1f14f246-0908-4c88-86de-62840b1d4e1c";
 const TICKETS_URL = "https://functions.poehali.dev/80771697-657a-4565-8f5f-b8553431f806";
+const REVIEWS_URL = "https://functions.poehali.dev/f1f45bf4-6a46-4561-abf6-fedd584fbeec";
 
 // ── Хранилище токенов ────────────────────────────────────────────────────────
 
@@ -159,6 +160,32 @@ export const managerApi = {
 
   getSchedule: (technician_id: number, date?: string) =>
     getTickets({ action: "schedule", technician_id: String(technician_id), ...(date ? { date } : {}) }, managerSession.get()!),
+};
+
+// ── API отзывов ───────────────────────────────────────────────────────────────
+
+export const reviewsApi = {
+  getPublished: () =>
+    fetch(`${REVIEWS_URL}?action=list`).then(r => r.json()),
+
+  create: (data: { rating: number; text: string; ticket_id?: number }) =>
+    fetch(REVIEWS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${clientSession.get()}` },
+      body: JSON.stringify({ action: "create", ...data }),
+    }).then(r => r.json()),
+
+  getAll: (token: string) =>
+    fetch(`${REVIEWS_URL}?action=all`, {
+      headers: { "Authorization": `Bearer ${token}` },
+    }).then(r => r.json()),
+
+  publish: (id: number, published: boolean, token: string) =>
+    fetch(REVIEWS_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ action: "publish", id, published }),
+    }).then(r => r.json()),
 };
 
 // ── Типы ─────────────────────────────────────────────────────────────────────

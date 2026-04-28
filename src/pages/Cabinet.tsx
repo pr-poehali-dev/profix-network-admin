@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
-import { clientApi, clientSession, Ticket, STATUS_COLORS, PRIORITY_COLORS } from "@/lib/crm-api";
+import { clientApi, clientSession, reviewsApi, Ticket, STATUS_COLORS, PRIORITY_COLORS } from "@/lib/crm-api";
 
 const BOT_USERNAME = "ProFiXBot"; // замени на реальный username бота если другой
 
@@ -21,7 +21,11 @@ export default function Cabinet() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [view, setView] = useState<"list" | "ticket" | "new">("list");
+  const [view, setView] = useState<"list" | "ticket" | "new" | "review">("list");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewTicketId, setReviewTicketId] = useState<number | undefined>();
+  const [reviewSent, setReviewSent] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [comment, setComment] = useState("");
   const [newTicket, setNewTicket] = useState({ title: "", description: "", priority: "normal" });
@@ -186,6 +190,21 @@ export default function Cabinet() {
     } finally {
       setProfileSaving(false);
     }
+  }
+
+  async function handleSubmitReview() {
+    if (!reviewText.trim()) { setError("Напишите текст отзыва"); return; }
+    setLoading(true); setError("");
+    try {
+      const res = await reviewsApi.create({ rating: reviewRating, text: reviewText.trim(), ticket_id: reviewTicketId });
+      if (res.created) {
+        setReviewSent(true);
+        setReviewText(""); setReviewRating(5);
+      } else {
+        setError(res.error || "Ошибка отправки");
+      }
+    } catch { setError("Ошибка сети"); }
+    finally { setLoading(false); }
   }
 
   function handleLogout() {
@@ -355,9 +374,9 @@ export default function Cabinet() {
       <header className="bg-white border-b border-gray-100 shadow-sm h-16 flex items-center px-6">
         <div className="max-w-3xl mx-auto w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {(view === "ticket" || view === "new") && (
+            {(view === "ticket" || view === "new" || view === "review") && (
               <button
-                onClick={() => { setView("list"); setSelectedTicket(null); setError(""); }}
+                onClick={() => { setView("list"); setSelectedTicket(null); setError(""); setReviewSent(false); }}
                 className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500"
               >
                 <Icon name="ArrowLeft" size={18} />
@@ -370,6 +389,7 @@ export default function Cabinet() {
               {view === "list" && "Мои заявки"}
               {view === "new" && "Новая заявка"}
               {view === "ticket" && selectedTicket && `Заявка #${selectedTicket.id}`}
+              {view === "review" && "Оставить отзыв"}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -398,14 +418,23 @@ export default function Cabinet() {
                   ? "У вас пока нет заявок"
                   : `${tickets.length} ${tickets.length === 1 ? "заявка" : tickets.length < 5 ? "заявки" : "заявок"}`}
               </p>
-              <button
-                onClick={() => { setView("new"); setError(""); }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium transition"
-                style={{ backgroundColor: "#3ca615" }}
-              >
-                <Icon name="Plus" size={15} />
-                Создать заявку
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setView("review"); setReviewTicketId(undefined); setReviewSent(false); setError(""); }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-[#3ca615] text-sm font-medium border border-[#3ca615] hover:bg-[#edf7e8] transition"
+                >
+                  <Icon name="Star" size={15} />
+                  Отзыв
+                </button>
+                <button
+                  onClick={() => { setView("new"); setError(""); }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium transition"
+                  style={{ backgroundColor: "#3ca615" }}
+                >
+                  <Icon name="Plus" size={15} />
+                  Заявка
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -722,6 +751,107 @@ export default function Cabinet() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── Отзыв ── */}
+        {view === "review" && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            {reviewSent ? (
+              <div className="text-center py-10">
+                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Icon name="CheckCircle" size={28} className="text-green-500" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Спасибо за отзыв!</h2>
+                <p className="text-sm text-gray-500 mb-6">Он появится на сайте после проверки</p>
+                <button
+                  onClick={() => { setView("list"); setReviewSent(false); }}
+                  className="px-6 py-2.5 rounded-xl text-white text-sm font-medium"
+                  style={{ backgroundColor: "#3ca615" }}
+                >
+                  Вернуться к заявкам
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <h2 className="text-base font-semibold text-gray-900">Оставить отзыв</h2>
+
+                {/* Выбор заявки */}
+                {tickets.filter(t => t.status === "done").length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">По какой заявке?</label>
+                    <select
+                      value={reviewTicketId || ""}
+                      onChange={e => setReviewTicketId(e.target.value ? Number(e.target.value) : undefined)}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/30 focus:border-[#3ca615] transition"
+                    >
+                      <option value="">Общий отзыв</option>
+                      {tickets.filter(t => t.status === "done").map(t => (
+                        <option key={t.id} value={t.id}>#{t.id} — {t.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Оценка */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Оценка</label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button
+                        key={star}
+                        onClick={() => setReviewRating(star)}
+                        className="p-1 transition"
+                      >
+                        <Icon
+                          name="Star"
+                          size={32}
+                          className={star <= reviewRating
+                            ? "text-yellow-400 fill-yellow-400"
+                            : "text-gray-200 fill-gray-200 hover:text-yellow-300 hover:fill-yellow-300"}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Текст */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Ваш отзыв</label>
+                  <textarea
+                    value={reviewText}
+                    onChange={e => setReviewText(e.target.value)}
+                    placeholder="Расскажите о своём опыте работы с нами..."
+                    rows={4}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#3ca615]/30 focus:border-[#3ca615] transition"
+                  />
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl px-4 py-3">
+                    <Icon name="AlertCircle" size={15} />
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { setView("list"); setError(""); }}
+                    className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={handleSubmitReview}
+                    disabled={loading}
+                    className="flex-1 py-3 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition"
+                    style={{ backgroundColor: "#3ca615" }}
+                  >
+                    {loading ? "Отправка..." : "Отправить отзыв"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
