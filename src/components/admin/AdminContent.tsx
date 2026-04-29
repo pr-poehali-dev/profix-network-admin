@@ -226,6 +226,7 @@ export function AdminDashboard({ stats, tickets, loading, onOpenTicket, onGoTick
 
 export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, onOpenTicket }: TicketsProps) {
   const [techFilter, setTechFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
 
   // Уникальные специалисты из списка заявок
   const techOptions = Array.from(
@@ -239,16 +240,54 @@ export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, o
     ).values()
   );
 
-  const filtered = techFilter
-    ? tickets.filter(t => (t.technician_name || t.technician?.name) === techFilter)
-    : tickets;
+  // Фильтрация по дате
+  const now = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const filtered = tickets.filter(t => {
+    if (techFilter && (t.technician_name || t.technician?.name) !== techFilter) return false;
+    if (dateFilter) {
+      const date = new Date(t.created_at);
+      if (dateFilter === "today") {
+        return date >= startOfDay(now);
+      }
+      if (dateFilter === "week") {
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
+        return date >= startOfDay(weekStart);
+      }
+      if (dateFilter === "month") {
+        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+      }
+    }
+    return true;
+  });
+
+  const DATE_FILTERS = [
+    { value: "today", label: "Сегодня" },
+    { value: "week", label: "Эта неделя" },
+    { value: "month", label: "Этот месяц" },
+  ];
+
+  const hasAnyFilter = techFilter || dateFilter;
 
   return (
     <div className="p-4 sm:p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Заявки</h2>
+      <div className="flex items-center justify-between mb-6 gap-3">
+        <h2 className="text-2xl font-bold text-gray-900">Заявки</h2>
+        {hasAnyFilter && (
+          <button
+            onClick={() => { setTechFilter(""); setDateFilter(""); }}
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors"
+          >
+            <Icon name="X" size={14} />
+            Сбросить фильтры
+          </button>
+        )}
+      </div>
 
       {/* Фильтры */}
-      <div className="flex flex-wrap items-center gap-2 mb-5">
+      <div className="space-y-3 mb-5">
+        {/* Статус */}
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTER_LABELS.map((f) => (
             <button
@@ -266,30 +305,51 @@ export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, o
           ))}
         </div>
 
-        {techOptions.length > 0 && (
-          <div className="flex items-center gap-2 ml-auto">
-            <Icon name="Wrench" size={15} className="text-gray-400 shrink-0" />
-            <select
-              value={techFilter}
-              onChange={e => setTechFilter(e.target.value)}
-              className="text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white text-gray-700 focus:outline-none focus:border-green-400 cursor-pointer"
-            >
-              <option value="">Все специалисты</option>
-              {techOptions.map(name => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
-            {techFilter && (
+        {/* Дата + Специалист */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Фильтр по дате */}
+          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1">
+            <Icon name="Calendar" size={14} className="text-gray-400 ml-1.5" />
+            {DATE_FILTERS.map(df => (
               <button
-                onClick={() => setTechFilter("")}
-                className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
-                title="Сбросить"
+                key={df.value}
+                onClick={() => setDateFilter(dateFilter === df.value ? "" : df.value)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  dateFilter === df.value
+                    ? "text-white"
+                    : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+                }`}
+                style={dateFilter === df.value ? { background: "#3ca615" } : {}}
               >
-                <Icon name="X" size={14} />
+                {df.label}
               </button>
-            )}
+            ))}
           </div>
-        )}
+
+          {/* Фильтр по специалисту */}
+          {techOptions.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Icon name="Wrench" size={15} className="text-gray-400 shrink-0" />
+              <select
+                value={techFilter}
+                onChange={e => setTechFilter(e.target.value)}
+                className="text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white text-gray-700 focus:outline-none focus:border-green-400 cursor-pointer"
+              >
+                <option value="">Все специалисты</option>
+                {techOptions.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Счётчик результатов */}
+          {hasAnyFilter && (
+            <span className="text-xs text-gray-400 ml-1">
+              {filtered.length} {filtered.length === 1 ? "заявка" : filtered.length < 5 ? "заявки" : "заявок"}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Таблица — только на широких экранах */}
