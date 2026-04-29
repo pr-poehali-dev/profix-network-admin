@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Icon from "@/components/ui/icon";
+import { pagesApi } from "@/lib/pages-api";
 
 const PARTNER_LINKS = [
   { name: "DataMobile", path: "/datamobile" },
@@ -26,11 +27,27 @@ interface NavbarProps {
 const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }: NavbarProps) => {
   const [partnersOpen, setPartnersOpen] = useState(false);
   const [mobilePartnersOpen, setMobilePartnersOpen] = useState(false);
+  const [navPages, setNavPages] = useState<{slug: string; nav_label: string}[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
   const isOnMain = location.pathname === "/";
   const dropdownRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Загружаем кастомные страницы для навигации
+  useEffect(() => {
+    pagesApi.list(false).then(r => {
+      if (r.pages) {
+        setNavPages(r.pages
+          .filter((p: {show_in_nav: boolean}) => p.show_in_nav)
+          .map((p: {slug: string; nav_label: string; title: string}) => ({
+            slug: p.slug,
+            nav_label: p.nav_label || p.title,
+          }))
+        );
+      }
+    });
+  }, []);
 
   // Закрываем при клике вне меню
   useEffect(() => {
@@ -140,6 +157,18 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
               </div>
             )}
           </div>
+          {/* Кастомные страницы в десктопной навигации */}
+          {navPages.map(p => (
+            <button key={p.slug}
+              onClick={() => navigate(`/p/${p.slug}`)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                location.pathname === `/p/${p.slug}`
+                  ? "bg-[#3ca615] text-white"
+                  : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
+              }`}>
+              {p.nav_label}
+            </button>
+          ))}
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
@@ -205,6 +234,17 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
               ))}
             </div>
           )}
+
+          {/* Кастомные страницы в мобильном меню */}
+          {navPages.map(p => (
+            <button key={p.slug}
+              onClick={() => { navigate(`/p/${p.slug}`); onMenuToggle(); }}
+              className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                location.pathname === `/p/${p.slug}` ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8]"
+              }`}>
+              {p.nav_label}
+            </button>
+          ))}
 
           <button
             onClick={() => { navigate("/shop"); onMenuToggle(); }}
