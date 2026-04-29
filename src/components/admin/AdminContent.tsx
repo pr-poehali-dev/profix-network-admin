@@ -270,19 +270,62 @@ export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, o
 
   const hasAnyFilter = techFilter || dateFilter;
 
+  function exportToExcel() {
+    const headers = ["№", "Клиент", "Телефон", "Email", "Тема", "Описание", "Статус", "Приоритет", "Специалист", "Дата создания", "Дата визита", "Сумма", "Оплачено"];
+    const rows = filtered.map(t => [
+      t.id,
+      t.client_name || t.client?.name || "",
+      t.client_phone || t.client?.phone || "",
+      t.client?.email || "",
+      t.title,
+      t.description || "",
+      t.status_label || t.status,
+      t.priority_label || t.priority,
+      t.technician_name || t.technician?.name || "",
+      formatDate(t.created_at),
+      t.scheduled_date ? `${formatDate(t.scheduled_date)}${t.scheduled_hour != null ? ` ${formatHour(t.scheduled_hour)}` : ""}` : "",
+      t.amount != null ? t.amount : "",
+      t.paid ? "Да" : "Нет",
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const dateStr = new Date().toLocaleDateString("ru-RU").replace(/\./g, "-");
+    a.href = url;
+    a.download = `заявки_${dateStr}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-6 gap-3">
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <h2 className="text-2xl font-bold text-gray-900">Заявки</h2>
-        {hasAnyFilter && (
+        <div className="flex items-center gap-3">
+          {hasAnyFilter && (
+            <button
+              onClick={() => { setTechFilter(""); setDateFilter(""); }}
+              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors"
+            >
+              <Icon name="X" size={14} />
+              Сбросить фильтры
+            </button>
+          )}
           <button
-            onClick={() => { setTechFilter(""); setDateFilter(""); }}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors"
+            onClick={exportToExcel}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+            style={{ background: "#3ca615" }}
           >
-            <Icon name="X" size={14} />
-            Сбросить фильтры
+            <Icon name="Download" size={15} />
+            Экспорт CSV
           </button>
-        )}
+        </div>
       </div>
 
       {/* Фильтры */}
