@@ -1,8 +1,8 @@
 {
-  "name": "ProFiX — Тех специалист",
+  "name": "ProFiX",
   "short_name": "ProFiX",
-  "description": "Личный кабинет технического специалиста ProFiX",
-  "start_url": "/techportal",
+  "description": "ProFiX — IT-сервис для бизнеса",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0D1B2A",
@@ -19,6 +19,22 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Менеджер",
+      "short_name": "Менеджер",
+      "description": "Панель менеджера",
+      "url": "/manager",
+      "icons": [{ "src": "https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Тех специалист",
+      "short_name": "Техник",
+      "description": "Портал техника",
+      "url": "/techportal",
+      "icons": [{ "src": "https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png", "sizes": "192x192" }]
     }
   ],
   "categories": ["business", "productivity"],

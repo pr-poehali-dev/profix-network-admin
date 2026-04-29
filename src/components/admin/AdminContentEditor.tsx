@@ -318,6 +318,142 @@ function OnecEditor({ content, onChange }: { content: ContentMap; onChange: (key
   );
 }
 
+// ── Порядок страниц в навигации ───────────────────────────────────────────────
+
+function NavPagesOrder({ onChange }: { onChange: (key: string, val: string) => void }) {
+  const [pages, setPages] = useState<{slug:string; nav_label:string}[]>([]);
+
+  useEffect(() => {
+    import("@/lib/pages-api").then(({ pagesApi }) => {
+      pagesApi.list(false).then((r: {pages?: {slug:string;nav_label:string;title:string;show_in_nav:boolean}[]}) => {
+        if (r.pages) setPages(r.pages.filter(p => p.show_in_nav).map(p => ({ slug: p.slug, nav_label: p.nav_label || p.title })));
+      });
+    });
+  }, []);
+
+  function move(i: number, dir: -1 | 1) {
+    const n = [...pages];
+    const j = i + dir;
+    if (j < 0 || j >= n.length) return;
+    [n[i], n[j]] = [n[j], n[i]];
+    setPages(n);
+    onChange("navbar.nav_pages_order", JSON.stringify(n.map(p => p.slug)));
+  }
+
+  if (pages.length === 0) return <p className="text-xs text-gray-400 text-center py-2">Нет страниц с включённой навигацией</p>;
+
+  return (
+    <div className="space-y-1.5">
+      {pages.map((p, i) => (
+        <div key={p.slug} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-gray-200">
+          <span className="text-sm text-gray-700 flex-1 truncate">{p.nav_label}</span>
+          <span className="text-xs text-gray-400">/p/{p.slug}</span>
+          <div className="flex gap-1">
+            <button onClick={() => move(i, -1)} disabled={i===0} className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30">
+              <Icon name="ChevronUp" size={13} />
+            </button>
+            <button onClick={() => move(i, 1)} disabled={i>=pages.length-1} className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30">
+              <Icon name="ChevronDown" size={13} />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Редактор навбара ──────────────────────────────────────────────────────────
+
+function NavbarEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {
+  const extraLinks = parseJson<{label:string;href:string;icon?:string}[]>(content["navbar.extra_links"] || "", []);
+  const [exp, setExp] = useState<number|null>(null);
+
+  function setLinks(items: typeof extraLinks) { onChange("navbar.extra_links", JSON.stringify(items)); }
+
+  return (
+    <div className="space-y-5">
+      {/* Телефон */}
+      <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Телефон в шапке</p>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Отображаемый номер" value={content["navbar.phone"] || ""} onChange={v => onChange("navbar.phone", v)} />
+          <Field label="Ссылка href" value={content["navbar.phone_href"] || ""} onChange={v => onChange("navbar.phone_href", v)}
+            hint="Например: tel:+79142727187" />
+        </div>
+      </div>
+
+      {/* Показывать кнопки */}
+      <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Кнопки навигации</p>
+        <div className="flex flex-wrap gap-4">
+          {[
+            { key: "navbar.show_shop", label: "Магазин" },
+            { key: "navbar.show_cabinet", label: "Кабинет клиента" },
+          ].map(item => {
+            const val = content[item.key] !== "false";
+            return (
+              <label key={item.key} className="flex items-center gap-2 cursor-pointer">
+                <div onClick={() => onChange(item.key, val ? "false" : "true")}
+                  className={`w-10 h-5 rounded-full transition-colors relative ${val ? "bg-green-500" : "bg-gray-300"}`}>
+                  <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${val ? "translate-x-5" : "translate-x-0.5"}`} />
+                </div>
+                <span className="text-sm text-gray-700">{item.label}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Порядок страниц в навигации */}
+      <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Порядок кастомных страниц</p>
+        <p className="text-[10px] text-gray-400">Страницы с включённым «В навигации» в конструкторе</p>
+        <NavPagesOrder onChange={onChange} />
+      </div>
+
+      {/* Дополнительные ссылки */}
+      <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Дополнительные ссылки</p>
+          <button onClick={() => { setLinks([...extraLinks, {label:"Новая ссылка", href:"/", icon:""}]); setExp(extraLinks.length); }}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-white" style={{background:"#3ca615"}}>
+            <Icon name="Plus" size={12} /> Добавить
+          </button>
+        </div>
+        <p className="text-[10px] text-gray-400">Добавляются в навигацию после стандартных разделов</p>
+        <div className="space-y-2">
+          {extraLinks.map((link, i) => (
+            <div key={i} className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+              <div className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50"
+                onClick={() => setExp(exp === i ? null : i)}>
+                <span className="text-sm font-medium text-gray-800 flex-1 truncate">{link.label}</span>
+                <button onClick={e => { e.stopPropagation(); setLinks(extraLinks.filter((_,j)=>j!==i)); }}
+                  className="p-1 text-gray-400 hover:text-red-500"><Icon name="Trash2" size={14} /></button>
+                <Icon name={exp===i?"ChevronUp":"ChevronDown"} size={14} className="text-gray-400" />
+              </div>
+              {exp === i && (
+                <div className="p-3 space-y-2 border-t border-gray-100">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Field label="Название" value={link.label}
+                      onChange={v => { const n=[...extraLinks]; n[i]={...n[i],label:v}; setLinks(n); }} />
+                    <Field label="Ссылка" value={link.href}
+                      onChange={v => { const n=[...extraLinks]; n[i]={...n[i],href:v}; setLinks(n); }} />
+                  </div>
+                  <Field label="Иконка lucide (необязательно)" value={link.icon || ""}
+                    onChange={v => { const n=[...extraLinks]; n[i]={...n[i],icon:v}; setLinks(n); }} />
+                </div>
+              )}
+            </div>
+          ))}
+          {extraLinks.length === 0 && (
+            <p className="text-xs text-gray-400 text-center py-3">Нет дополнительных ссылок</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Редактор страницы партнёра ────────────────────────────────────────────────
 
 const PARTNERS = [
@@ -488,6 +624,7 @@ const TABS = [
   { key: "onec", label: "Услуги 1С", icon: "Monitor" },
   { key: "about", label: "О компании", icon: "Building2" },
   { key: "contacts", label: "Контакты", icon: "Phone" },
+  { key: "navbar", label: "Навигация", icon: "Menu" },
   { key: "partners", label: "Страницы партнёров", icon: "Handshake" },
 ] as const;
 
@@ -597,6 +734,7 @@ export default function AdminContentEditor() {
           {tab === "onec" && <OnecEditor content={content} onChange={handleChange} />}
           {tab === "about" && <AboutEditor content={content} onChange={handleChange} />}
           {tab === "contacts" && <ContactsEditor content={content} onChange={handleChange} />}
+          {tab === "navbar" && <NavbarEditor content={content} onChange={handleChange} />}
           {tab === "partners" && <PartnerEditor content={content} onChange={handleChange} />}
         </div>
       </div>

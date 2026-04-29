@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { pagesApi } from "@/lib/pages-api";
+import { fetchContent } from "@/lib/content-api";
 
 const PARTNER_LINKS = [
   { name: "DataMobile", path: "/datamobile" },
@@ -28,24 +29,54 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
   const [partnersOpen, setPartnersOpen] = useState(false);
   const [mobilePartnersOpen, setMobilePartnersOpen] = useState(false);
   const [navPages, setNavPages] = useState<{slug: string; nav_label: string}[]>([]);
+  const [navCfg, setNavCfg] = useState<{
+    phone: string; phone_href: string;
+    show_shop: boolean; show_cabinet: boolean;
+    extra_links: {label:string;href:string;icon?:string}[];
+  }>({ phone: "+7 (914) 272-71-87", phone_href: "tel:+79142727187", show_shop: true, show_cabinet: true, extra_links: [] });
   const navigate = useNavigate();
   const location = useLocation();
   const isOnMain = location.pathname === "/";
   const dropdownRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Загружаем кастомные страницы для навигации
+  // Загружаем кастомные страницы и настройки навбара
   useEffect(() => {
     pagesApi.list(false).then(r => {
       if (r.pages) {
         setNavPages(r.pages
           .filter((p: {show_in_nav: boolean}) => p.show_in_nav)
           .map((p: {slug: string; nav_label: string; title: string}) => ({
-            slug: p.slug,
-            nav_label: p.nav_label || p.title,
+            slug: p.slug, nav_label: p.nav_label || p.title,
           }))
         );
       }
+    });
+    fetchContent().then(c => {
+      try {
+        const order: string[] = c["navbar.nav_pages_order"] ? JSON.parse(c["navbar.nav_pages_order"]) : [];
+        setNavCfg({
+          phone: c["navbar.phone"] || "+7 (914) 272-71-87",
+          phone_href: c["navbar.phone_href"] || "tel:+79142727187",
+          show_shop: c["navbar.show_shop"] !== "false",
+          show_cabinet: c["navbar.show_cabinet"] !== "false",
+          extra_links: c["navbar.extra_links"] ? JSON.parse(c["navbar.extra_links"]) : [],
+        });
+        // Применяем порядок к navPages
+        if (order.length > 0) {
+          setNavPages(prev => {
+            const sorted = [...prev].sort((a, b) => {
+              const ia = order.indexOf(a.slug);
+              const ib = order.indexOf(b.slug);
+              if (ia === -1 && ib === -1) return 0;
+              if (ia === -1) return 1;
+              if (ib === -1) return -1;
+              return ia - ib;
+            });
+            return sorted;
+          });
+        }
+      } catch { /* fallback */ }
     });
   }, []);
 
@@ -172,26 +203,31 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
-          <button
-            onClick={() => navigate("/shop")}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors"
-          >
-            <Icon name="ShoppingCart" size={15} />
-            Магазин
-          </button>
-          <button
-            onClick={() => navigate("/cabinet")}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors"
-          >
-            <Icon name="User" size={15} />
-            Кабинет
-          </button>
-          <a
-            href="tel:+79142727187"
-            className="flex items-center gap-2 bg-[#3ca615] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2d8a10] transition-colors"
-          >
+          {navCfg.extra_links.map((lnk, i) => (
+            <a key={i} href={lnk.href}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
+              {lnk.icon && <Icon name={lnk.icon as "Star"} size={15} fallback="Link" />}
+              {lnk.label}
+            </a>
+          ))}
+          {navCfg.show_shop && (
+            <button onClick={() => navigate("/shop")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
+              <Icon name="ShoppingCart" size={15} />
+              Магазин
+            </button>
+          )}
+          {navCfg.show_cabinet && (
+            <button onClick={() => navigate("/cabinet")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
+              <Icon name="User" size={15} />
+              Кабинет
+            </button>
+          )}
+          <a href={navCfg.phone_href}
+            className="flex items-center gap-2 bg-[#3ca615] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2d8a10] transition-colors">
             <Icon name="Phone" size={15} />
-            +7 (914) 272-71-87
+            {navCfg.phone}
           </a>
         </div>
 
@@ -246,23 +282,30 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
             </button>
           ))}
 
-          <button
-            onClick={() => { navigate("/shop"); onMenuToggle(); }}
-            className="flex items-center gap-2 border border-gray-200 text-[#374151] px-4 py-3 rounded-lg text-sm font-medium justify-center hover:border-[#3ca615] hover:text-[#3ca615] transition-colors"
-          >
-            <Icon name="ShoppingCart" size={15} />
-            Магазин
-          </button>
-          <button
-            onClick={() => { navigate("/cabinet"); onMenuToggle(); }}
-            className="flex items-center gap-2 border border-gray-200 text-[#374151] px-4 py-3 rounded-lg text-sm font-medium justify-center hover:border-[#3ca615] hover:text-[#3ca615] transition-colors"
-          >
-            <Icon name="User" size={15} />
-            Личный кабинет
-          </button>
-          <a href="tel:+79142727187" className="mt-1 flex items-center gap-2 bg-[#3ca615] text-white px-4 py-3 rounded-lg text-sm font-medium justify-center">
+          {navCfg.extra_links.map((lnk, i) => (
+            <a key={i} href={lnk.href}
+              className="flex items-center gap-2 border border-gray-200 text-[#374151] px-4 py-3 rounded-lg text-sm font-medium justify-center hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
+              {lnk.icon && <Icon name={lnk.icon as "Star"} size={15} fallback="Link" />}
+              {lnk.label}
+            </a>
+          ))}
+          {navCfg.show_shop && (
+            <button onClick={() => { navigate("/shop"); onMenuToggle(); }}
+              className="flex items-center gap-2 border border-gray-200 text-[#374151] px-4 py-3 rounded-lg text-sm font-medium justify-center hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
+              <Icon name="ShoppingCart" size={15} />
+              Магазин
+            </button>
+          )}
+          {navCfg.show_cabinet && (
+            <button onClick={() => { navigate("/cabinet"); onMenuToggle(); }}
+              className="flex items-center gap-2 border border-gray-200 text-[#374151] px-4 py-3 rounded-lg text-sm font-medium justify-center hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
+              <Icon name="User" size={15} />
+              Личный кабинет
+            </button>
+          )}
+          <a href={navCfg.phone_href} className="mt-1 flex items-center gap-2 bg-[#3ca615] text-white px-4 py-3 rounded-lg text-sm font-medium justify-center">
             <Icon name="Phone" size={15} />
-            +7 (914) 272-71-87
+            {navCfg.phone}
           </a>
         </div>
       )}

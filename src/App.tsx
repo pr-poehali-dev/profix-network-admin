@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import Shop from "./pages/Shop";
 import ShopProduct from "./pages/ShopProduct";
 import CustomPageView from "./pages/CustomPage";
+import ManagerApp from "./pages/ManagerApp";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/techportal" element={<TechPortal />} />
           <Route path="/p/:slug" element={<CustomPageView />} />
+          <Route path="/manager" element={<ManagerApp />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
