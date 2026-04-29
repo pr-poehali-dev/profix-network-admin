@@ -13,6 +13,7 @@ import {
 import { AdminTechnicians, AdminManagers } from "@/components/admin/AdminStaff";
 import AdminShop from "@/components/admin/AdminShop";
 import AdminContentEditor from "@/components/admin/AdminContentEditor";
+import AdminPageBuilder from "@/components/admin/AdminPageBuilder";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -599,6 +600,7 @@ export default function Admin() {
 
         {section === "shop" && <AdminShop />}
         {section === "content" && <AdminContentEditor />}
+        {section === "pages" && <AdminPageBuilder />}
 
         {section === "reviews" && (
           <div className="p-6">
