@@ -377,7 +377,13 @@ def handler(event: dict, context) -> dict:
                 if not check_auth():
                     return err("Unauthorized", 401)
                 pid = body.get("id") or params.get("id")
-                cur.execute(f"UPDATE {SC}.shop_products SET is_active = FALSE WHERE id = %s", (pid,))
+                hard = body.get("hard", False)
+                if hard:
+                    cur.execute(f"DELETE FROM {SC}.shop_product_images WHERE product_id = %s", (pid,))
+                    cur.execute(f"DELETE FROM {SC}.shop_product_reviews WHERE product_id = %s", (pid,))
+                    cur.execute(f"DELETE FROM {SC}.shop_products WHERE id = %s", (pid,))
+                else:
+                    cur.execute(f"UPDATE {SC}.shop_products SET is_active = FALSE WHERE id = %s", (pid,))
                 conn.commit()
                 return ok({"ok": True})
 

@@ -88,6 +88,7 @@ export default function ShopProduct() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeImg, setActiveImg] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [cartCount, setCartCount] = useState(cart.count());
   const [added, setAdded] = useState(false);
@@ -182,11 +183,19 @@ export default function ShopProduct() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
           <div>
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden aspect-square flex items-center justify-center mb-3">
+            <div
+              className="relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden aspect-square flex items-center justify-center mb-3 group cursor-zoom-in"
+              onClick={() => allImages.length > 0 && setLightbox(true)}
+            >
               {allImages.length > 0
                 ? <img src={allImages[activeImg]?.image_url} alt={product.name} className="w-full h-full object-contain p-4" />
                 : <Icon name="Package" size={80} className="text-gray-200" />
               }
+              {allImages.length > 0 && (
+                <div className="absolute top-3 right-3 w-8 h-8 bg-white/80 backdrop-blur rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                  <Icon name="ZoomIn" size={16} className="text-gray-600" />
+                </div>
+              )}
             </div>
             {allImages.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-1">
@@ -299,6 +308,55 @@ export default function ShopProduct() {
 
       <SharedFooter />
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+
+      {/* Лайтбокс */}
+      {lightbox && allImages.length > 0 && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightbox(false)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+            onClick={() => setLightbox(false)}
+          >
+            <Icon name="X" size={20} className="text-white" />
+          </button>
+
+          {/* Стрелки если несколько фото */}
+          {allImages.length > 1 && (
+            <>
+              <button
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+                onClick={e => { e.stopPropagation(); setActiveImg(i => (i - 1 + allImages.length) % allImages.length); }}
+              >
+                <Icon name="ChevronLeft" size={22} className="text-white" />
+              </button>
+              <button
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+                onClick={e => { e.stopPropagation(); setActiveImg(i => (i + 1) % allImages.length); }}
+              >
+                <Icon name="ChevronRight" size={22} className="text-white" />
+              </button>
+            </>
+          )}
+
+          <img
+            src={allImages[activeImg]?.image_url}
+            alt={product.name}
+            className="max-w-full max-h-full object-contain rounded-xl select-none"
+            onClick={e => e.stopPropagation()}
+          />
+
+          {allImages.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {allImages.map((_, i) => (
+                <button key={i} onClick={e => { e.stopPropagation(); setActiveImg(i); }}
+                  className={`w-2 h-2 rounded-full transition-colors ${activeImg === i ? "bg-white" : "bg-white/30"}`} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -378,8 +378,10 @@ export default function AdminShop() {
   }
 
   async function handleDeleteProduct(id: number) {
-    if (!confirm("Удалить товар?")) return;
-    await shopApi.deleteProduct(id);
+    const choice = window.confirm("Удалить товар НАВСЕГДА (вместе с фото и отзывами)?\n\nНажми OK — удалить насовсем\nНажми Отмена — отменить");
+    if (!choice) return;
+    await shopApi.deleteProductHard(id);
+    if (editProduct?.id === id) { setEditProduct(null); setShowProductForm(false); }
     loadAll();
   }
 

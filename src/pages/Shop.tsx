@@ -22,40 +22,47 @@ function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: 
   return (
     <div
       onClick={() => navigate(`/shop/${product.id}`)}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-200 flex flex-col overflow-hidden group cursor-pointer"
+      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-200 flex flex-col overflow-hidden group cursor-pointer h-full"
     >
-      <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+      {/* Фото — фиксированная высота */}
+      <div className="h-44 sm:h-48 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
         {product.image_url
-          ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ? <img src={product.image_url} alt={product.name} className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300" />
           : <Icon name="Package" size={48} className="text-gray-200" />
         }
-      </div>
-      <div className="p-4 flex flex-col flex-1">
-        <p className="text-xs text-gray-400 mb-1">{product.category_name || ""}</p>
-        <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 flex-1">{product.name}</h3>
-        {product.sku && <p className="text-xs text-gray-400 mb-2">Арт: {product.sku}</p>}
-
-        <div className="flex items-end justify-between gap-2 mt-auto">
-          <div>
-            {product.price != null
-              ? <p className="text-lg font-bold text-gray-900">{product.price.toLocaleString("ru-RU")} <span className="text-sm font-normal">₽</span></p>
-              : <p className="text-sm text-gray-400">Цена по запросу</p>
-            }
-            {product.price_old != null && (
-              <p className="text-xs text-gray-400 line-through">{product.price_old.toLocaleString("ru-RU")} ₽</p>
-            )}
+        {product.price_old && product.price && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+            -{Math.round((1 - product.price / product.price_old) * 100)}%
           </div>
-          {!product.in_stock
-            ? <span className="text-xs text-red-500 font-medium">Нет в наличии</span>
-            : <button
-                onClick={handleAdd}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${added ? "bg-green-500 text-white" : "text-white hover:opacity-90"}`}
-                style={added ? {} : { background: "#3ca615" }}
-              >
-                <Icon name={added ? "Check" : "ShoppingCart"} size={14} />
-                {added ? "Добавлено" : "В корзину"}
-              </button>
-          }
+        )}
+      </div>
+      {/* Контент — фиксированная структура */}
+      <div className="p-3 flex flex-col flex-1">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1 truncate">{product.category_name || ""}</p>
+        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-2 leading-snug" style={{ minHeight: "2.5rem" }}>{product.name}</h3>
+        <div className="mt-auto pt-2 border-t border-gray-50">
+          <div className="flex items-end justify-between gap-1">
+            <div>
+              {product.price != null
+                ? <p className="text-base font-bold text-gray-900 leading-none">{product.price.toLocaleString("ru-RU")} <span className="text-xs font-normal text-gray-500">₽</span></p>
+                : <p className="text-xs text-gray-400">Цена по запросу</p>
+              }
+              {product.price_old != null && (
+                <p className="text-[10px] text-gray-400 line-through mt-0.5">{product.price_old.toLocaleString("ru-RU")} ₽</p>
+              )}
+            </div>
+            {!product.in_stock
+              ? <span className="text-[10px] text-red-500 font-medium shrink-0">Нет</span>
+              : <button
+                  onClick={handleAdd}
+                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${added ? "bg-green-500 text-white" : "text-white hover:opacity-90"}`}
+                  style={added ? {} : { background: "#3ca615" }}
+                >
+                  <Icon name={added ? "Check" : "ShoppingCart"} size={12} />
+                  {added ? "OK" : "В корзину"}
+                </button>
+            }
+          </div>
         </div>
       </div>
     </div>
@@ -207,9 +214,11 @@ export default function Shop() {
                 {search && <button onClick={() => setSearch("")} className="mt-3 text-sm underline" style={{ color: "#3ca615" }}>Сбросить поиск</button>}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-stretch">
                 {filtered.map(p => (
-                  <ProductCard key={p.id} product={p} onAddToCart={handleAddToCart} />
+                  <div key={p.id} className="relative">
+                    <ProductCard product={p} onAddToCart={handleAddToCart} />
+                  </div>
                 ))}
               </div>
             )}

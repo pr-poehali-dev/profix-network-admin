@@ -90,6 +90,7 @@ export const shopApi = {
   createProduct: (data: object) => req("products", "POST", data),
   updateProduct: (data: object) => req("products", "PUT", data),
   deleteProduct: (id: number) => req("products", "DELETE", { id }),
+  deleteProductHard: (id: number) => req("products", "DELETE", { id, hard: true }),
   importCsv: (csvBase64: string) => req("products", "POST", { action: "import_csv", csv_data: csvBase64 }),
 
   // Заказ
