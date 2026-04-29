@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { shopApi, cart, Product } from "@/lib/shop-api";
+import CartDrawer from "@/components/CartDrawer";
 
 function ProductCard({ product }: { product: Product }) {
   const [added, setAdded] = useState(false);
@@ -61,6 +62,14 @@ export default function ShopPreview() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(cart.count());
+
+  useEffect(() => {
+    const reload = () => setCartCount(cart.count());
+    window.addEventListener("cart-updated", reload);
+    return () => window.removeEventListener("cart-updated", reload);
+  }, []);
 
   useEffect(() => {
     shopApi.getProducts({ limit: 8 }).then(res => {
@@ -74,18 +83,32 @@ export default function ShopPreview() {
     <section className="bg-[#F7F9FC] py-16 border-t border-gray-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Заголовок */}
-        <div className="flex items-end justify-between mb-8 gap-4">
+        <div className="flex items-end justify-between mb-8 gap-4 flex-wrap">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-[#3ca615] mb-2">Интернет-магазин</p>
             <h2 className="font-oswald text-3xl font-bold text-[#0D1B2A]">ПОПУЛЯРНЫЕ ТОВАРЫ</h2>
           </div>
-          <button
-            onClick={() => navigate("/shop")}
-            className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-[#3ca615] text-[#3ca615] text-sm font-semibold hover:bg-[#3ca615] hover:text-white transition-all"
-          >
-            Весь каталог
-            <Icon name="ArrowRight" size={16} />
-          </button>
+          <div className="flex items-center gap-3">
+            {cartCount > 0 && (
+              <button
+                onClick={() => setCartOpen(true)}
+                className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-[#3ca615] text-[#3ca615] text-sm font-semibold hover:bg-[#3ca615] hover:text-white transition-all"
+              >
+                <Icon name="ShoppingCart" size={16} />
+                Корзина
+                <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
+                  {cartCount > 9 ? "9+" : cartCount}
+                </span>
+              </button>
+            )}
+            <button
+              onClick={() => navigate("/shop")}
+              className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-gray-200 text-gray-600 text-sm font-semibold hover:border-[#3ca615] hover:text-[#3ca615] transition-all"
+            >
+              Весь каталог
+              <Icon name="ArrowRight" size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Скелетоны пока грузится */}
@@ -110,18 +133,29 @@ export default function ShopPreview() {
 
         {/* Кнопка внизу */}
         {!loading && products.length > 0 && (
-          <div className="text-center mt-8">
+          <div className="flex items-center justify-center gap-3 mt-8 flex-wrap">
+            {cartCount > 0 && (
+              <button
+                onClick={() => setCartOpen(true)}
+                className="relative flex items-center gap-2 px-6 py-3 rounded-xl border-2 font-semibold text-sm transition-all"
+                style={{ borderColor: "#3ca615", color: "#3ca615" }}
+              >
+                <Icon name="ShoppingCart" size={18} />
+                Корзина ({cartCount})
+              </button>
+            )}
             <button
               onClick={() => navigate("/shop")}
               className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-opacity"
               style={{ background: "#3ca615" }}
             >
-              <Icon name="ShoppingCart" size={18} />
-              Перейти в магазин
+              <Icon name="Store" size={18} />
+              Весь каталог
             </button>
           </div>
         )}
       </div>
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </section>
   );
 }
