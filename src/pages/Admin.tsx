@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { managerApi, managerSession, reviewsApi, Ticket, Client, Technician } from "@/lib/crm-api";
 import AdminLogin from "@/components/admin/AdminLogin";
@@ -40,6 +40,9 @@ export default function Admin() {
   const [newManager, setNewManager] = useState({ login: "", password: "", name: "", role: "manager" });
   const [newTech, setNewTech] = useState({ name: "", phone: "", specialization: "" });
   const [reviews, setReviews] = useState<{ id: number; name: string; rating: number; text: string; published: boolean; created_at: string; service?: string }[]>([]);
+  const [newCommentCount, setNewCommentCount] = useState(0);
+  const lastCommentIdRef = useRef<number>(0);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [editFields, setEditFields] = useState<EditFields>({
     status: "",
     priority: "",
@@ -153,6 +156,66 @@ export default function Admin() {
     }
   }, [loadDashboard]);
 
+  // ── Polling новых комментариев от техспециалистов ───────────────────────────
+
+  const pollNewComments = useCallback(async () => {
+    try {
+      const res = await managerApi.getTickets();
+      const allTickets: Ticket[] = res.tickets ?? [];
+      let maxId = lastCommentIdRef.current;
+      let newCount = 0;
+      let lastTicketTitle = "";
+      let lastAuthor = "";
+
+      for (const t of allTickets) {
+        if (!t.comments) continue;
+        for (const c of t.comments) {
+          const cId = c.id ?? 0;
+          if (cId > maxId) {
+            maxId = cId;
+            if (lastCommentIdRef.current > 0) {
+              newCount++;
+              lastTicketTitle = t.title;
+              lastAuthor = c.author ?? "Специалист";
+            }
+          }
+        }
+      }
+
+      if (lastCommentIdRef.current === 0) {
+        lastCommentIdRef.current = maxId;
+        return;
+      }
+
+      if (newCount > 0) {
+        lastCommentIdRef.current = maxId;
+        setNewCommentCount(prev => prev + newCount);
+
+        if (Notification.permission === "granted") {
+          new Notification("ProFiX — новый комментарий", {
+            body: `${lastAuthor}: заявка «${lastTicketTitle}»`,
+            icon: "https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png",
+          });
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!loggedIn) return;
+
+    if (Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    pollIntervalRef.current = setInterval(pollNewComments, 15000);
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, [loggedIn, pollNewComments]);
+
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
   async function handleLogin() {
@@ -198,6 +261,7 @@ export default function Admin() {
     setError("");
     setSelectedTicket(null);
     setSelectedTech(null);
+    if (s === "tickets" || s === "dashboard") setNewCommentCount(0);
     if (s === "dashboard") loadDashboard();
     if (s === "tickets") loadTickets(statusFilter);
     if (s === "clients") loadClients();
@@ -398,6 +462,7 @@ export default function Admin() {
         activeSection={activeSection}
         onSectionChange={handleSectionChange}
         onLogout={handleLogout}
+        newCommentCount={newCommentCount}
       />
 
       <main className="flex-1 overflow-auto">
