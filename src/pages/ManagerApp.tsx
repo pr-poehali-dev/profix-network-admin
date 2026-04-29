@@ -73,7 +73,7 @@ function TicketDetail({ ticket, onBack, onRefresh }: {
         </button>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm text-gray-900 truncate">{ticket.title}</p>
-          <p className="text-xs text-gray-400">#{ticket.id} · {ticket.client_name || "—"}</p>
+          <p className="text-xs text-gray-400">#{ticket.id} · {ticket.client_name || (ticket as {client?: {name:string}}).client?.name || "—"}</p>
         </div>
         <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${STATUS_COLORS[ticket.status] || "bg-gray-100 text-gray-500"}`}>
           {STATUS_LABELS[ticket.status]}
@@ -119,10 +119,14 @@ function TicketDetail({ ticket, onBack, onRefresh }: {
             <p className="text-xs text-gray-400 text-center py-2">Нет комментариев</p>
           )}
           <div className="space-y-3 mb-4">
-            {(ticket.comments || []).map((c: {id:number; author:string; text:string; created_at:string}) => (
-              <div key={c.id} className="bg-gray-50 rounded-xl p-3">
+            {(ticket.comments || []).map((c: {id:number; author_name:string; author_role:string; text:string; created_at:string}) => (
+              <div key={c.id} className={`rounded-xl p-3 ${c.author_role === "technician" ? "bg-blue-50 border border-blue-100" : "bg-gray-50"}`}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-gray-700">{c.author}</span>
+                  <span className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                    {c.author_role === "technician" && <Icon name="Wrench" size={11} className="text-blue-500" />}
+                    {c.author_role === "manager" && <Icon name="UserCheck" size={11} className="text-green-600" />}
+                    {c.author_name || (c.author_role === "technician" ? "Специалист" : "Менеджер")}
+                  </span>
                   <span className="text-[10px] text-gray-400">
                     {new Date(c.created_at).toLocaleString("ru-RU", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })}
                   </span>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { techApi, techSession, Ticket, STATUS_COLORS } from "@/lib/crm-api";
@@ -44,6 +44,8 @@ export default function TechPortal() {
   const [saving, setSaving] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const pollTicketRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const selectedTicketIdRef = useRef<number | null>(null);
 
   // PWA установка
   useEffect(() => {
@@ -182,6 +184,33 @@ export default function TechPortal() {
       setSaving(false);
     }
   }
+
+  // Автообновление открытой заявки каждые 10 сек
+  useEffect(() => {
+    selectedTicketIdRef.current = selectedTicket?.id ?? null;
+  }, [selectedTicket?.id]);
+
+  useEffect(() => {
+    if (!selectedTicket) {
+      if (pollTicketRef.current) clearInterval(pollTicketRef.current);
+      return;
+    }
+    pollTicketRef.current = setInterval(async () => {
+      const id = selectedTicketIdRef.current;
+      if (!id) return;
+      try {
+        const res = await techApi.getTicket(id);
+        if (res.ticket) {
+          const newComments = res.ticket.comments?.length ?? 0;
+          const oldComments = selectedTicket?.comments?.length ?? 0;
+          if (newComments > oldComments) {
+            setSelectedTicket(res.ticket);
+          }
+        }
+      } catch { /* ignore */ }
+    }, 10000);
+    return () => { if (pollTicketRef.current) clearInterval(pollTicketRef.current); };
+  }, [selectedTicket?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleLogout() {
     techSession.clear();
@@ -452,9 +481,18 @@ export default function TechPortal() {
 
             {/* Комментарии */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h3 className="font-semibold text-sm text-[#111827] mb-4">
-                Переписка ({selectedTicket.comments?.length || 0})
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-sm text-[#111827]">
+                  Переписка ({selectedTicket.comments?.length || 0})
+                </h3>
+                <button onClick={async () => {
+                  const res = await techApi.getTicket(selectedTicket.id);
+                  if (res.ticket) setSelectedTicket(res.ticket);
+                }} className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#3ca615] transition-colors">
+                  <Icon name="RefreshCw" size={13} />
+                  Обновить
+                </button>
+              </div>
               <div className="space-y-3 mb-4 max-h-72 overflow-y-auto">
                 {selectedTicket.comments?.length === 0 && (
                   <p className="text-center text-gray-400 text-sm py-4">Комментариев пока нет</p>
