@@ -5,6 +5,7 @@ import { shopApi, cart, Product } from "@/lib/shop-api";
 import CartDrawer from "@/components/CartDrawer";
 
 function ProductCard({ product }: { product: Product }) {
+  const navigate = useNavigate();
   const [added, setAdded] = useState(false);
 
   function handleAdd(e: React.MouseEvent) {
@@ -15,7 +16,10 @@ function ProductCard({ product }: { product: Product }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-200 flex flex-col overflow-hidden group h-full">
+    <div
+      onClick={() => navigate(`/shop/${product.id}`)}
+      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-200 flex flex-col overflow-hidden group h-full cursor-pointer"
+    >
       <div className="relative h-44 sm:h-48 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
         {product.image_url
           ? <img src={product.image_url} alt={product.name} className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300" />

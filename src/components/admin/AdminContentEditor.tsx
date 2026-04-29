@@ -331,18 +331,66 @@ const PARTNERS = [
   { key: "onec", label: "1С Франчайзи", path: "/1c" },
 ];
 
+// Универсальный список карточек с произвольными полями
+function CardList({ label, contentKey, fields, content, onChange }: {
+  label: string;
+  contentKey: string;
+  fields: {key: string; label: string; textarea?: boolean}[];
+  content: ContentMap;
+  onChange: (key: string, val: string) => void;
+}) {
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const emptyItem = Object.fromEntries(fields.map(f => [f.key, ""]));
+  const items = parseJson<Record<string,string>[]>(content[contentKey] || "", []);
+
+  function set(arr: typeof items) { onChange(contentKey, JSON.stringify(arr)); }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-xs font-semibold text-gray-500">{label} ({items.length})</label>
+        <button onClick={() => { set([...items, {...emptyItem}]); setExpanded(items.length); }}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{background:"#3ca615"}}>
+          <Icon name="Plus" size={12} /> Добавить
+        </button>
+      </div>
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
+            <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 cursor-pointer hover:bg-gray-100"
+              onClick={() => setExpanded(expanded === i ? null : i)}>
+              <span className="text-sm font-medium text-gray-800 flex-1 truncate">
+                {item.name || item.title || item.icon || `Карточка ${i+1}`}
+              </span>
+              <button onClick={e => { e.stopPropagation(); if (!confirm("Удалить?")) return; set(items.filter((_,idx)=>idx!==i)); }}
+                className="p-1 text-gray-400 hover:text-red-500"><Icon name="Trash2" size={14} /></button>
+              <Icon name={expanded===i?"ChevronUp":"ChevronDown"} size={14} className="text-gray-400" />
+            </div>
+            {expanded === i && (
+              <div className="p-4 space-y-3 border-t border-gray-100">
+                {fields.map(f => (
+                  <Field key={f.key} label={f.label} value={item[f.key] || ""} textarea={f.textarea}
+                    onChange={v => { const n=[...items]; n[i]={...n[i],[f.key]:v}; set(n); }} />
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        {items.length === 0 && (
+          <p className="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-xl">
+            Нет карточек — нажмите «Добавить»
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PartnerEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {
   const [activePartner, setActivePartner] = useState("atol");
-  const [expanded, setExpanded] = useState<number | null>(null);
-
-  const prefix = `partner.${activePartner}`;
-  const products = parseJson<{icon:string;name:string;desc:string}[]>(content[`${prefix}.products`] || "", []);
-
-  function setProducts(items: typeof products) {
-    onChange(`${prefix}.products`, JSON.stringify(items));
-  }
-
   const partner = PARTNERS.find(p => p.key === activePartner)!;
+  const prefix = `partner.${activePartner}`;
+  const isDataMobile = activePartner === "datamobile";
 
   return (
     <div className="space-y-5">
@@ -351,7 +399,7 @@ function PartnerEditor({ content, onChange }: { content: ContentMap; onChange: (
         <label className="block text-xs font-semibold text-gray-500 mb-2">Страница партнёра</label>
         <div className="flex flex-wrap gap-2">
           {PARTNERS.map(p => (
-            <button key={p.key} onClick={() => { setActivePartner(p.key); setExpanded(null); }}
+            <button key={p.key} onClick={() => setActivePartner(p.key)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${activePartner === p.key ? "text-white border-transparent" : "bg-white text-gray-600 border-gray-200 hover:border-green-400"}`}
               style={activePartner === p.key ? {background:"#3ca615"} : {}}>
               {p.label}
@@ -360,61 +408,72 @@ function PartnerEditor({ content, onChange }: { content: ContentMap; onChange: (
         </div>
       </div>
 
-      <div className="border-t border-gray-100 pt-5 space-y-4">
+      <div className="border-t border-gray-100 pt-5 space-y-5">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-700">{partner.label}</h3>
           <a href={partner.path} target="_blank"
             className="flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 transition-colors">
-            <Icon name="ExternalLink" size={12} />
-            Открыть
+            <Icon name="ExternalLink" size={12} /> Открыть страницу
           </a>
         </div>
 
-        <Field label="Заголовок страницы" value={content[`${prefix}.hero_title`] || ""}
-          onChange={v => onChange(`${prefix}.hero_title`, v)} />
-        <Field label="Описание (подзаголовок)" value={content[`${prefix}.hero_desc`] || ""}
-          onChange={v => onChange(`${prefix}.hero_desc`, v)} textarea />
-
-        {/* Продукты/услуги партнёра */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-semibold text-gray-500">Продукты / услуги ({products.length})</label>
-            <button onClick={() => { setProducts([...products, {icon:"Star",name:"Новый продукт",desc:""}]); setExpanded(products.length); }}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{background:"#3ca615"}}>
-              <Icon name="Plus" size={12} /> Добавить
-            </button>
-          </div>
-          <div className="space-y-2">
-            {products.map((item, i) => (
-              <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 cursor-pointer hover:bg-gray-100"
-                  onClick={() => setExpanded(expanded === i ? null : i)}>
-                  <span className="text-sm font-medium text-gray-800 flex-1 truncate">{item.name || "Без названия"}</span>
-                  <button onClick={e => { e.stopPropagation(); if (!confirm("Удалить?")) return; setProducts(products.filter((_,idx)=>idx!==i)); }}
-                    className="p-1 text-gray-400 hover:text-red-500"><Icon name="Trash2" size={14} /></button>
-                  <Icon name={expanded===i?"ChevronUp":"ChevronDown"} size={14} className="text-gray-400" />
-                </div>
-                {expanded === i && (
-                  <div className="p-4 space-y-3 border-t border-gray-100">
-                    <div className="grid grid-cols-2 gap-3">
-                      <Field label="Иконка (lucide)" value={item.icon}
-                        onChange={v => { const n=[...products]; n[i]={...n[i],icon:v}; setProducts(n); }} />
-                      <Field label="Название" value={item.name}
-                        onChange={v => { const n=[...products]; n[i]={...n[i],name:v}; setProducts(n); }} />
-                    </div>
-                    <Field label="Описание" value={item.desc} textarea
-                      onChange={v => { const n=[...products]; n[i]={...n[i],desc:v}; setProducts(n); }} />
-                  </div>
-                )}
-              </div>
-            ))}
-            {products.length === 0 && (
-              <p className="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-xl">
-                Продукты не заданы — используются данные из кода
-              </p>
-            )}
-          </div>
+        <div className="grid grid-cols-1 gap-4">
+          <Field label="Заголовок (H1)" value={content[`${prefix}.hero_title`] || ""}
+            onChange={v => onChange(`${prefix}.hero_title`, v)} />
+          <Field label="Описание под заголовком" value={content[`${prefix}.hero_desc`] || ""}
+            onChange={v => onChange(`${prefix}.hero_desc`, v)} textarea />
         </div>
+
+        {/* DataMobile — три отдельных блока */}
+        {isDataMobile ? (
+          <div className="space-y-6">
+            <CardList
+              label="Версии DataMobile (карточки с ценами)"
+              contentKey="partner.datamobile.main_products"
+              fields={[
+                {key:"name", label:"Название"},
+                {key:"price", label:"Цена"},
+                {key:"badge", label:"Бейдж (например: Популярный)"},
+                {key:"description", label:"Описание", textarea:true},
+                {key:"features", label:"Функции (через запятую)"},
+              ]}
+              content={content} onChange={onChange}
+            />
+            <CardList
+              label="Дополнительные модули"
+              contentKey="partner.datamobile.modules"
+              fields={[
+                {key:"name", label:"Название"},
+                {key:"price", label:"Цена"},
+                {key:"description", label:"Описание", textarea:true},
+              ]}
+              content={content} onChange={onChange}
+            />
+            <CardList
+              label="Профильные решения"
+              contentKey="partner.datamobile.solutions"
+              fields={[
+                {key:"icon", label:"Иконка (lucide)"},
+                {key:"name", label:"Название"},
+                {key:"price", label:"Цена"},
+                {key:"description", label:"Описание", textarea:true},
+              ]}
+              content={content} onChange={onChange}
+            />
+          </div>
+        ) : (
+          /* Остальные партнёры — один блок продуктов */
+          <CardList
+            label="Продукты / услуги"
+            contentKey={`${prefix}.products`}
+            fields={[
+              {key:"icon", label:"Иконка (lucide)"},
+              {key:"name", label:"Название"},
+              {key:"desc", label:"Описание", textarea:true},
+            ]}
+            content={content} onChange={onChange}
+          />
+        )}
       </div>
     </div>
   );

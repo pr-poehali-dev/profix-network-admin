@@ -2,21 +2,18 @@ const CONTENT_URL = "https://functions.poehali.dev/c21176bb-34b5-4c32-aa88-89ebe
 
 type ContentMap = Record<string, string>;
 
-// Кэш в памяти
-let cache: ContentMap | null = null;
-let fetchPromise: Promise<ContentMap> | null = null;
-
+// Без кэша — всегда свежий контент
 export async function fetchContent(): Promise<ContentMap> {
-  if (cache) return cache;
-  if (fetchPromise) return fetchPromise;
-  fetchPromise = fetch(CONTENT_URL)
-    .then(r => r.json())
-    .then(d => { cache = d.content || {}; fetchPromise = null; return cache!; })
-    .catch(() => { fetchPromise = null; return {}; });
-  return fetchPromise;
+  try {
+    const res = await fetch(`${CONTENT_URL}?t=${Date.now()}`);
+    const d = await res.json();
+    return d.content || {};
+  } catch {
+    return {};
+  }
 }
 
-export function invalidateContent() { cache = null; }
+export function invalidateContent() { /* no-op */ }
 
 export async function saveContent(updates: Record<string, unknown>): Promise<boolean> {
   const token = localStorage.getItem("crm_manager_token") || "";

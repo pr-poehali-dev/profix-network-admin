@@ -99,7 +99,9 @@ const DataMobilePage = () => {
   const navigate = useNavigate();
   const [activeProduct, setActiveProduct] = useState<string | null>(null);
   const { str, json } = useSiteContent();
-  const MAIN_PRODUCTS = json("partner.datamobile.products", DEFAULT_MAIN_PRODUCTS) as typeof DEFAULT_MAIN_PRODUCTS;
+  const MAIN_PRODUCTS = json("partner.datamobile.main_products", DEFAULT_MAIN_PRODUCTS) as typeof DEFAULT_MAIN_PRODUCTS;
+  const DYN_MODULES = json("partner.datamobile.modules", MODULES) as typeof MODULES;
+  const DYN_SOLUTIONS = json("partner.datamobile.solutions", PROFILE_SOLUTIONS) as typeof PROFILE_SOLUTIONS;
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
@@ -268,7 +270,7 @@ const DataMobilePage = () => {
             <p className="text-gray-500">Расширьте возможности DataMobile под специфику вашего бизнеса</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {MODULES.map((mod) => (
+            {DYN_MODULES.map((mod) => (
               <div key={mod.name} className="flex gap-5 bg-[#F7F9FC] rounded-2xl p-6 border border-gray-100">
                 <img
                   src={mod.image}
@@ -300,7 +302,7 @@ const DataMobilePage = () => {
             <p className="text-gray-500">Специализированные приложения для отдельных отраслей и задач</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {PROFILE_SOLUTIONS.map((sol) => (
+            {DYN_SOLUTIONS.map((sol) => (
               <div key={sol.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col hover:shadow-md transition-shadow">
                 <div className="w-11 h-11 rounded-xl bg-[#EBF3FF] flex items-center justify-center mb-4">
                   <Icon name={sol.icon} size={22} className="text-[#1565C0]" />
