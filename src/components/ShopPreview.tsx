@@ -15,43 +15,46 @@ function ProductCard({ product }: { product: Product }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-200 flex flex-col overflow-hidden group">
-      <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-200 flex flex-col overflow-hidden group h-full">
+      <div className="relative h-44 sm:h-48 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
         {product.image_url
-          ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ? <img src={product.image_url} alt={product.name} className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300" />
           : <Icon name="Package" size={44} className="text-gray-200" />
         }
-        {product.price_old && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-            -{Math.round((1 - (product.price || 0) / product.price_old) * 100)}%
+        {product.price_old && product.price && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+            -{Math.round((1 - product.price / product.price_old) * 100)}%
           </div>
         )}
       </div>
-      <div className="p-4 flex flex-col flex-1">
+      <div className="p-3 flex flex-col flex-1">
         {product.category_name && (
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{product.category_name}</p>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1 truncate">{product.category_name}</p>
         )}
-        <h3 className="text-sm font-semibold text-gray-900 mb-3 line-clamp-2 flex-1">{product.name}</h3>
-        <div className="flex items-end justify-between gap-2 mt-auto">
-          <div>
-            {product.price != null
-              ? <p className="text-base font-bold text-gray-900">{product.price.toLocaleString("ru-RU")} <span className="text-xs font-normal text-gray-500">₽</span></p>
-              : <p className="text-sm text-gray-400">По запросу</p>
+        <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 flex-1 leading-snug" style={{ minHeight: "2.5rem" }}>{product.name}</h3>
+        <div className="mt-auto pt-2 border-t border-gray-50">
+          <div className="flex items-end justify-between gap-1">
+            <div>
+              {product.price != null
+                ? <p className="text-base font-bold text-gray-900 leading-none">{product.price.toLocaleString("ru-RU")} <span className="text-xs font-normal text-gray-500">₽</span></p>
+                : <p className="text-xs text-gray-400">По запросу</p>
+              }
+              {product.price_old != null && (
+                <p className="text-[10px] text-gray-400 line-through mt-0.5">{product.price_old.toLocaleString("ru-RU")} ₽</p>
+              )}
+            </div>
+            {!product.in_stock
+              ? <span className="text-[10px] text-red-500 font-medium shrink-0">Нет</span>
+              : <button
+                  onClick={handleAdd}
+                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${added ? "bg-green-500 text-white" : "text-white hover:opacity-90"}`}
+                  style={added ? {} : { background: "#3ca615" }}
+                >
+                  <Icon name={added ? "Check" : "ShoppingCart"} size={12} />
+                  {added ? "OK" : "В корзину"}
+                </button>
             }
-            {product.price_old != null && (
-              <p className="text-xs text-gray-400 line-through">{product.price_old.toLocaleString("ru-RU")} ₽</p>
-            )}
           </div>
-          {product.in_stock && (
-            <button
-              onClick={handleAdd}
-              className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${added ? "bg-green-500 text-white" : "text-white hover:opacity-90"}`}
-              style={added ? {} : { background: "#3ca615" }}
-            >
-              <Icon name={added ? "Check" : "ShoppingCart"} size={13} />
-              {added ? "OK" : "В корзину"}
-            </button>
-          )}
         </div>
       </div>
     </div>
@@ -122,7 +125,7 @@ export default function ShopPreview() {
 
         {/* Сетка товаров */}
         {!loading && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-stretch">
             {products.map(p => (
               <div key={p.id} className="relative">
                 <ProductCard product={p} />

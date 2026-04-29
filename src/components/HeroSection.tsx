@@ -157,7 +157,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
                       }`}
                       style={{ width: "calc(33.333% - 11px)" }}
                     >
-                      <div className="relative" style={{ height: "260px" }}>
+                      <div className="relative" style={{ height: isActive ? "300px" : "260px", transition: "height 0.4s ease" }}>
                         <img
                           src={slide.img}
                           alt={slide.title || `Фото ${i + 1}`}
@@ -173,7 +173,16 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
                               {slide.title}
                             </p>
                             {isActive && (
-                              <p className="text-white/70 text-xs mt-1 leading-snug line-clamp-2">{slide.desc}</p>
+                              <>
+                                <p className="text-white/70 text-xs mt-1 leading-snug line-clamp-2">{slide.desc}</p>
+                                <button
+                                  onClick={e => { e.stopPropagation(); onScrollTo("Контакты"); }}
+                                  className="mt-3 flex items-center gap-1.5 bg-[#3ca615] hover:bg-[#2d8a10] text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-lg hover:shadow-green-500/30 hover:-translate-y-0.5 w-fit"
+                                >
+                                  <Icon name="Zap" size={13} />
+                                  Заказать в 1 клик
+                                </button>
+                              </>
                             )}
                           </div>
                         )}
