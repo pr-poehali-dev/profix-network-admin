@@ -3,6 +3,7 @@ import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 import SharedFooter from "@/components/SharedFooter";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
 
@@ -41,6 +42,7 @@ const FEATURES = [
 
 const PlatformaOfdPage = () => {
   const navigate = useNavigate();
+  const { str } = useSiteContent();
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
@@ -86,11 +88,10 @@ const PlatformaOfdPage = () => {
             Официальный партнёр Платформа ОФД
           </div>
           <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4 max-w-2xl">
-            Платформа ОФД — оператор фискальных данных
+            {str("partner.platforma_ofd.hero_title", "Платформа ОФД — оператор фискальных данных")}
           </h1>
           <p className="text-purple-100 text-base md:text-lg leading-relaxed mb-8 max-w-2xl">
-            Надёжный оператор фискальных данных (Эвотор ОФД). Передача данных с ККТ в ФНС,
-            мониторинг касс и полная аналитика. Аккредитован ФНС России.
+            {str("partner.platforma_ofd.hero_desc", "Надёжный оператор фискальных данных (Эвотор ОФД). Передача данных с ККТ в ФНС, мониторинг касс и полная аналитика. Аккредитован ФНС России.")}
           </p>
           <div className="flex flex-wrap gap-3">
             <a href="#features" className="bg-white text-[#7c3aed] px-6 py-3 rounded-xl font-semibold hover:bg-purple-50 transition-colors">

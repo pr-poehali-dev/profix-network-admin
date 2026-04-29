@@ -4,10 +4,11 @@ import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 import SharedFooter from "@/components/SharedFooter";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/datamobile";
 
-const MAIN_PRODUCTS = [
+const DEFAULT_MAIN_PRODUCTS = [
   {
     id: "standart",
     name: "DataMobile Стандарт",
@@ -97,6 +98,8 @@ const PROFILE_SOLUTIONS = [
 const DataMobilePage = () => {
   const navigate = useNavigate();
   const [activeProduct, setActiveProduct] = useState<string | null>(null);
+  const { str, json } = useSiteContent();
+  const MAIN_PRODUCTS = json("partner.datamobile.products", DEFAULT_MAIN_PRODUCTS) as typeof DEFAULT_MAIN_PRODUCTS;
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
@@ -156,11 +159,10 @@ const DataMobilePage = () => {
               Официальный партнёр DataMobile
             </div>
             <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4">
-              DataMobile —<br />ПО для склада<br />и торговли
+              {str("partner.datamobile.hero_title", "DataMobile — ПО для склада и торговли")}
             </h1>
             <p className="text-blue-100 text-base md:text-lg leading-relaxed mb-6 max-w-xl">
-              Программное обеспечение для автоматизации бизнес-процессов на складах и в торговых залах.
-              Входит в <strong className="text-white">Единый реестр российского ПО</strong>.
+              {str("partner.datamobile.hero_desc", "Программное обеспечение для автоматизации бизнес-процессов на складах и в торговых залах. Входит в Единый реестр российского ПО.")}
             </p>
             <div className="flex flex-wrap gap-3">
               <a

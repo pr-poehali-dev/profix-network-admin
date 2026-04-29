@@ -3,6 +3,7 @@ import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 import SharedFooter from "@/components/SharedFooter";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
 
@@ -50,6 +51,7 @@ const ADVANTAGES = [
 
 const POSCenterPage = () => {
   const navigate = useNavigate();
+  const { str } = useSiteContent();
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
@@ -95,11 +97,10 @@ const POSCenterPage = () => {
             Официальный партнёр POSCenter
           </div>
           <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4 max-w-2xl">
-            POSCenter — торговое оборудование для бизнеса
+            {str("partner.poscenter.hero_title", "POSCenter — торговое оборудование для бизнеса")}
           </h1>
           <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-8 max-w-2xl">
-            Российский производитель POS-оборудования: кассы, терминалы, ТСД, сканеры и принтеры.
-            Прямые поставки без наценок посредников. Собственное производство и сервисные центры по всей России.
+            {str("partner.poscenter.hero_desc", "Российский производитель POS-оборудования: кассы, терминалы, ТСД, сканеры и принтеры. Прямые поставки без наценок посредников. Собственное производство и сервисные центры по всей России.")}
           </p>
           <div className="flex flex-wrap gap-3">
             <a href="#categories" className="bg-[#3ca615] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#2d8a10] transition-colors">

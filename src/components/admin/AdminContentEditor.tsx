@@ -318,6 +318,108 @@ function OnecEditor({ content, onChange }: { content: ContentMap; onChange: (key
   );
 }
 
+// ── Редактор страницы партнёра ────────────────────────────────────────────────
+
+const PARTNERS = [
+  { key: "atol", label: "АТОЛ", path: "/atol" },
+  { key: "sbis", label: "СБИС", path: "/sbis" },
+  { key: "datamobile", label: "DataMobile", path: "/datamobile" },
+  { key: "dreamkas", label: "Дримкас", path: "/dreamkas" },
+  { key: "ofd_yandex", label: "Яндекс ОФД", path: "/ofd-yandex" },
+  { key: "platforma_ofd", label: "Платформа ОФД", path: "/platforma-ofd" },
+  { key: "poscenter", label: "POSCenter", path: "/poscenter" },
+  { key: "onec", label: "1С Франчайзи", path: "/1c" },
+];
+
+function PartnerEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {
+  const [activePartner, setActivePartner] = useState("atol");
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  const prefix = `partner.${activePartner}`;
+  const products = parseJson<{icon:string;name:string;desc:string}[]>(content[`${prefix}.products`] || "", []);
+
+  function setProducts(items: typeof products) {
+    onChange(`${prefix}.products`, JSON.stringify(items));
+  }
+
+  const partner = PARTNERS.find(p => p.key === activePartner)!;
+
+  return (
+    <div className="space-y-5">
+      {/* Выбор партнёра */}
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 mb-2">Страница партнёра</label>
+        <div className="flex flex-wrap gap-2">
+          {PARTNERS.map(p => (
+            <button key={p.key} onClick={() => { setActivePartner(p.key); setExpanded(null); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${activePartner === p.key ? "text-white border-transparent" : "bg-white text-gray-600 border-gray-200 hover:border-green-400"}`}
+              style={activePartner === p.key ? {background:"#3ca615"} : {}}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="border-t border-gray-100 pt-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700">{partner.label}</h3>
+          <a href={partner.path} target="_blank"
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 transition-colors">
+            <Icon name="ExternalLink" size={12} />
+            Открыть
+          </a>
+        </div>
+
+        <Field label="Заголовок страницы" value={content[`${prefix}.hero_title`] || ""}
+          onChange={v => onChange(`${prefix}.hero_title`, v)} />
+        <Field label="Описание (подзаголовок)" value={content[`${prefix}.hero_desc`] || ""}
+          onChange={v => onChange(`${prefix}.hero_desc`, v)} textarea />
+
+        {/* Продукты/услуги партнёра */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-semibold text-gray-500">Продукты / услуги ({products.length})</label>
+            <button onClick={() => { setProducts([...products, {icon:"Star",name:"Новый продукт",desc:""}]); setExpanded(products.length); }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{background:"#3ca615"}}>
+              <Icon name="Plus" size={12} /> Добавить
+            </button>
+          </div>
+          <div className="space-y-2">
+            {products.map((item, i) => (
+              <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 cursor-pointer hover:bg-gray-100"
+                  onClick={() => setExpanded(expanded === i ? null : i)}>
+                  <span className="text-sm font-medium text-gray-800 flex-1 truncate">{item.name || "Без названия"}</span>
+                  <button onClick={e => { e.stopPropagation(); if (!confirm("Удалить?")) return; setProducts(products.filter((_,idx)=>idx!==i)); }}
+                    className="p-1 text-gray-400 hover:text-red-500"><Icon name="Trash2" size={14} /></button>
+                  <Icon name={expanded===i?"ChevronUp":"ChevronDown"} size={14} className="text-gray-400" />
+                </div>
+                {expanded === i && (
+                  <div className="p-4 space-y-3 border-t border-gray-100">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Иконка (lucide)" value={item.icon}
+                        onChange={v => { const n=[...products]; n[i]={...n[i],icon:v}; setProducts(n); }} />
+                      <Field label="Название" value={item.name}
+                        onChange={v => { const n=[...products]; n[i]={...n[i],name:v}; setProducts(n); }} />
+                    </div>
+                    <Field label="Описание" value={item.desc} textarea
+                      onChange={v => { const n=[...products]; n[i]={...n[i],desc:v}; setProducts(n); }} />
+                  </div>
+                )}
+              </div>
+            ))}
+            {products.length === 0 && (
+              <p className="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-xl">
+                Продукты не заданы — используются данные из кода
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Главный редактор ──────────────────────────────────────────────────────────
 
 const TABS = [
@@ -327,6 +429,7 @@ const TABS = [
   { key: "onec", label: "Услуги 1С", icon: "Monitor" },
   { key: "about", label: "О компании", icon: "Building2" },
   { key: "contacts", label: "Контакты", icon: "Phone" },
+  { key: "partners", label: "Страницы партнёров", icon: "Handshake" },
 ] as const;
 
 type TabKey = typeof TABS[number]["key"];
@@ -435,6 +538,7 @@ export default function AdminContentEditor() {
           {tab === "onec" && <OnecEditor content={content} onChange={handleChange} />}
           {tab === "about" && <AboutEditor content={content} onChange={handleChange} />}
           {tab === "contacts" && <ContactsEditor content={content} onChange={handleChange} />}
+          {tab === "partners" && <PartnerEditor content={content} onChange={handleChange} />}
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 import SharedFooter from "@/components/SharedFooter";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
 
@@ -41,6 +42,7 @@ const FEATURES = [
 
 const OfdYandexPage = () => {
   const navigate = useNavigate();
+  const { str } = useSiteContent();
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
@@ -86,11 +88,10 @@ const OfdYandexPage = () => {
             Официальный партнёр ОФД Яндекс
           </div>
           <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4 max-w-2xl">
-            ОФД Яндекс — надёжная передача фискальных данных
+            {str("partner.ofd_yandex.hero_title", "ОФД Яндекс — надёжная передача фискальных данных")}
           </h1>
           <p className="text-orange-100 text-base md:text-lg leading-relaxed mb-8 max-w-2xl">
-            Оператор фискальных данных от Яндекса. Передача чеков в ФНС, мониторинг касс
-            и аналитика продаж в едином сервисе. Подключение за несколько минут.
+            {str("partner.ofd_yandex.hero_desc", "Оператор фискальных данных от Яндекса. Передача чеков в ФНС, мониторинг касс и аналитика продаж в едином сервисе. Подключение за несколько минут.")}
           </p>
           <div className="flex flex-wrap gap-3">
             <a href="#features" className="bg-white text-[#FF6600] px-6 py-3 rounded-xl font-semibold hover:bg-orange-50 transition-colors">

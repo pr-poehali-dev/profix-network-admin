@@ -20,8 +20,6 @@ const DEFAULT_SLIDES = [
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/31bbac8e-d82e-40ea-ac8a-efb2d047e846.jpg", title: "Заправка картриджей", desc: "Заправка и восстановление лазерных и струйных картриджей. Быстро и недорого." },
 ];
 
-// Экспортируем для Index.tsx (нужен тип для carouselSlides.length)
-export { DEFAULT_SLIDES as carouselSlides };
 
 interface HeroSectionProps {
   carouselIdx: number;
@@ -225,5 +223,4 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
   );
 };
 
-export { carouselImages, carouselSlides };
 export default HeroSection;

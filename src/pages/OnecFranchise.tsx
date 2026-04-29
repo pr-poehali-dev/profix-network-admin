@@ -3,10 +3,11 @@ import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 import SharedFooter from "@/components/SharedFooter";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
 
-const PRODUCTS = [
+const DEFAULT_PRODUCTS = [
   {
     icon: "ShoppingCart",
     name: "1С:Розница",
@@ -41,6 +42,8 @@ const PRODUCTS = [
 
 const OnecFranchisePage = () => {
   const navigate = useNavigate();
+  const { str, json } = useSiteContent();
+  const PRODUCTS = json("partner.onec.products", DEFAULT_PRODUCTS) as typeof DEFAULT_PRODUCTS;
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
@@ -86,11 +89,10 @@ const OnecFranchisePage = () => {
             Авторизованный франчайзи 1С
           </div>
           <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4 max-w-2xl">
-            1С — автоматизация вашего бизнеса
+            {str("partner.onec.hero_title", "1С — автоматизация вашего бизнеса")}
           </h1>
           <p className="text-yellow-100 text-base md:text-lg leading-relaxed mb-8 max-w-2xl">
-            Продажа, внедрение и сопровождение программных продуктов 1С. Розница, торговля,
-            бухгалтерия, зарплата, ERP — решения для бизнеса любого масштаба.
+            {str("partner.onec.hero_desc", "Продажа, внедрение и сопровождение программных продуктов 1С. Розница, торговля, бухгалтерия, зарплата, ERP — решения для бизнеса любого масштаба.")}
           </p>
           <div className="flex flex-wrap gap-3">
             <a href="#products" className="bg-white text-[#e8a000] px-6 py-3 rounded-xl font-semibold hover:bg-yellow-50 transition-colors">

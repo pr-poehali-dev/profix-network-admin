@@ -3,44 +3,23 @@ import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 import SharedFooter from "@/components/SharedFooter";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
 
-const PRODUCTS = [
-  {
-    icon: "CreditCard",
-    name: "Онлайн-кассы",
-    desc: "Фискальные регистраторы и автономные кассы, соответствующие 54-ФЗ. Для розницы, HoReCa и сферы услуг. Подключение к любой товароучётной системе.",
-  },
-  {
-    icon: "ScanBarcode",
-    name: "Терминалы сбора данных",
-    desc: "ТСД серии АТОЛ Smart для автоматизации склада, магазина и производства. Работают под Android, поддерживают 1С и систему маркировки.",
-  },
-  {
-    icon: "Printer",
-    name: "Принтеры этикеток",
-    desc: "Термо и термотрансферные принтеры для печати этикеток, ценников и штрихкодов. Поддержка маркировки «Честный Знак».",
-  },
-  {
-    icon: "Wifi",
-    name: "ОФД АТОЛ",
-    desc: "Собственный оператор фискальных данных. Надёжная передача чеков в ФНС, личный кабинет с аналитикой и контролем кассовых операций.",
-  },
-  {
-    icon: "Package",
-    name: "Фискальные накопители",
-    desc: "ФН-1.1 и ФН-1.2 на 15 и 36 месяцев. Официальные поставки, гарантия подлинности и совместимость со всеми моделями ККТ.",
-  },
-  {
-    icon: "Settings",
-    name: "Сервис и поддержка",
-    desc: "Регистрация ККТ в ФНС, техническое обслуживание, замена ФН и обновление ПО. Гарантийный и постгарантийный ремонт.",
-  },
+const DEFAULT_PRODUCTS = [
+  { icon: "CreditCard", name: "Онлайн-кассы", desc: "Фискальные регистраторы и автономные кассы, соответствующие 54-ФЗ. Для розницы, HoReCa и сферы услуг. Подключение к любой товароучётной системе." },
+  { icon: "ScanBarcode", name: "Терминалы сбора данных", desc: "ТСД серии АТОЛ Smart для автоматизации склада, магазина и производства. Работают под Android, поддерживают 1С и систему маркировки." },
+  { icon: "Printer", name: "Принтеры этикеток", desc: "Термо и термотрансферные принтеры для печати этикеток, ценников и штрихкодов. Поддержка маркировки «Честный Знак»." },
+  { icon: "Wifi", name: "ОФД АТОЛ", desc: "Собственный оператор фискальных данных. Надёжная передача чеков в ФНС, личный кабинет с аналитикой и контролем кассовых операций." },
+  { icon: "Package", name: "Фискальные накопители", desc: "ФН-1.1 и ФН-1.2 на 15 и 36 месяцев. Официальные поставки, гарантия подлинности и совместимость со всеми моделями ККТ." },
+  { icon: "Settings", name: "Сервис и поддержка", desc: "Регистрация ККТ в ФНС, техническое обслуживание, замена ФН и обновление ПО. Гарантийный и постгарантийный ремонт." },
 ];
 
 const AtoLPage = () => {
   const navigate = useNavigate();
+  const { str, json } = useSiteContent();
+  const PRODUCTS = json("partner.atol.products", DEFAULT_PRODUCTS) as typeof DEFAULT_PRODUCTS;
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
@@ -86,11 +65,10 @@ const AtoLPage = () => {
             Официальный партнёр АТОЛ
           </div>
           <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4 max-w-2xl">
-            АТОЛ — кассовое оборудование №1 в России
+            {str("partner.atol.hero_title", "АТОЛ — кассовое оборудование №1 в России")}
           </h1>
           <p className="text-red-100 text-base md:text-lg leading-relaxed mb-8 max-w-2xl">
-            Ведущий российский производитель контрольно-кассовой техники. Онлайн-кассы, ФР, ТСД и принтеры этикеток
-            для автоматизации торговли, склада и общепита. Полное соответствие 54-ФЗ.
+            {str("partner.atol.hero_desc", "Ведущий российский производитель контрольно-кассовой техники. Онлайн-кассы, ФР, ТСД и принтеры этикеток для автоматизации торговли, склада и общепита. Полное соответствие 54-ФЗ.")}
           </p>
           <div className="flex flex-wrap gap-3">
             <a href="#products" className="bg-white text-[#c0392b] px-6 py-3 rounded-xl font-semibold hover:bg-red-50 transition-colors">

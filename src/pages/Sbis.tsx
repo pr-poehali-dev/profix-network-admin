@@ -3,10 +3,11 @@ import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 import SharedFooter from "@/components/SharedFooter";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
 
-const PRODUCTS = [
+const DEFAULT_PRODUCTS = [
   {
     icon: "FileText",
     name: "Электронный документооборот",
@@ -41,6 +42,8 @@ const PRODUCTS = [
 
 const SbisPage = () => {
   const navigate = useNavigate();
+  const { str, json } = useSiteContent();
+  const PRODUCTS = json("partner.sbis.products", DEFAULT_PRODUCTS) as typeof DEFAULT_PRODUCTS;
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
@@ -86,11 +89,10 @@ const SbisPage = () => {
             Официальный партнёр СБИС
           </div>
           <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4 max-w-2xl">
-            СБИС — всё для управления бизнесом
+            {str("partner.sbis.hero_title", "СБИС — всё для управления бизнесом")}
           </h1>
           <p className="text-blue-100 text-base md:text-lg leading-relaxed mb-8 max-w-2xl">
-            Единая платформа для электронного документооборота, сдачи отчётности, бухгалтерии,
-            CRM и управления персоналом. Более 7 миллионов пользователей по всей России.
+            {str("partner.sbis.hero_desc", "Единая платформа для электронного документооборота, сдачи отчётности, бухгалтерии, CRM и управления персоналом. Более 7 миллионов пользователей по всей России.")}
           </p>
           <div className="flex flex-wrap gap-3">
             <a href="#products" className="bg-white text-[#1a56db] px-6 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-colors">

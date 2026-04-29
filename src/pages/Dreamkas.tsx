@@ -3,10 +3,11 @@ import SEO from "@/components/SEO";
 import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 import SharedFooter from "@/components/SharedFooter";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
 
-const PRODUCTS = [
+const DEFAULT_PRODUCTS = [
   {
     icon: "CreditCard",
     name: "Онлайн-кассы Дримкас",
@@ -41,6 +42,8 @@ const PRODUCTS = [
 
 const DreamkasPage = () => {
   const navigate = useNavigate();
+  const { str, json } = useSiteContent();
+  const PRODUCTS = json("partner.dreamkas.products", DEFAULT_PRODUCTS) as typeof DEFAULT_PRODUCTS;
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
@@ -86,11 +89,10 @@ const DreamkasPage = () => {
             Официальный партнёр Дримкас
           </div>
           <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4 max-w-2xl">
-            Дримкас — простые кассы для вашего бизнеса
+            {str("partner.dreamkas.hero_title", "Дримкас — простые кассы для вашего бизнеса")}
           </h1>
           <p className="text-green-100 text-base md:text-lg leading-relaxed mb-8 max-w-2xl">
-            Российский производитель кассового оборудования и программного обеспечения для автоматизации
-            торговли. Прямые поставки — низкая цена. Всё необходимое для работы по 54-ФЗ.
+            {str("partner.dreamkas.hero_desc", "Российский производитель кассового оборудования и программного обеспечения для автоматизации торговли. Прямые поставки — низкая цена. Всё необходимое для работы по 54-ФЗ.")}
           </p>
           <div className="flex flex-wrap gap-3">
             <a href="#products" className="bg-white text-[#2e7d32] px-6 py-3 rounded-xl font-semibold hover:bg-green-50 transition-colors">
