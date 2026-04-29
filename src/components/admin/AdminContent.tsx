@@ -144,16 +144,18 @@ export function AdminDashboard({ stats, tickets, loading, onOpenTicket, onGoTick
             Все заявки →
           </button>
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Таблица на широких экранах */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="text-xs text-gray-400 uppercase tracking-wide border-b border-gray-50">
-                <th className="text-left px-6 py-3">№</th>
-                <th className="text-left px-6 py-3">Клиент</th>
-                <th className="text-left px-6 py-3">Тема</th>
-                <th className="text-left px-6 py-3">Статус</th>
-                <th className="text-left px-6 py-3">Приоритет</th>
-                <th className="text-left px-6 py-3">Дата</th>
+                <th className="text-left px-4 py-3">№</th>
+                <th className="text-left px-4 py-3">Клиент</th>
+                <th className="text-left px-4 py-3">Тема</th>
+                <th className="text-left px-4 py-3">Статус</th>
+                <th className="text-left px-4 py-3">Приоритет</th>
+                <th className="text-left px-4 py-3">Дата</th>
               </tr>
             </thead>
             <tbody>
@@ -163,22 +165,22 @@ export function AdminDashboard({ stats, tickets, loading, onOpenTicket, onGoTick
                   onClick={() => onOpenTicket(ticket)}
                   className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors"
                 >
-                  <td className="px-6 py-3 text-sm text-gray-500">#{ticket.id}</td>
-                  <td className="px-6 py-3 text-sm font-medium text-gray-900">
+                  <td className="px-4 py-3 text-sm text-gray-500">#{ticket.id}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
                     {ticket.client_name || ticket.client?.name || "—"}
                   </td>
-                  <td className="px-6 py-3 text-sm text-gray-700 max-w-[200px] truncate">{ticket.title}</td>
-                  <td className="px-6 py-3">
+                  <td className="px-4 py-3 text-sm text-gray-700 max-w-[180px] truncate">{ticket.title}</td>
+                  <td className="px-4 py-3">
                     <span className={`inline-flex px-2 py-1 rounded-lg text-xs font-medium ${STATUS_COLORS[ticket.status] ?? "bg-gray-100 text-gray-500"}`}>
                       {ticket.status_label}
                     </span>
                   </td>
-                  <td className="px-6 py-3">
+                  <td className="px-4 py-3">
                     <span className={`inline-flex px-2 py-1 rounded-lg text-xs font-medium ${PRIORITY_COLORS[ticket.priority] ?? "bg-gray-100 text-gray-500"}`}>
                       {ticket.priority_label}
                     </span>
                   </td>
-                  <td className="px-6 py-3 text-sm text-gray-500">{formatDate(ticket.created_at)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{formatDate(ticket.created_at)}</td>
                 </tr>
               ))}
               {tickets.length === 0 && !loading && (
@@ -189,6 +191,31 @@ export function AdminDashboard({ stats, tickets, loading, onOpenTicket, onGoTick
             </tbody>
           </table>
         </div>
+
+        {/* Карточки на малых экранах */}
+        <div className="md:hidden divide-y divide-gray-50">
+          {tickets.slice(0, 5).map((ticket) => (
+            <div
+              key={ticket.id}
+              onClick={() => onOpenTicket(ticket)}
+              className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="min-w-0">
+                  <span className="text-xs text-gray-400 mr-1.5">#{ticket.id}</span>
+                  <span className="text-sm font-medium text-gray-900 truncate">{ticket.client_name || ticket.client?.name || "—"}</span>
+                </div>
+                <span className={`shrink-0 inline-flex px-2 py-0.5 rounded-lg text-xs font-medium ${STATUS_COLORS[ticket.status] ?? "bg-gray-100 text-gray-500"}`}>
+                  {ticket.status_label}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 truncate">{ticket.title}</p>
+            </div>
+          ))}
+          {tickets.length === 0 && !loading && (
+            <div className="px-6 py-12 text-center text-gray-400 text-sm">Нет заявок</div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -198,7 +225,7 @@ export function AdminDashboard({ stats, tickets, loading, onOpenTicket, onGoTick
 
 export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, onOpenTicket }: TicketsProps) {
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Заявки</h2>
       <div className="flex flex-wrap gap-2 mb-5">
         {STATUS_FILTER_LABELS.map((f) => (
@@ -216,18 +243,20 @@ export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, o
           </button>
         ))}
       </div>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
+
+      {/* Таблица — только на широких экранах */}
+      <div className="hidden lg:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="text-xs text-gray-400 uppercase tracking-wide border-b border-gray-100">
-              <th className="text-left px-6 py-3">№</th>
-              <th className="text-left px-6 py-3">Клиент</th>
-              <th className="text-left px-6 py-3">Тема</th>
-              <th className="text-left px-6 py-3">Статус</th>
-              <th className="text-left px-6 py-3">Приоритет</th>
-              <th className="text-left px-6 py-3">Тех специалист</th>
-              <th className="text-left px-6 py-3">Дата/Время</th>
-              <th className="text-left px-6 py-3">Сумма</th>
+              <th className="text-left px-4 py-3">№</th>
+              <th className="text-left px-4 py-3">Клиент</th>
+              <th className="text-left px-4 py-3">Тема</th>
+              <th className="text-left px-4 py-3">Статус</th>
+              <th className="text-left px-4 py-3">Приоритет</th>
+              <th className="text-left px-4 py-3">Специалист</th>
+              <th className="text-left px-4 py-3">Дата</th>
+              <th className="text-left px-4 py-3">Сумма</th>
             </tr>
           </thead>
           <tbody>
@@ -237,31 +266,31 @@ export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, o
                 onClick={() => onOpenTicket(ticket)}
                 className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors"
               >
-                <td className="px-6 py-3 text-sm text-gray-500">#{ticket.id}</td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3 text-sm text-gray-500">#{ticket.id}</td>
+                <td className="px-4 py-3">
                   <p className="text-sm font-medium text-gray-900">{ticket.client_name || ticket.client?.name || "—"}</p>
                   {ticket.client_phone && <p className="text-xs text-gray-400">{ticket.client_phone}</p>}
                 </td>
-                <td className="px-6 py-3 text-sm text-gray-700 max-w-[220px] truncate">{ticket.title}</td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3 text-sm text-gray-700 max-w-[180px] truncate">{ticket.title}</td>
+                <td className="px-4 py-3">
                   <span className={`inline-flex px-2 py-1 rounded-lg text-xs font-medium ${STATUS_COLORS[ticket.status] ?? "bg-gray-100 text-gray-500"}`}>
                     {ticket.status_label}
                   </span>
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-4 py-3">
                   <span className={`inline-flex px-2 py-1 rounded-lg text-xs font-medium ${PRIORITY_COLORS[ticket.priority] ?? "bg-gray-100 text-gray-500"}`}>
                     {ticket.priority_label}
                   </span>
                 </td>
-                <td className="px-6 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-gray-600">
                   {ticket.technician_name || ticket.technician?.name || "—"}
                 </td>
-                <td className="px-6 py-3 text-sm text-gray-500">
+                <td className="px-4 py-3 text-sm text-gray-500">
                   {ticket.scheduled_date
                     ? `${formatDate(ticket.scheduled_date)}${ticket.scheduled_hour != null ? ` ${formatHour(ticket.scheduled_hour)}` : ""}`
                     : formatDate(ticket.created_at)}
                 </td>
-                <td className="px-6 py-3 text-sm font-medium text-gray-900">
+                <td className="px-4 py-3 text-sm font-medium text-gray-900">
                   {ticket.amount != null ? `${ticket.amount.toLocaleString("ru-RU")} ₽` : "—"}
                 </td>
               </tr>
@@ -273,6 +302,50 @@ export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, o
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Карточки — на малых/средних экранах */}
+      <div className="lg:hidden space-y-3">
+        {tickets.length === 0 && !loading && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-12 text-center text-gray-400 text-sm">
+            Нет заявок
+          </div>
+        )}
+        {tickets.map((ticket) => (
+          <div
+            key={ticket.id}
+            onClick={() => onOpenTicket(ticket)}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 cursor-pointer hover:border-green-200 hover:shadow-md transition-all"
+          >
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">#{ticket.id}</p>
+                <p className="font-semibold text-sm text-gray-900 truncate">{ticket.title}</p>
+              </div>
+              <span className={`shrink-0 inline-flex px-2 py-1 rounded-lg text-xs font-medium ${STATUS_COLORS[ticket.status] ?? "bg-gray-100 text-gray-500"}`}>
+                {ticket.status_label}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+              <span className="font-medium text-gray-700">{ticket.client_name || ticket.client?.name || "—"}</span>
+              {ticket.client_phone && <span>{ticket.client_phone}</span>}
+              <span className={`inline-flex px-2 py-0.5 rounded-lg font-medium ${PRIORITY_COLORS[ticket.priority] ?? "bg-gray-100 text-gray-500"}`}>
+                {ticket.priority_label}
+              </span>
+              {(ticket.technician_name || ticket.technician?.name) && (
+                <span>{ticket.technician_name || ticket.technician?.name}</span>
+              )}
+              {ticket.amount != null && (
+                <span className="font-medium text-gray-900">{ticket.amount.toLocaleString("ru-RU")} ₽</span>
+              )}
+              <span className="ml-auto">
+                {ticket.scheduled_date
+                  ? `${formatDate(ticket.scheduled_date)}${ticket.scheduled_hour != null ? ` ${formatHour(ticket.scheduled_hour)}` : ""}`
+                  : formatDate(ticket.created_at)}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

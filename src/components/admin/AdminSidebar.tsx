@@ -18,9 +18,14 @@ interface Props {
 
 export default function AdminSidebar({ manager, activeSection, onSectionChange, onLogout, newCommentCount = 0, newTicketCount = 0 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const check = () => setCollapsed(window.innerWidth < 768);
+    const check = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) setCollapsed(true);
+    };
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -68,7 +73,7 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
           return (
             <button
               key={item.key}
-              onClick={() => onSectionChange(item.key)}
+              onClick={() => { onSectionChange(item.key); if (isMobile) setCollapsed(true); }}
               title={collapsed ? item.label : undefined}
               className={`w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-colors relative ${
                 isActive
