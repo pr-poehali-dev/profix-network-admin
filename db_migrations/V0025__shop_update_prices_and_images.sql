@@ -1,0 +1,7 @@
+UPDATE t_p83689144_profix_network_admin.shop_products SET price = 15600, price_old = NULL WHERE sku = 'FN-15';
+UPDATE t_p83689144_profix_network_admin.shop_products SET price = 23500, price_old = NULL WHERE sku = 'FN-36';
+UPDATE t_p83689144_profix_network_admin.shop_products SET image_url = 'https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/72b86d8c-077f-4b51-b1d5-be4a1ee77c39.jpg' WHERE sku = 'FN-15';
+UPDATE t_p83689144_profix_network_admin.shop_products SET image_url = 'https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/72b86d8c-077f-4b51-b1d5-be4a1ee77c39.jpg' WHERE sku = 'FN-36';
+UPDATE t_p83689144_profix_network_admin.shop_products SET image_url = 'https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/d8c766db-f89f-4bdb-9ab0-ea9a82db44bd.jpg' WHERE sku = 'ATOL-30F';
+UPDATE t_p83689144_profix_network_admin.shop_products SET image_url = 'https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/b21b812e-c47f-43c5-87a5-6b8b66c9a127.jpg' WHERE sku = 'SBIS-OFD-1Y';
+UPDATE t_p83689144_profix_network_admin.shop_products SET image_url = 'https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/1ef5e3fd-d08f-48f1-8661-fbd8663cc76c.jpg' WHERE sku = 'YANDEX-OFD-1Y';
