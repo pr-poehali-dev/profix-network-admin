@@ -11,6 +11,7 @@ import {
   EditFields,
 } from "@/components/admin/AdminContent";
 import { AdminTechnicians, AdminManagers } from "@/components/admin/AdminStaff";
+import AdminShop from "@/components/admin/AdminShop";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -594,6 +595,8 @@ export default function Admin() {
             onCreateManager={handleCreateManager}
           />
         )}
+
+        {section === "shop" && <AdminShop />}
 
         {section === "reviews" && (
           <div className="p-6">

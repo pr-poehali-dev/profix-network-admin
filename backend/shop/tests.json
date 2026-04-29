@@ -1,0 +1,26 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET categories",
+      "method": "GET",
+      "path": "/?type=categories",
+      "expectedStatus": 200,
+      "expectedBody": {"categories": []},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "GET products",
+      "method": "GET",
+      "path": "/?type=products",
+      "expectedStatus": 200,
+      "expectedBody": {"products": [], "total": 0},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

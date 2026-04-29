@@ -19,6 +19,7 @@ import Cabinet from "./pages/Cabinet";
 import Admin from "./pages/Admin";
 import TechPortal from "./pages/TechPortal";
 import NotFound from "./pages/NotFound";
+import Shop from "./pages/Shop";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/ofd-yandex" element={<OfdYandex />} />
           <Route path="/platforma-ofd" element={<PlatformaOfd />} />
           <Route path="/1c" element={<OnecFranchise />} />
+          <Route path="/shop" element={<Shop />} />
           <Route path="/cabinet" element={<Cabinet />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/techportal" element={<TechPortal />} />
