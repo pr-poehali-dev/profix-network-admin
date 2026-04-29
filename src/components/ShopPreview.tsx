@@ -1,0 +1,127 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import Icon from "@/components/ui/icon";
+import { shopApi, cart, Product } from "@/lib/shop-api";
+
+function ProductCard({ product }: { product: Product }) {
+  const [added, setAdded] = useState(false);
+
+  function handleAdd(e: React.MouseEvent) {
+    e.stopPropagation();
+    cart.add(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-200 flex flex-col overflow-hidden group">
+      <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+        {product.image_url
+          ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          : <Icon name="Package" size={44} className="text-gray-200" />
+        }
+        {product.price_old && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+            -{Math.round((1 - (product.price || 0) / product.price_old) * 100)}%
+          </div>
+        )}
+      </div>
+      <div className="p-4 flex flex-col flex-1">
+        {product.category_name && (
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{product.category_name}</p>
+        )}
+        <h3 className="text-sm font-semibold text-gray-900 mb-3 line-clamp-2 flex-1">{product.name}</h3>
+        <div className="flex items-end justify-between gap-2 mt-auto">
+          <div>
+            {product.price != null
+              ? <p className="text-base font-bold text-gray-900">{product.price.toLocaleString("ru-RU")} <span className="text-xs font-normal text-gray-500">₽</span></p>
+              : <p className="text-sm text-gray-400">По запросу</p>
+            }
+            {product.price_old != null && (
+              <p className="text-xs text-gray-400 line-through">{product.price_old.toLocaleString("ru-RU")} ₽</p>
+            )}
+          </div>
+          {product.in_stock && (
+            <button
+              onClick={handleAdd}
+              className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${added ? "bg-green-500 text-white" : "text-white hover:opacity-90"}`}
+              style={added ? {} : { background: "#3ca615" }}
+            >
+              <Icon name={added ? "Check" : "ShoppingCart"} size={13} />
+              {added ? "OK" : "В корзину"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ShopPreview() {
+  const navigate = useNavigate();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    shopApi.getProducts({ limit: 8 }).then(res => {
+      if (res.products) setProducts(res.products.filter((p: Product) => p.is_active && p.in_stock).slice(0, 8));
+    }).finally(() => setLoading(false));
+  }, []);
+
+  if (!loading && products.length === 0) return null;
+
+  return (
+    <section className="bg-[#F7F9FC] py-16 border-t border-gray-100">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        {/* Заголовок */}
+        <div className="flex items-end justify-between mb-8 gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#3ca615] mb-2">Интернет-магазин</p>
+            <h2 className="font-oswald text-3xl font-bold text-[#0D1B2A]">ПОПУЛЯРНЫЕ ТОВАРЫ</h2>
+          </div>
+          <button
+            onClick={() => navigate("/shop")}
+            className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-[#3ca615] text-[#3ca615] text-sm font-semibold hover:bg-[#3ca615] hover:text-white transition-all"
+          >
+            Весь каталог
+            <Icon name="ArrowRight" size={16} />
+          </button>
+        </div>
+
+        {/* Скелетоны пока грузится */}
+        {loading && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 aspect-square animate-pulse" />
+            ))}
+          </div>
+        )}
+
+        {/* Сетка товаров */}
+        {!loading && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {products.map(p => (
+              <div key={p.id} className="relative">
+                <ProductCard product={p} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Кнопка внизу */}
+        {!loading && products.length > 0 && (
+          <div className="text-center mt-8">
+            <button
+              onClick={() => navigate("/shop")}
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-opacity"
+              style={{ background: "#3ca615" }}
+            >
+              <Icon name="ShoppingCart" size={18} />
+              Перейти в магазин
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
