@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
-import HeroSection, { carouselSlides } from "@/components/HeroSection";
+import HeroSection from "@/components/HeroSection";
 import ServicesAboutSection from "@/components/ServicesAboutSection";
 import PartnersSection from "@/components/PartnersSection";
 import ContactFooter from "@/components/ContactFooter";
@@ -20,12 +20,7 @@ const Index = () => {
   const [scrolled, setScrolled] = useState(false);
   const [carouselIdx, setCarouselIdx] = useState(0);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCarouselIdx((i) => (i + 1) % carouselSlides.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, []);
+  // Таймер карусели управляется внутри HeroSection
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);

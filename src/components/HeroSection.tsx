@@ -1,16 +1,10 @@
+import { useEffect } from "react";
 import Icon from "@/components/ui/icon";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const HERO_IMAGE = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/27e6a446-83e0-42ac-9fb3-936312c8e887.jpg";
 
-const carouselImages = [
-  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/4eb3466b-967c-4846-a9f0-b61e7ee0788a.jpg",
-  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/a6fd7ddd-45c4-4263-9dcb-1e9032247826.jpg",
-  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/3f9e4cac-7b67-465a-82d1-491dfb272cd9.jpg",
-  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/5334d264-7817-42d5-81bd-55e6ebe1c422.jpg",
-  "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/2bab8ee4-46e0-4518-9aa3-358619ac6248.jpg",
-];
-
-const carouselSlides = [
+const DEFAULT_SLIDES = [
   { img: "https://cdn.poehali.dev/files/e51a01d7-1ca1-4bf6-bfd8-bd243a339b45.jpg", title: "Продажа программ 1С", desc: "Лицензионные программные продукты 1С для бухгалтерии, торговли и управления." },
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/89e28943-f50b-4e97-8ae8-27e3b5dc468d.jpg", title: "Разработка в 1С", desc: "Доработка и разработка конфигураций 1С под задачи вашего учёта." },
   { img: "https://cdn.poehali.dev/files/d61fb839-3cbb-4cb6-af80-b81ed9e2be5e.jpg", title: "Продажа и ремонт торгового оборудования", desc: "Весы, сканеры, принтеры этикеток — продажа, настройка и сервисное обслуживание." },
@@ -26,6 +20,9 @@ const carouselSlides = [
   { img: "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/31bbac8e-d82e-40ea-ac8a-efb2d047e846.jpg", title: "Заправка картриджей", desc: "Заправка и восстановление лазерных и струйных картриджей. Быстро и недорого." },
 ];
 
+// Экспортируем для Index.tsx (нужен тип для carouselSlides.length)
+export { DEFAULT_SLIDES as carouselSlides };
+
 interface HeroSectionProps {
   carouselIdx: number;
   onSetCarouselIdx: (idx: number) => void;
@@ -33,6 +30,19 @@ interface HeroSectionProps {
 }
 
 const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionProps) => {
+  const { str, json } = useSiteContent();
+  const slides = json<{img:string;title:string;desc:string}[]>("carousel.slides", DEFAULT_SLIDES);
+  const stats = json<{val:string;label:string}[]>("hero.stats", [{val:"1000+",label:"клиентов"},{val:"15+",label:"лет опыта"},{val:"100%",label:"гарантия"}]);
+  const titleLines = str("hero.title", "IT-ПОДДЕРЖКА\nДЛЯ БИЗНЕСА\nИ ЧАСТНЫХ ЛИЦ").split("\n");
+
+  useEffect(() => {
+    if (!slides.length) return;
+    const timer = setInterval(() => {
+      onSetCarouselIdx(prev => (prev + 1) % slides.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [slides.length, onSetCarouselIdx]);
+
   return (
     <>
       {/* HERO */}
@@ -47,21 +57,22 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8]" style={{ opacity: 0.50 }} />
 
-
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 grid md:grid-cols-2 gap-12 items-center min-h-[calc(100vh-theme(spacing.16))]">
           <div className="animate-fade-in-up">
             <div className="inline-flex items-center gap-2 bg-[#3ca615]/10 text-[#3ca615] px-4 py-2 rounded-full text-sm font-medium mb-6">
               <Icon name="MapPin" size={14} />
-              г. Якутск, ул. Халтурина, 6
+              {str("hero.address", "г. Якутск, ул. Халтурина, 6")}
             </div>
             <h1 className="font-oswald text-5xl sm:text-6xl font-bold text-[#0D1B2A] leading-tight mb-6">
-              IT-ПОДДЕРЖКА<br />
-              <span className="text-[#3ca615]">ДЛЯ БИЗНЕСА</span><br />
-              И ЧАСТНЫХ ЛИЦ
+              {titleLines.map((line, i) => (
+                <span key={i}>
+                  {i === 1 ? <span className="text-[#3ca615]">{line}</span> : line}
+                  {i < titleLines.length - 1 && <br />}
+                </span>
+              ))}
             </h1>
             <p className="text-[#4B5563] text-lg mb-8 leading-relaxed">
-              Ремонт компьютеров, видеонаблюдение, сети, 1С и заправка картриджей.
-              Быстро, профессионально, с гарантией.
+              {str("hero.subtitle", "Ремонт компьютеров, видеонаблюдение, сети, 1С и заправка картриджей. Быстро, профессионально, с гарантией.")}
             </p>
             <div className="flex flex-wrap gap-3">
               <button
@@ -90,11 +101,11 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Работаем</p>
-                  <p className="text-sm font-bold text-gray-800">Пн–пт, 10:00–18:00, Сб 11:00-18:00</p>
+                  <p className="text-sm font-bold text-gray-800">{str("hero.hours", "Пн–пт, 10:00–18:00, Сб 11:00-18:00")}</p>
                 </div>
               </div>
               <div className="absolute -top-4 -right-4 bg-[#3ca615] rounded-2xl shadow-xl p-4 text-white">
-                <p className="text-2xl font-oswald font-bold">15+</p>
+                <p className="text-2xl font-oswald font-bold">{str("hero.experience", "15+")}</p>
                 <p className="text-xs opacity-80">лет опыта</p>
               </div>
             </div>
@@ -103,11 +114,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
 
         <div className="relative z-10 bg-white border-t border-gray-100 shadow-sm">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 grid grid-cols-3 gap-4 text-center">
-            {[
-              { val: "1000+", label: "клиентов" },
-              { val: "15+", label: "лет опыта" },
-              { val: "100%", label: "гарантия" },
-            ].map((s) => (
+            {stats.map((s) => (
               <div key={s.label}>
                 <p className="font-oswald text-2xl font-bold text-[#3ca615]">{s.val}</p>
                 <p className="text-xs text-gray-500">{s.label}</p>
@@ -120,19 +127,19 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
       {/* CAROUSEL */}
       <section className="bg-white py-10 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <h2 className="text-center font-oswald text-2xl font-bold text-[#0D1B2A] mb-2">Торговое оборудование</h2>
-          <p className="text-center text-gray-500 text-sm mb-6">Ремонт, продажа, обслуживание торгового оборудования. Регистрация онлайн-касс.</p>
+          <h2 className="text-center font-oswald text-2xl font-bold text-[#0D1B2A] mb-2">{str("carousel.title", "Торговое оборудование")}</h2>
+          <p className="text-center text-gray-500 text-sm mb-6">{str("carousel.subtitle", "Ремонт, продажа, обслуживание торгового оборудования. Регистрация онлайн-касс.")}</p>
 
           <div className="relative">
             {/* Стрелки */}
             <button
-              onClick={() => onSetCarouselIdx((carouselIdx - 1 + carouselSlides.length) % carouselSlides.length)}
+              onClick={() => onSetCarouselIdx((carouselIdx - 1 + slides.length) % slides.length)}
               className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-10 h-10 rounded-full bg-white hover:bg-[#edf7e8] shadow-lg border border-gray-100 flex items-center justify-center text-gray-600 hover:text-[#3ca615] transition-all"
             >
               <Icon name="ChevronLeft" size={20} />
             </button>
             <button
-              onClick={() => onSetCarouselIdx((carouselIdx + 1) % carouselSlides.length)}
+              onClick={() => onSetCarouselIdx((carouselIdx + 1) % slides.length)}
               className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-10 h-10 rounded-full bg-white hover:bg-[#edf7e8] shadow-lg border border-gray-100 flex items-center justify-center text-gray-600 hover:text-[#3ca615] transition-all"
             >
               <Icon name="ChevronRight" size={20} />
@@ -144,7 +151,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
                 className="flex gap-4 transition-transform duration-700 ease-in-out"
                 style={{ transform: `translateX(-${carouselIdx * (100 / 3)}%)` }}
               >
-                {carouselSlides.map((slide, i) => {
+                {slides.map((slide, i) => {
                   const isActive = i === carouselIdx;
                   return (
                     <div
@@ -199,7 +206,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
 
             {/* Точки */}
             <div className="flex justify-center gap-1.5 mt-5">
-              {carouselSlides.map((_, i) => (
+              {slides.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => onSetCarouselIdx(i)}
