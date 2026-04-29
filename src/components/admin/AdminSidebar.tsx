@@ -48,13 +48,17 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
       <div className="flex items-center gap-3 px-3 py-5 border-b border-white/10 min-h-[64px]">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 hover:opacity-80 transition-opacity"
+          className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 hover:opacity-80 transition-opacity overflow-hidden"
           style={{ background: "#3ca615" }}
           title={collapsed ? "Развернуть меню" : "Свернуть меню"}
         >
           {collapsed
             ? <Icon name="PanelLeftOpen" size={18} className="text-white" />
-            : <span className="text-white font-bold text-base">P</span>
+            : <img
+                src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
+                alt="ProFiX"
+                className="w-7 h-7 object-contain"
+              />
           }
         </button>
         {!collapsed && (
