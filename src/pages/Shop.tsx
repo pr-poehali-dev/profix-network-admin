@@ -9,16 +9,21 @@ import CartDrawer from "@/components/CartDrawer";
 // ── Карточка товара ───────────────────────────────────────────────────────────
 
 function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: (p: Product) => void }) {
+  const navigate = useNavigate();
   const [added, setAdded] = useState(false);
 
-  function handleAdd() {
+  function handleAdd(e: React.MouseEvent) {
+    e.stopPropagation();
     onAddToCart(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-200 flex flex-col overflow-hidden group">
+    <div
+      onClick={() => navigate(`/shop/${product.id}`)}
+      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-200 flex flex-col overflow-hidden group cursor-pointer"
+    >
       <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
         {product.image_url
           ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />

@@ -9,6 +9,21 @@ export interface Category {
   product_count?: number;
 }
 
+export interface ProductImage {
+  id: number;
+  image_url: string;
+  sort_order: number;
+}
+
+export interface ProductReview {
+  id: number;
+  author_name: string;
+  rating: number;
+  text?: string;
+  is_published: boolean;
+  created_at: string;
+}
+
 export interface Product {
   id: number;
   category_id?: number;
@@ -25,6 +40,10 @@ export interface Product {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  images?: ProductImage[];
+  reviews?: ProductReview[];
+  rating_avg?: number;
+  rating_count?: number;
 }
 
 export interface CartItem {
@@ -76,6 +95,20 @@ export const shopApi = {
   // Заказ
   placeOrder: (data: { name: string; phone: string; comment?: string; items: { name: string; qty: number; price: number }[] }) =>
     req("order", "POST", data),
+
+  // Доп. фото
+  getImages: (productId: number) => req("images", "GET", undefined, { product_id: String(productId) }),
+  uploadImage: (productId: number, imageB64: string, imageType: string) =>
+    req("images", "POST", { product_id: productId, image_b64: imageB64, image_type: imageType }),
+  deleteImage: (id: number) => req("images", "DELETE", { id }),
+
+  // Отзывы
+  getReviews: (productId: number, admin = false) =>
+    req("reviews", "GET", undefined, { product_id: String(productId), ...(admin ? { admin: "1" } : {}) }),
+  addReview: (data: { product_id: number; author_name: string; rating: number; text: string }) =>
+    req("reviews", "POST", data),
+  publishReview: (id: number, isPublished: boolean) => req("reviews", "PUT", { id, is_published: isPublished }),
+  deleteReview: (id: number) => req("reviews", "DELETE", { id }),
 };
 
 // ── Корзина (localStorage) ────────────────────────────────────────────────────

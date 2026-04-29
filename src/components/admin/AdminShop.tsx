@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
-import { shopApi, Category, Product } from "@/lib/shop-api";
+import { shopApi, Category, Product, ProductImage, ProductReview } from "@/lib/shop-api";
 
 // ── Вспомогательные компоненты ────────────────────────────────────────────────
 
@@ -216,6 +216,127 @@ function CategoryForm({ initial, onSave, onCancel }: {
   );
 }
 
+// ── Управление доп. фото и отзывами ──────────────────────────────────────────
+
+function ProductExtras({ product }: { product: Product }) {
+  const [images, setImages] = useState<ProductImage[]>([]);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const imgRef = useRef<HTMLInputElement>(null);
+
+  async function loadExtras() {
+    const [iRes, rRes] = await Promise.all([
+      shopApi.getImages(product.id),
+      shopApi.getReviews(product.id, true),
+    ]);
+    if (iRes.images) setImages(iRes.images);
+    if (rRes.reviews) setReviews(rRes.reviews);
+  }
+
+  useEffect(() => { loadExtras(); }, [product.id]);
+
+  function handleImgUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const result = ev.target?.result as string;
+      const b64 = result.split(",")[1];
+      const type = file.type;
+      await shopApi.uploadImage(product.id, b64, type);
+      await loadExtras();
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  async function handleDeleteImg(id: number) {
+    await shopApi.deleteImage(id);
+    setImages(prev => prev.filter(i => i.id !== id));
+  }
+
+  async function handleToggleReview(r: ProductReview) {
+    await shopApi.publishReview(r.id, !r.is_published);
+    setReviews(prev => prev.map(x => x.id === r.id ? { ...x, is_published: !x.is_published } : x));
+  }
+
+  async function handleDeleteReview(id: number) {
+    await shopApi.deleteReview(id);
+    setReviews(prev => prev.filter(r => r.id !== id));
+  }
+
+  return (
+    <div className="mt-5 space-y-5">
+      {/* Доп. фото */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-semibold text-gray-900 text-sm">Дополнительные фото</h4>
+          <button onClick={() => imgRef.current?.click()} disabled={uploading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
+            style={{ background: "#3ca615" }}>
+            <Icon name="Upload" size={13} />
+            {uploading ? "Загрузка..." : "Добавить фото"}
+          </button>
+          <input ref={imgRef} type="file" accept="image/*" onChange={handleImgUpload} className="hidden" />
+        </div>
+        {images.length === 0
+          ? <p className="text-xs text-gray-400 text-center py-4">Нет дополнительных фото</p>
+          : <div className="flex flex-wrap gap-3">
+              {images.map(img => (
+                <div key={img.id} className="relative group">
+                  <img src={img.image_url} alt="" className="w-20 h-20 object-cover rounded-xl border border-gray-100" />
+                  <button onClick={() => handleDeleteImg(img.id)}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Icon name="X" size={10} />
+                  </button>
+                </div>
+              ))}
+            </div>
+        }
+      </div>
+
+      {/* Отзывы */}
+      {reviews.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h4 className="font-semibold text-gray-900 text-sm mb-4">Отзывы ({reviews.length})</h4>
+          <div className="space-y-3">
+            {reviews.map(r => (
+              <div key={r.id} className={`flex items-start gap-3 p-3 rounded-xl border ${r.is_published ? "border-green-100 bg-green-50" : "border-gray-100 bg-gray-50"}`}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-xs font-semibold text-gray-900">{r.author_name}</p>
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <Icon key={i} name="Star" size={11} className={i < r.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-200 fill-gray-200"} />
+                      ))}
+                    </div>
+                    <Badge className={r.is_published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}>
+                      {r.is_published ? "Опубликован" : "На модерации"}
+                    </Badge>
+                  </div>
+                  {r.text && <p className="text-xs text-gray-600 line-clamp-2">{r.text}</p>}
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <button onClick={() => handleToggleReview(r)} title={r.is_published ? "Скрыть" : "Опубликовать"}
+                    className={`p-1.5 rounded-lg transition-colors ${r.is_published ? "text-gray-400 hover:text-orange-500 hover:bg-orange-50" : "text-gray-400 hover:text-green-600 hover:bg-green-50"}`}>
+                    <Icon name={r.is_published ? "EyeOff" : "Eye"} size={14} />
+                  </button>
+                  <button onClick={() => handleDeleteReview(r.id)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                    <Icon name="Trash2" size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Главный компонент ─────────────────────────────────────────────────────────
 
 export default function AdminShop() {
@@ -359,6 +480,7 @@ export default function AdminShop() {
                 onSave={handleSaveProduct}
                 onCancel={() => { setShowProductForm(false); setEditProduct(null); }}
               />
+              {editProduct && <ProductExtras product={editProduct} />}
             </div>
           )}
 

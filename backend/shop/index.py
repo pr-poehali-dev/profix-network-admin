@@ -115,6 +115,10 @@ def handler(event: dict, context) -> dict:
             resource = "categories"
         elif "/order" in path:
             resource = "order"
+        elif "/images" in path:
+            resource = "images"
+        elif "/reviews" in path:
+            resource = "reviews"
         else:
             resource = "products"
 
@@ -206,7 +210,24 @@ def handler(event: dict, context) -> dict:
                     if not row:
                         return err("Товар не найден", 404)
                     cols = [d[0] for d in cur.description]
-                    return ok({"product": dict(zip(cols, row))})
+                    product = dict(zip(cols, row))
+                    # Доп. фото
+                    cur.execute(f"SELECT id, image_url, sort_order FROM {SC}.shop_product_images WHERE product_id = %s ORDER BY sort_order", (pid,))
+                    product["images"] = [{"id": r[0], "image_url": r[1], "sort_order": r[2]} for r in cur.fetchall()]
+                    # Опубликованные отзывы
+                    cur.execute(f"""
+                        SELECT id, author_name, rating, text, created_at
+                        FROM {SC}.shop_product_reviews WHERE product_id = %s AND is_published = TRUE
+                        ORDER BY created_at DESC
+                    """, (pid,))
+                    rcols = [d[0] for d in cur.description]
+                    product["reviews"] = [dict(zip(rcols, r)) for r in cur.fetchall()]
+                    # Средний рейтинг
+                    cur.execute(f"SELECT AVG(rating), COUNT(*) FROM {SC}.shop_product_reviews WHERE product_id = %s AND is_published = TRUE", (pid,))
+                    avg_row = cur.fetchone()
+                    product["rating_avg"] = round(float(avg_row[0]), 1) if avg_row[0] else None
+                    product["rating_count"] = avg_row[1]
+                    return ok({"product": product})
 
                 # Список
                 category = params.get("category")
@@ -402,6 +423,83 @@ def handler(event: dict, context) -> dict:
             ticket_id = cur.fetchone()[0]
             conn.commit()
             return ok({"ok": True, "ticket_id": ticket_id})
+
+        # ══════════════════════════════════════════════════════════════════════
+        # ДОПОЛНИТЕЛЬНЫЕ ФОТО
+        # ══════════════════════════════════════════════════════════════════════
+        if resource == "images":
+            if not check_auth():
+                return err("Unauthorized", 401)
+
+            if method == "POST":
+                pid = body.get("product_id")
+                if not pid:
+                    return err("Нет product_id")
+                image_url = upload_image(body["image_b64"], body.get("image_type", "image/jpeg"))
+                cur.execute(
+                    f"INSERT INTO {SC}.shop_product_images (product_id, image_url, sort_order) VALUES (%s, %s, (SELECT COALESCE(MAX(sort_order),0)+1 FROM {SC}.shop_product_images WHERE product_id=%s)) RETURNING id",
+                    (pid, image_url, pid)
+                )
+                new_id = cur.fetchone()[0]
+                conn.commit()
+                return ok({"ok": True, "id": new_id, "image_url": image_url})
+
+            if method == "DELETE":
+                iid = body.get("id") or params.get("id")
+                cur.execute(f"DELETE FROM {SC}.shop_product_images WHERE id = %s", (iid,))
+                conn.commit()
+                return ok({"ok": True})
+
+            if method == "GET":
+                pid = params.get("product_id")
+                cur.execute(f"SELECT id, image_url, sort_order FROM {SC}.shop_product_images WHERE product_id = %s ORDER BY sort_order", (pid,))
+                return ok({"images": [{"id": r[0], "image_url": r[1], "sort_order": r[2]} for r in cur.fetchall()]})
+
+        # ══════════════════════════════════════════════════════════════════════
+        # ОТЗЫВЫ
+        # ══════════════════════════════════════════════════════════════════════
+        if resource == "reviews":
+
+            if method == "GET":
+                pid = params.get("product_id")
+                admin_mode = params.get("admin") == "1"
+                where = f"WHERE product_id = %s" + ("" if admin_mode else " AND is_published = TRUE")
+                cur.execute(f"SELECT id, author_name, rating, text, is_published, created_at FROM {SC}.shop_product_reviews {where} ORDER BY created_at DESC", (pid,))
+                cols = [d[0] for d in cur.description]
+                return ok({"reviews": [dict(zip(cols, r)) for r in cur.fetchall()]})
+
+            if method == "POST":
+                # Публичный отзыв от покупателя
+                pid = body.get("product_id")
+                author = body.get("author_name", "").strip()
+                rating = int(body.get("rating", 5))
+                text = body.get("text", "").strip()
+                if not pid or not author:
+                    return err("Заполните имя и оценку")
+                cur.execute(
+                    f"INSERT INTO {SC}.shop_product_reviews (product_id, author_name, rating, text, is_published) VALUES (%s,%s,%s,%s, FALSE) RETURNING id",
+                    (pid, author, rating, text)
+                )
+                new_id = cur.fetchone()[0]
+                conn.commit()
+                return ok({"ok": True, "id": new_id})
+
+            if method == "PUT":
+                # Менеджер публикует/скрывает отзыв
+                if not check_auth():
+                    return err("Unauthorized", 401)
+                rid = body.get("id")
+                cur.execute(f"UPDATE {SC}.shop_product_reviews SET is_published=%s WHERE id=%s", (body.get("is_published", True), rid))
+                conn.commit()
+                return ok({"ok": True})
+
+            if method == "DELETE":
+                if not check_auth():
+                    return err("Unauthorized", 401)
+                rid = body.get("id") or params.get("id")
+                cur.execute(f"UPDATE {SC}.shop_product_reviews SET is_published = FALSE WHERE id = %s", (rid,))
+                conn.commit()
+                return ok({"ok": True})
 
         return err("Not found", 404)
 
