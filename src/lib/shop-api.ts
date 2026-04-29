@@ -33,8 +33,8 @@ export interface CartItem {
 }
 
 function authHeader() {
-  const token = localStorage.getItem("profix_manager_token");
-  return token ? { Authorization: token } : {};
+  const token = localStorage.getItem("crm_manager_token");
+  return token ? { "Authorization": token } : {};
 }
 
 async function req(type: string, method = "GET", body?: object, extra?: Record<string, string>) {
