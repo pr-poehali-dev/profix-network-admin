@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Icon from "@/components/ui/icon";
 import { Ticket, Client, Technician, STATUS_COLORS, PRIORITY_COLORS } from "@/lib/crm-api";
 
@@ -224,24 +225,71 @@ export function AdminDashboard({ stats, tickets, loading, onOpenTicket, onGoTick
 // ── СПИСОК ЗАЯВОК ─────────────────────────────────────────────────────────────
 
 export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, onOpenTicket }: TicketsProps) {
+  const [techFilter, setTechFilter] = useState("");
+
+  // Уникальные специалисты из списка заявок
+  const techOptions = Array.from(
+    new Map(
+      tickets
+        .filter(t => t.technician_name || t.technician?.name)
+        .map(t => {
+          const name = t.technician_name || t.technician?.name || "";
+          return [name, name];
+        })
+    ).values()
+  );
+
+  const filtered = techFilter
+    ? tickets.filter(t => (t.technician_name || t.technician?.name) === techFilter)
+    : tickets;
+
   return (
     <div className="p-4 sm:p-6">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Заявки</h2>
-      <div className="flex flex-wrap gap-2 mb-5">
-        {STATUS_FILTER_LABELS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => onFilterChange(f.value)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${
-              statusFilter === f.value
-                ? "text-white border-transparent"
-                : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
-            }`}
-            style={statusFilter === f.value ? { background: "#3ca615", borderColor: "#3ca615" } : {}}
-          >
-            {f.label}
-          </button>
-        ))}
+
+      {/* Фильтры */}
+      <div className="flex flex-wrap items-center gap-2 mb-5">
+        <div className="flex flex-wrap gap-2">
+          {STATUS_FILTER_LABELS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => onFilterChange(f.value)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${
+                statusFilter === f.value
+                  ? "text-white border-transparent"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+              }`}
+              style={statusFilter === f.value ? { background: "#3ca615", borderColor: "#3ca615" } : {}}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {techOptions.length > 0 && (
+          <div className="flex items-center gap-2 ml-auto">
+            <Icon name="Wrench" size={15} className="text-gray-400 shrink-0" />
+            <select
+              value={techFilter}
+              onChange={e => setTechFilter(e.target.value)}
+              className="text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white text-gray-700 focus:outline-none focus:border-green-400 cursor-pointer"
+            >
+              <option value="">Все специалисты</option>
+              {techOptions.map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+            {techFilter && (
+              <button
+                onClick={() => setTechFilter("")}
+                className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                title="Сбросить"
+              >
+                <Icon name="X" size={14} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Таблица — только на широких экранах */}
@@ -260,7 +308,7 @@ export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, o
             </tr>
           </thead>
           <tbody>
-            {tickets.map((ticket) => (
+            {filtered.map((ticket) => (
               <tr
                 key={ticket.id}
                 onClick={() => onOpenTicket(ticket)}
@@ -295,9 +343,11 @@ export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, o
                 </td>
               </tr>
             ))}
-            {tickets.length === 0 && !loading && (
+            {filtered.length === 0 && !loading && (
               <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-gray-400 text-sm">Нет заявок</td>
+                <td colSpan={8} className="px-6 py-12 text-center text-gray-400 text-sm">
+                  {techFilter ? `Нет заявок у специалиста «${techFilter}»` : "Нет заявок"}
+                </td>
               </tr>
             )}
           </tbody>
@@ -306,12 +356,12 @@ export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, o
 
       {/* Карточки — на малых/средних экранах */}
       <div className="lg:hidden space-y-3">
-        {tickets.length === 0 && !loading && (
+        {filtered.length === 0 && !loading && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-12 text-center text-gray-400 text-sm">
-            Нет заявок
+            {techFilter ? `Нет заявок у специалиста «${techFilter}»` : "Нет заявок"}
           </div>
         )}
-        {tickets.map((ticket) => (
+        {filtered.map((ticket) => (
           <div
             key={ticket.id}
             onClick={() => onOpenTicket(ticket)}
