@@ -158,6 +158,42 @@ export default function Admin() {
     }
   }, [loadDashboard]);
 
+  // ── Звуковые уведомления (Web Audio API) ────────────────────────────────────
+
+  const playSound = useCallback((type: "ticket" | "comment") => {
+    try {
+      const ctx = new AudioContext();
+      const gain = ctx.createGain();
+      gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+
+      if (type === "ticket") {
+        // Два восходящих тона — новая заявка
+        [440, 660].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.15);
+          osc.connect(gain);
+          osc.start(ctx.currentTime + i * 0.15);
+          osc.stop(ctx.currentTime + i * 0.15 + 0.25);
+        });
+      } else {
+        // Один мягкий тон — новый комментарий
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(520, ctx.currentTime);
+        osc.connect(gain);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.35);
+      }
+
+      setTimeout(() => ctx.close(), 1000);
+    } catch {
+      // ignore — браузер может не поддерживать
+    }
+  }, []);
+
   // ── Polling новых комментариев от техспециалистов ───────────────────────────
 
   const pollNewComments = useCallback(async () => {
@@ -173,6 +209,7 @@ export default function Admin() {
         const added = allTickets.filter(t => (t.id ?? 0) > lastTicketIdRef.current);
         lastTicketIdRef.current = maxTicketId;
         setNewTicketCount(prev => prev + added.length);
+        playSound("ticket");
         if (Notification.permission === "granted") {
           const last = added[added.length - 1];
           new Notification("ProFiX — новая заявка", {
@@ -211,6 +248,7 @@ export default function Admin() {
       if (newComments > 0) {
         lastCommentIdRef.current = maxCommentId;
         setNewCommentCount(prev => prev + newComments);
+        playSound("comment");
         if (Notification.permission === "granted") {
           new Notification("ProFiX — новый комментарий", {
             body: `${lastAuthor}: заявка «${lastTicketTitle}»`,
@@ -221,7 +259,7 @@ export default function Admin() {
     } catch {
       // ignore
     }
-  }, []);
+  }, [playSound]);
 
   useEffect(() => {
     if (!loggedIn) return;
