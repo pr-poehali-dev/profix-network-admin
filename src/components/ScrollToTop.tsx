@@ -25,7 +25,7 @@ export function ScrollToTopButton() {
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       aria-label="Наверх"
-      className="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+      className="fixed bottom-6 right-20 z-50 w-11 h-11 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
       style={{ background: "#3ca615" }}
     >
       <Icon name="ArrowUp" size={20} className="text-white" />
