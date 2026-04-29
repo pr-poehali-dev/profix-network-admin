@@ -8,8 +8,8 @@ interface Message {
   time: string;
 }
 
-const CHAT_SEND_URL = "https://functions.poehali.dev/dc27ee8c-eb09-4007-98ec-35f6f9ed8904";
-const CHAT_POLL_URL = "https://functions.poehali.dev/78247096-39f8-4785-b253-89644a37d1b1";
+const CHAT_SEND_URL = "https://functions.poehali.dev/52fdb994-24e1-4c9a-ab41-fef309251496";
+const CHAT_POLL_URL = "https://functions.poehali.dev/41cfa64a-33a9-4226-847a-d2a2e2e3d987";
 
 const QUICK_QUESTIONS = [
   "Сколько стоит внедрение 1С?",
