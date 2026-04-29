@@ -41,7 +41,9 @@ export default function Admin() {
   const [newTech, setNewTech] = useState({ name: "", phone: "", specialization: "" });
   const [reviews, setReviews] = useState<{ id: number; name: string; rating: number; text: string; published: boolean; created_at: string; service?: string }[]>([]);
   const [newCommentCount, setNewCommentCount] = useState(0);
+  const [newTicketCount, setNewTicketCount] = useState(0);
   const lastCommentIdRef = useRef<number>(0);
+  const lastTicketIdRef = useRef<number>(0);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [editFields, setEditFields] = useState<EditFields>({
     status: "",
@@ -162,8 +164,27 @@ export default function Admin() {
     try {
       const res = await managerApi.getTickets();
       const allTickets: Ticket[] = res.tickets ?? [];
-      let maxId = lastCommentIdRef.current;
-      let newCount = 0;
+
+      // ── Новые заявки ──────────────────────────────────────────────────────
+      const maxTicketId = allTickets.reduce((m, t) => Math.max(m, t.id ?? 0), 0);
+      if (lastTicketIdRef.current === 0) {
+        lastTicketIdRef.current = maxTicketId;
+      } else if (maxTicketId > lastTicketIdRef.current) {
+        const added = allTickets.filter(t => (t.id ?? 0) > lastTicketIdRef.current);
+        lastTicketIdRef.current = maxTicketId;
+        setNewTicketCount(prev => prev + added.length);
+        if (Notification.permission === "granted") {
+          const last = added[added.length - 1];
+          new Notification("ProFiX — новая заявка", {
+            body: `#${last.id} ${last.title}`,
+            icon: "https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png",
+          });
+        }
+      }
+
+      // ── Новые комментарии ─────────────────────────────────────────────────
+      let maxCommentId = lastCommentIdRef.current;
+      let newComments = 0;
       let lastTicketTitle = "";
       let lastAuthor = "";
 
@@ -171,10 +192,10 @@ export default function Admin() {
         if (!t.comments) continue;
         for (const c of t.comments) {
           const cId = c.id ?? 0;
-          if (cId > maxId) {
-            maxId = cId;
+          if (cId > maxCommentId) {
+            maxCommentId = cId;
             if (lastCommentIdRef.current > 0) {
-              newCount++;
+              newComments++;
               lastTicketTitle = t.title;
               lastAuthor = c.author ?? "Специалист";
             }
@@ -183,14 +204,13 @@ export default function Admin() {
       }
 
       if (lastCommentIdRef.current === 0) {
-        lastCommentIdRef.current = maxId;
+        lastCommentIdRef.current = maxCommentId;
         return;
       }
 
-      if (newCount > 0) {
-        lastCommentIdRef.current = maxId;
-        setNewCommentCount(prev => prev + newCount);
-
+      if (newComments > 0) {
+        lastCommentIdRef.current = maxCommentId;
+        setNewCommentCount(prev => prev + newComments);
         if (Notification.permission === "granted") {
           new Notification("ProFiX — новый комментарий", {
             body: `${lastAuthor}: заявка «${lastTicketTitle}»`,
@@ -261,7 +281,7 @@ export default function Admin() {
     setError("");
     setSelectedTicket(null);
     setSelectedTech(null);
-    if (s === "tickets" || s === "dashboard") setNewCommentCount(0);
+    if (s === "tickets" || s === "dashboard") { setNewCommentCount(0); setNewTicketCount(0); }
     if (s === "dashboard") loadDashboard();
     if (s === "tickets") loadTickets(statusFilter);
     if (s === "clients") loadClients();
@@ -463,6 +483,7 @@ export default function Admin() {
         onSectionChange={handleSectionChange}
         onLogout={handleLogout}
         newCommentCount={newCommentCount}
+        newTicketCount={newTicketCount}
       />
 
       <main className="flex-1 overflow-auto">

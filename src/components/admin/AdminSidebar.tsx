@@ -13,12 +13,12 @@ interface Props {
   onSectionChange: (s: string) => void;
   onLogout: () => void;
   newCommentCount?: number;
+  newTicketCount?: number;
 }
 
-export default function AdminSidebar({ manager, activeSection, onSectionChange, onLogout, newCommentCount = 0 }: Props) {
+export default function AdminSidebar({ manager, activeSection, onSectionChange, onLogout, newCommentCount = 0, newTicketCount = 0 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
 
-  // На мобиле сворачиваем по умолчанию
   useEffect(() => {
     const check = () => setCollapsed(window.innerWidth < 768);
     check();
@@ -61,7 +61,10 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
       <nav className="flex-1 px-2 py-4 space-y-1">
         {menuItems.map((item) => {
           const isActive = activeSection === item.key;
-          const hasAlert = item.key === "tickets" && newCommentCount > 0;
+          const totalBadge = item.key === "tickets" ? newCommentCount + newTicketCount : 0;
+          const hasAlert = totalBadge > 0;
+          const badgeLabel = totalBadge > 99 ? "99+" : String(totalBadge);
+
           return (
             <button
               key={item.key}
@@ -77,10 +80,8 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
               <span className="relative flex-shrink-0">
                 <Icon name={item.icon as "LayoutDashboard"} size={18} />
                 {hasAlert && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-[9px] font-bold">
-                      {newCommentCount > 9 ? "9+" : newCommentCount}
-                    </span>
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-red-500 rounded-full flex items-center justify-center px-0.5">
+                    <span className="text-white text-[9px] font-bold leading-none">{badgeLabel}</span>
                   </span>
                 )}
               </span>
@@ -88,8 +89,13 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
                 <span className="flex-1 text-left">{item.label}</span>
               )}
               {!collapsed && hasAlert && (
-                <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  {newCommentCount > 9 ? "9+" : newCommentCount}
+                <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                  {newTicketCount > 0 && newCommentCount > 0
+                    ? `${newTicketCount} заяв. · ${newCommentCount} комм.`
+                    : newTicketCount > 0
+                    ? `+${newTicketCount} новых`
+                    : `${newCommentCount} комм.`
+                  }
                 </span>
               )}
             </button>
