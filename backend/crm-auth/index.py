@@ -1,5 +1,5 @@
 """
-CRM авторизация: клиенты (телефон + OTP на email/Telegram) и менеджеры (логин/пароль).
+CRM авторизация: клиенты, менеджеры, техники — OTP, пароль, восстановление пароля.
 """
 import json
 import os
@@ -69,6 +69,30 @@ def send_email_otp(to_email: str, code: str, phone: str):
             s.starttls()
             s.login(user, pwd)
             s.sendmail(user, to_email, msg.as_string())
+
+
+def send_email_reset(to_email: str, token: str, role: str):
+    host = os.environ["SMTP_HOST"]
+    port = int(os.environ["SMTP_PORT"])
+    user = os.environ["SMTP_USER"]
+    pwd  = os.environ["SMTP_PASSWORD"]
+    link = f"https://profix-network-admin.poehali.dev/login?reset={token}&role={role}"
+    msg  = MIMEText(
+        f"<h2>Сброс пароля ProFiX</h2>"
+        f"<p>Для установки нового пароля перейдите по ссылке:</p>"
+        f"<p><a href='{link}'>{link}</a></p>"
+        f"<p>Ссылка действует 30 минут. Если вы не запрашивали сброс — проигнорируйте это письмо.</p>",
+        "html", "utf-8"
+    )
+    msg["Subject"] = "Сброс пароля ProFiX"
+    msg["From"] = user
+    msg["To"] = to_email
+    if port == 465:
+        with smtplib.SMTP_SSL(host, port) as s:
+            s.login(user, pwd); s.sendmail(user, to_email, msg.as_string())
+    else:
+        with smtplib.SMTP(host, port) as s:
+            s.starttls(); s.login(user, pwd); s.sendmail(user, to_email, msg.as_string())
 
 
 def send_telegram_otp(chat_id: int, code: str):
@@ -412,5 +436,185 @@ def handler(event: dict, context) -> dict:
         c = cur.fetchone()
         cur.close(); conn.close()
         return ok({"client": {"id": c[0], "name": c[1], "phone": c[2], "email": c[3]}})
+
+    # ── КЛИЕНТ: вход по паролю ──────────────────────────────────────────────
+    if action == "client_login_password":
+        phone    = body.get("phone", "").strip()
+        password = body.get("password", "").strip()
+        if not phone or not password:
+            return err("Укажите телефон и пароль")
+        conn = get_conn(); cur = conn.cursor()
+        pw_hash = hash_password(password)
+        cur.execute(
+            f"SELECT id, name, phone, email FROM {SC}.clients WHERE phone=%s AND password_hash=%s",
+            (phone, pw_hash)
+        )
+        client = cur.fetchone()
+        if not client:
+            conn.close(); return err("Неверный телефон или пароль", 401)
+        token = make_token()
+        cur.execute(
+            f"INSERT INTO {SC}.client_sessions (client_id, token, expires_at) VALUES (%s,%s,%s)",
+            (client[0], token, datetime.now() + timedelta(days=30))
+        )
+        conn.commit(); cur.close(); conn.close()
+        return ok({"token": token, "client": {"id": client[0], "name": client[1], "phone": client[2], "email": client[3]}})
+
+    # ── КЛИЕНТ: установить/сменить пароль (через OTP-токен) ─────────────────
+    if action == "client_set_password":
+        auth  = (event.get("headers") or {}).get("X-Authorization", "") or \
+                (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        password = body.get("password", "").strip()
+        if not token or not password or len(password) < 6:
+            return err("Нужен токен и пароль от 6 символов")
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"SELECT client_id FROM {SC}.client_sessions WHERE token=%s AND expires_at>NOW()", (token,))
+        row = cur.fetchone()
+        if not row:
+            conn.close(); return err("Сессия истекла", 401)
+        cur.execute(f"UPDATE {SC}.clients SET password_hash=%s WHERE id=%s", (hash_password(password), row[0]))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"set": True})
+
+    # ── ТЕХНИК: вход по email + паролю ──────────────────────────────────────
+    if action == "technician_login_password":
+        email    = body.get("email", "").strip()
+        password = body.get("password", "").strip()
+        if not email or not password:
+            return err("Укажите email и пароль")
+        conn = get_conn(); cur = conn.cursor()
+        pw_hash = hash_password(password)
+        cur.execute(
+            f"SELECT id, name, phone, specialization FROM {SC}.technicians WHERE email=%s AND password_hash=%s AND is_active=TRUE",
+            (email, pw_hash)
+        )
+        tech = cur.fetchone()
+        if not tech:
+            conn.close(); return err("Неверный email или пароль", 401)
+        token = make_token()
+        cur.execute(
+            f"INSERT INTO {SC}.technician_sessions (technician_id, token, expires_at) VALUES (%s,%s,%s)",
+            (tech[0], token, datetime.now() + timedelta(days=30))
+        )
+        conn.commit(); cur.close(); conn.close()
+        return ok({"token": token, "technician": {"id": tech[0], "name": tech[1], "phone": tech[2], "specialization": tech[3]}})
+
+    # ── МЕНЕДЖЕР: вход по email + паролю (дополнительно к login/password) ───
+    if action == "manager_login_email":
+        email    = body.get("email", "").strip()
+        password = body.get("password", "").strip()
+        if not email or not password:
+            return err("Укажите email и пароль")
+        conn = get_conn(); cur = conn.cursor()
+        pw_hash = hash_password(password)
+        cur.execute(
+            f"SELECT id, COALESCE(name, full_name), role FROM {SC}.managers WHERE email=%s AND password_hash=%s",
+            (email, pw_hash)
+        )
+        mgr = cur.fetchone()
+        if not mgr:
+            conn.close(); return err("Неверный email или пароль", 401)
+        token = make_token()
+        cur.execute(
+            f"INSERT INTO {SC}.manager_sessions (manager_id, token, expires_at) VALUES (%s,%s,%s)",
+            (mgr[0], token, datetime.now() + timedelta(days=7))
+        )
+        conn.commit(); cur.close(); conn.close()
+        return ok({"token": token, "manager": {"id": mgr[0], "name": mgr[1], "role": mgr[2]}})
+
+    # ── СБРОС ПАРОЛЯ: запрос ────────────────────────────────────────────────
+    if action == "reset_password_request":
+        email = body.get("email", "").strip()
+        role  = body.get("role", "client")
+        if not email:
+            return err("Укажите email")
+        conn = get_conn(); cur = conn.cursor()
+        reset_token = make_token()
+        expires     = datetime.now() + timedelta(minutes=30)
+
+        if role == "client":
+            cur.execute(f"SELECT id FROM {SC}.clients WHERE email=%s", (email,))
+            row = cur.fetchone()
+            if not row:
+                conn.close()
+                return ok({"sent": True})  # не раскрываем наличие аккаунта
+            cur.execute(
+                f"UPDATE {SC}.clients SET reset_token=%s, reset_expires_at=%s WHERE id=%s",
+                (reset_token, expires, row[0])
+            )
+        elif role == "technician":
+            cur.execute(f"SELECT id FROM {SC}.technicians WHERE email=%s AND is_active=TRUE", (email,))
+            row = cur.fetchone()
+            if not row:
+                conn.close(); return ok({"sent": True})
+            cur.execute(
+                f"UPDATE {SC}.technicians SET reset_token=%s, reset_expires_at=%s WHERE id=%s",
+                (reset_token, expires, row[0])
+            )
+        else:  # manager
+            cur.execute(f"SELECT id FROM {SC}.managers WHERE email=%s", (email,))
+            row = cur.fetchone()
+            if not row:
+                conn.close(); return ok({"sent": True})
+            cur.execute(
+                f"UPDATE {SC}.managers SET reset_token=%s, reset_expires_at=%s WHERE id=%s",
+                (reset_token, expires, row[0])
+            )
+        conn.commit(); cur.close(); conn.close()
+        try:
+            send_email_reset(email, reset_token, role)
+        except Exception as e:
+            return err(f"Ошибка отправки письма: {str(e)}")
+        return ok({"sent": True})
+
+    # ── СБРОС ПАРОЛЯ: подтверждение ─────────────────────────────────────────
+    if action == "reset_password_confirm":
+        token    = body.get("token", "").strip()
+        role     = body.get("role", "client")
+        password = body.get("password", "").strip()
+        if not token or not password or len(password) < 6:
+            return err("Нужен токен и пароль от 6 символов")
+        conn = get_conn(); cur = conn.cursor()
+        pw_hash = hash_password(password)
+
+        if role == "client":
+            cur.execute(
+                f"SELECT id FROM {SC}.clients WHERE reset_token=%s AND reset_expires_at>NOW()",
+                (token,)
+            )
+            row = cur.fetchone()
+            if not row:
+                conn.close(); return err("Ссылка устарела или недействительна", 400)
+            cur.execute(
+                f"UPDATE {SC}.clients SET password_hash=%s, reset_token=NULL, reset_expires_at=NULL WHERE id=%s",
+                (pw_hash, row[0])
+            )
+        elif role == "technician":
+            cur.execute(
+                f"SELECT id FROM {SC}.technicians WHERE reset_token=%s AND reset_expires_at>NOW()",
+                (token,)
+            )
+            row = cur.fetchone()
+            if not row:
+                conn.close(); return err("Ссылка устарела или недействительна", 400)
+            cur.execute(
+                f"UPDATE {SC}.technicians SET password_hash=%s, reset_token=NULL, reset_expires_at=NULL WHERE id=%s",
+                (pw_hash, row[0])
+            )
+        else:
+            cur.execute(
+                f"SELECT id FROM {SC}.managers WHERE reset_token=%s AND reset_expires_at>NOW()",
+                (token,)
+            )
+            row = cur.fetchone()
+            if not row:
+                conn.close(); return err("Ссылка устарела или недействительна", 400)
+            cur.execute(
+                f"UPDATE {SC}.managers SET password_hash=%s, reset_token=NULL, reset_expires_at=NULL WHERE id=%s",
+                (pw_hash, row[0])
+            )
+        conn.commit(); cur.close(); conn.close()
+        return ok({"reset": True})
 
     return err("Неизвестное действие")

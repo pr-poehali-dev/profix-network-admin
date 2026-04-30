@@ -77,6 +77,12 @@ export const clientApi = {
   verifyOtp: (phone: string, code: string) =>
     postAuth({ action: "client_verify_otp", phone, code }),
 
+  loginPassword: (phone: string, password: string) =>
+    postAuth({ action: "client_login_password", phone, password }),
+
+  setPassword: (password: string) =>
+    postAuthWithToken({ action: "client_set_password", password }, clientSession.get()!),
+
   verifyToken: (token: string) =>
     postAuthWithToken({ action: "verify_token", role: "client" }, token),
 
@@ -102,6 +108,9 @@ export const techApi = {
   login: (technician_id: number, pin: string) =>
     postAuth({ action: "technician_login", technician_id, pin }),
 
+  loginPassword: (email: string, password: string) =>
+    postAuth({ action: "technician_login_password", email, password }),
+
   verifyToken: (token: string) =>
     postAuthWithToken({ action: "verify_token", role: "technician" }, token),
 
@@ -120,11 +129,24 @@ export const techApi = {
     }).then(r => r.json()),
 };
 
+// ── Сброс пароля (универсальный) ─────────────────────────────────────────────
+
+export const authApi = {
+  resetRequest: (email: string, role: "client" | "technician" | "manager") =>
+    postAuth({ action: "reset_password_request", email, role }),
+
+  resetConfirm: (token: string, password: string, role: "client" | "technician" | "manager") =>
+    postAuth({ action: "reset_password_confirm", token, password, role }),
+};
+
 // ── API менеджера ────────────────────────────────────────────────────────────
 
 export const managerApi = {
   login: (login: string, password: string) =>
     postAuth({ action: "manager_login", login, password }),
+
+  loginEmail: (email: string, password: string) =>
+    postAuth({ action: "manager_login_email", email, password }),
 
   verifyToken: (token: string) =>
     postAuthWithToken({ action: "verify_token", role: "manager" }, token),
