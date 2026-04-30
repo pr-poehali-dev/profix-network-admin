@@ -45,8 +45,10 @@ export default function Admin() {
   const [reviews, setReviews] = useState<{ id: number; name: string; rating: number; text: string; published: boolean; created_at: string; service?: string }[]>([]);
   const [newCommentCount, setNewCommentCount] = useState(0);
   const [newTicketCount, setNewTicketCount] = useState(0);
+  const [newReviewCount, setNewReviewCount] = useState(0);
   const lastCommentIdRef = useRef<number>(0);
   const lastTicketIdRef = useRef<number>(0);
+  const lastReviewIdRef = useRef<number>(0);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [editFields, setEditFields] = useState<EditFields>({
     status: "",
@@ -259,6 +261,34 @@ export default function Admin() {
           });
         }
       }
+
+      // ── Новые отзывы (непубликованные) ────────────────────────────────────
+      try {
+        const token = managerSession.get();
+        if (token) {
+          const rRes = await reviewsApi.getAll(token);
+          const allReviews: { id: number; published: boolean }[] = rRes.reviews ?? [];
+          const maxReviewId = allReviews.reduce((m, r) => Math.max(m, r.id ?? 0), 0);
+          const unpublished = allReviews.filter(r => !r.published);
+
+          if (lastReviewIdRef.current === 0) {
+            lastReviewIdRef.current = maxReviewId;
+          } else if (maxReviewId > lastReviewIdRef.current) {
+            const added = allReviews.filter(r => (r.id ?? 0) > lastReviewIdRef.current && !r.published);
+            lastReviewIdRef.current = maxReviewId;
+            if (added.length > 0) {
+              playSound("ticket");
+              if (Notification.permission === "granted") {
+                new Notification("ProFiX — новый отзыв", {
+                  body: `${added.length} новый отзыв ждёт модерации`,
+                  icon: "https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png",
+                });
+              }
+            }
+          }
+          setNewReviewCount(unpublished.length);
+        }
+      } catch { /* ignore */ }
     } catch {
       // ignore
     }
@@ -328,7 +358,7 @@ export default function Admin() {
     if (s === "clients") loadClients();
     if (s === "managers") loadManagers();
     if (s === "technicians") loadTechnicians();
-    if (s === "reviews") loadReviews();
+    if (s === "reviews") { loadReviews(); setNewReviewCount(0); }
   }
 
   function handleFilterChange(f: string) {
@@ -525,6 +555,7 @@ export default function Admin() {
         onLogout={handleLogout}
         newCommentCount={newCommentCount}
         newTicketCount={newTicketCount}
+        newReviewCount={newReviewCount}
       />
 
       <main className="flex-1 overflow-auto">
@@ -602,59 +633,101 @@ export default function Admin() {
         {section === "content" && <AdminContentEditor />}
         {section === "pages" && <AdminPageBuilder />}
 
-        {section === "reviews" && (
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-xl font-bold text-gray-900">Отзывы клиентов</h1>
-              <button
-                onClick={loadReviews}
-                className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition"
-              >
-                Обновить
-              </button>
-            </div>
-            {reviews.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400">
-                Отзывов пока нет
+        {section === "reviews" && (() => {
+          const unpublished = reviews.filter(r => !r.published);
+          const published = reviews.filter(r => r.published);
+          return (
+            <div className="p-4 sm:p-6">
+              {/* Шапка */}
+              <div className="flex items-center justify-between mb-4 gap-3">
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Отзывы клиентов</h1>
+                  <p className="text-sm text-gray-400 mt-0.5">{reviews.length} всего · {unpublished.length} ждут модерации</p>
+                </div>
+                <button onClick={loadReviews} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition">
+                  <Icon name="RefreshCw" size={14} /> Обновить
+                </button>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {reviews.map(r => (
-                  <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="flex gap-0.5">
-                            {Array.from({ length: 5 }, (_, i) => (
-                              <span key={i} className={i < r.rating ? "text-yellow-400" : "text-gray-200"}>★</span>
-                            ))}
-                          </div>
-                          <span className="font-medium text-sm text-gray-800">{r.name}</span>
-                          <span className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString("ru-RU")}</span>
-                          {r.service && <span className="text-xs text-gray-400">— {r.service}</span>}
-                        </div>
-                        <p className="text-sm text-gray-700">«{r.text}»</p>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          await reviewsApi.publish(r.id, !r.published, managerSession.get()!);
-                          await loadReviews();
-                        }}
-                        className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition ${
-                          r.published
-                            ? "bg-green-50 text-green-700 hover:bg-red-50 hover:text-red-600"
-                            : "bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700"
-                        }`}
-                      >
-                        {r.published ? "Опубликован" : "Опубликовать"}
-                      </button>
-                    </div>
+
+              {/* Очередь на модерацию */}
+              {unpublished.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                    <h2 className="text-sm font-bold text-gray-700">Ожидают публикации ({unpublished.length})</h2>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                  <div className="space-y-3">
+                    {unpublished.map(r => (
+                      <div key={r.id} className="bg-white rounded-2xl border-2 border-yellow-200 shadow-sm p-4 sm:p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <div className="flex gap-0.5">
+                                {Array.from({ length: 5 }, (_, i) => (
+                                  <span key={i} className={`text-base ${i < r.rating ? "text-yellow-400" : "text-gray-200"}`}>★</span>
+                                ))}
+                              </div>
+                              <span className="font-semibold text-sm text-gray-800">{r.name}</span>
+                              <span className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString("ru-RU")}</span>
+                              {r.service && <span className="text-xs text-gray-400 truncate">— {r.service}</span>}
+                            </div>
+                            <p className="text-sm text-gray-700 leading-relaxed">«{r.text}»</p>
+                          </div>
+                          <button
+                            onClick={async () => { await reviewsApi.publish(r.id, true, managerSession.get()!); loadReviews(); }}
+                            className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition"
+                          >
+                            <Icon name="Check" size={14} /> Опубликовать
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Опубликованные */}
+              {published.length > 0 && (
+                <div>
+                  <h2 className="text-sm font-bold text-gray-500 mb-3">Опубликованные ({published.length})</h2>
+                  <div className="space-y-2">
+                    {published.map(r => (
+                      <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                              <div className="flex gap-0.5">
+                                {Array.from({ length: 5 }, (_, i) => (
+                                  <span key={i} className={`text-sm ${i < r.rating ? "text-yellow-400" : "text-gray-200"}`}>★</span>
+                                ))}
+                              </div>
+                              <span className="font-medium text-sm text-gray-800">{r.name}</span>
+                              <span className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString("ru-RU")}</span>
+                              {r.service && <span className="text-xs text-gray-400 truncate">— {r.service}</span>}
+                            </div>
+                            <p className="text-sm text-gray-600">«{r.text}»</p>
+                          </div>
+                          <button
+                            onClick={async () => { await reviewsApi.publish(r.id, false, managerSession.get()!); loadReviews(); }}
+                            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 text-gray-500 text-xs font-medium hover:bg-red-50 hover:text-red-500 transition"
+                          >
+                            <Icon name="EyeOff" size={12} /> Скрыть
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {reviews.length === 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400">
+                  Отзывов пока нет
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Индикатор загрузки */}
         {loading && (
