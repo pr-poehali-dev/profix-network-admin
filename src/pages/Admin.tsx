@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { managerApi, managerSession, reviewsApi, Ticket, Client, Technician } from "@/lib/crm-api";
-import { BellNotification } from "@/components/admin/AdminBell";
 import AdminLogin from "@/components/admin/AdminLogin";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import {
@@ -47,29 +46,10 @@ export default function Admin() {
   const [newCommentCount, setNewCommentCount] = useState(0);
   const [newTicketCount, setNewTicketCount] = useState(0);
   const [newReviewCount, setNewReviewCount] = useState(0);
-  const [bellNotifications, setBellNotifications] = useState<BellNotification[]>([]);
   const lastCommentIdRef = useRef<number>(0);
   const lastTicketIdRef = useRef<number>(0);
   const lastReviewIdRef = useRef<number>(0);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  function addBellNotif(n: Omit<BellNotification, "id" | "read" | "time">) {
-    const notif: BellNotification = {
-      ...n,
-      id: `${Date.now()}-${Math.random()}`,
-      read: false,
-      time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
-    };
-    setBellNotifications(prev => [notif, ...prev].slice(0, 50));
-  }
-
-  function handleBellRead(id: string) {
-    setBellNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  }
-
-  function handleBellReadAll() {
-    setBellNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  }
   const [editFields, setEditFields] = useState<EditFields>({
     status: "",
     priority: "",
@@ -235,12 +215,6 @@ export default function Admin() {
         lastTicketIdRef.current = maxTicketId;
         setNewTicketCount(prev => prev + added.length);
         playSound("ticket");
-        added.forEach(t => addBellNotif({
-          type: "ticket",
-          title: "Новая заявка",
-          body: `#${t.id} ${t.title}`,
-          onClick: () => setSection("tickets"),
-        }));
         if (Notification.permission === "granted") {
           const last = added[added.length - 1];
           new Notification("ProFiX — новая заявка", {
@@ -280,12 +254,6 @@ export default function Admin() {
         lastCommentIdRef.current = maxCommentId;
         setNewCommentCount(prev => prev + newComments);
         playSound("comment");
-        addBellNotif({
-          type: "comment",
-          title: "Новый комментарий",
-          body: `${lastAuthor}: «${lastTicketTitle}»`,
-          onClick: () => setSection("tickets"),
-        });
         if (Notification.permission === "granted") {
           new Notification("ProFiX — новый комментарий", {
             body: `${lastAuthor}: заявка «${lastTicketTitle}»`,
@@ -310,12 +278,6 @@ export default function Admin() {
             lastReviewIdRef.current = maxReviewId;
             if (added.length > 0) {
               playSound("ticket");
-              addBellNotif({
-                type: "review",
-                title: "Новый отзыв",
-                body: `${added.length} отзыв ждёт модерации`,
-                onClick: () => { setSection("reviews"); setNewReviewCount(0); },
-              });
               if (Notification.permission === "granted") {
                 new Notification("ProFiX — новый отзыв", {
                   body: `${added.length} новый отзыв ждёт модерации`,
@@ -594,9 +556,6 @@ export default function Admin() {
         newCommentCount={newCommentCount}
         newTicketCount={newTicketCount}
         newReviewCount={newReviewCount}
-        bellNotifications={bellNotifications}
-        onBellRead={handleBellRead}
-        onBellReadAll={handleBellReadAll}
       />
 
       <main className="flex-1 overflow-auto">

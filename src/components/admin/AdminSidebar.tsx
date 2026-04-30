@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
-import AdminBell, { BellNotification } from "@/components/admin/AdminBell";
+import AdminNotificationPanel from "@/components/admin/AdminNotificationPanel";
+import { managerSession } from "@/lib/crm-api";
 
 interface MenuItem {
   key: string;
@@ -16,12 +17,9 @@ interface Props {
   newCommentCount?: number;
   newTicketCount?: number;
   newReviewCount?: number;
-  bellNotifications?: BellNotification[];
-  onBellRead?: (id: string) => void;
-  onBellReadAll?: () => void;
 }
 
-export default function AdminSidebar({ manager, activeSection, onSectionChange, onLogout, newCommentCount = 0, newTicketCount = 0, newReviewCount = 0, bellNotifications = [], onBellRead, onBellReadAll }: Props) {
+export default function AdminSidebar({ manager, activeSection, onSectionChange, onLogout, newCommentCount = 0, newTicketCount = 0, newReviewCount = 0 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -72,12 +70,14 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
         {!collapsed && (
           <span className="text-white font-bold text-lg tracking-tight whitespace-nowrap flex-1">ProFiX</span>
         )}
-        <AdminBell
-          notifications={bellNotifications}
-          onRead={onBellRead || (() => {})}
-          onReadAll={onBellReadAll || (() => {})}
-          onGoChat={() => onSectionChange("chat")}
-        />
+        {manager && managerSession.get() && (
+          <AdminNotificationPanel
+            token={managerSession.get()!}
+            role="manager"
+            userId={manager.id}
+            userName={manager.name}
+          />
+        )}
       </div>
 
       {/* Пункты меню */}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { techApi, techSession, Ticket, STATUS_COLORS } from "@/lib/crm-api";
+import AdminNotificationPanel from "@/components/admin/AdminNotificationPanel";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -350,18 +351,27 @@ export default function TechPortal() {
           {!isInstalled && installPrompt && (
             <button
               onClick={handleInstall}
-              className="flex items-center gap-1.5 text-sm text-white bg-[#3ca615] px-3 py-1.5 rounded-lg hover:bg-[#2d8a10] transition-colors mr-1"
+              className="flex items-center gap-1.5 text-sm text-white bg-[#3ca615] px-3 py-1.5 rounded-lg hover:bg-[#2d8a10] transition-colors"
             >
               <Icon name="Download" size={15} />
-              Установить
+              <span className="hidden sm:inline">Установить</span>
             </button>
+          )}
+          {tech && techSession.get() && (
+            <div className="bg-[#111827] rounded-xl p-0.5 flex items-center justify-center">
+              <AdminNotificationPanel
+                token={techSession.get()!}
+                role="technician"
+                userId={tech.id}
+                userName={tech.name}
+              />
+            </div>
           )}
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors px-2 py-1.5 rounded-lg hover:bg-red-50"
           >
             <Icon name="LogOut" size={15} />
-            Выйти
           </button>
         </div>
       </header>
