@@ -54,6 +54,40 @@ export default function AdminNotificationPanel({ token, role, userId, userName }
   const afterIdRef = useRef(0);
   const clientAfterIdRef = useRef(0);
 
+  // Drag-to-move
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; initX: number; initY: number } | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Начальная позиция при открытии — справа сверху
+  useEffect(() => {
+    if (open && pos === null) {
+      setPos({ x: window.innerWidth - 420, y: 80 });
+    }
+  }, [open]);
+
+  function onDragStart(e: React.MouseEvent) {
+    e.preventDefault();
+    const cur = pos ?? { x: window.innerWidth - 420, y: 80 };
+    dragRef.current = { startX: e.clientX, startY: e.clientY, initX: cur.x, initY: cur.y };
+
+    function onMove(ev: MouseEvent) {
+      if (!dragRef.current) return;
+      const dx = ev.clientX - dragRef.current.startX;
+      const dy = ev.clientY - dragRef.current.startY;
+      const nx = Math.max(0, Math.min(window.innerWidth - 400, dragRef.current.initX + dx));
+      const ny = Math.max(0, Math.min(window.innerHeight - 100, dragRef.current.initY + dy));
+      setPos({ x: nx, y: ny });
+    }
+    function onUp() {
+      dragRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
   const scrollBottom = () => {
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
   };
@@ -206,16 +240,21 @@ export default function AdminNotificationPanel({ token, role, userId, userName }
         )}
       </button>
 
-      {/* Панель */}
-      {open && (
-        <div className="absolute right-0 top-12 w-[340px] sm:w-[400px] bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 flex flex-col overflow-hidden"
-          style={{ maxHeight: "80vh", minHeight: "400px" }}>
-
-          {/* Заголовок */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-[#111827]">
+      {/* Панель — fixed + draggable */}
+      {open && pos && (
+        <div
+          ref={panelRef}
+          className="fixed w-[340px] sm:w-[400px] bg-white rounded-2xl shadow-2xl border border-gray-100 z-[9999] flex flex-col overflow-hidden"
+          style={{ left: pos.x, top: pos.y, maxHeight: "80vh", minHeight: "400px" }}
+        >
+          {/* Заголовок — drag handle */}
+          <div
+            className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-[#111827] cursor-grab active:cursor-grabbing select-none"
+            onMouseDown={onDragStart}
+          >
             {activeContact ? (
               <div className="flex items-center gap-2">
-                <button onClick={() => { setActiveContact(null); setMessages([]); }} className="text-gray-400 hover:text-white p-1">
+                <button onMouseDown={e => e.stopPropagation()} onClick={() => { setActiveContact(null); setMessages([]); }} className="text-gray-400 hover:text-white p-1">
                   <Icon name="ChevronLeft" size={16} />
                 </button>
                 <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
@@ -225,7 +264,7 @@ export default function AdminNotificationPanel({ token, role, userId, userName }
               </div>
             ) : activeSession ? (
               <div className="flex items-center gap-2">
-                <button onClick={() => { setActiveSession(null); setClientMessages([]); }} className="text-gray-400 hover:text-white p-1">
+                <button onMouseDown={e => e.stopPropagation()} onClick={() => { setActiveSession(null); setClientMessages([]); }} className="text-gray-400 hover:text-white p-1">
                   <Icon name="ChevronLeft" size={16} />
                 </button>
                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
@@ -236,9 +275,12 @@ export default function AdminNotificationPanel({ token, role, userId, userName }
                 </span>
               </div>
             ) : (
-              <span className="text-white font-semibold text-sm">Уведомления и чат</span>
+              <div className="flex items-center gap-2">
+                <Icon name="GripHorizontal" size={14} className="text-gray-500" />
+                <span className="text-white font-semibold text-sm">Уведомления и чат</span>
+              </div>
             )}
-            <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-white p-1">
+            <button onMouseDown={e => e.stopPropagation()} onClick={() => setOpen(false)} className="text-gray-400 hover:text-white p-1">
               <Icon name="X" size={16} />
             </button>
           </div>
