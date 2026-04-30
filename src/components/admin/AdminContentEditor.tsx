@@ -819,6 +819,13 @@ const HOME_BLOCKS = [
   { key: "map",      label: "Карта / Контакты", icon: "MapPin" },
 ];
 
+const HERO_SIZES = [
+  { key: "compact",    label: "Компактный",  hint: "Минимум места, только заголовок и кнопки",   height: "h-8" },
+  { key: "medium",     label: "Средний",     hint: "Оптимально — заголовок, текст, фото",         height: "h-14" },
+  { key: "large",      label: "Большой",     hint: "Крупный hero с фото и бейджами",              height: "h-20" },
+  { key: "fullscreen", label: "На весь экран", hint: "Занимает весь первый экран",                height: "h-28" },
+];
+
 function HomeBlocksEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {
   const stored = (() => {
     try { return JSON.parse(content["home.blocks_order"] || "[]"); } catch { return []; }
@@ -828,6 +835,7 @@ function HomeBlocksEditor({ content, onChange }: { content: ContentMap; onChange
     return HOME_BLOCKS.map(b => ({ key: b.key, visible: true }));
   });
 
+  const heroSize = content["hero.size"] || "medium";
   const dragIdx = useRef<number | null>(null);
 
   function save(arr: typeof blocks) {
@@ -860,12 +868,79 @@ function HomeBlocksEditor({ content, onChange }: { content: ContentMap; onChange
     save(n);
   }
 
+  const visibleBlocks = blocks.filter(b => b.visible);
+
   return (
-    <div className="space-y-4">
-      <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
-        Перетаскивай блоки для изменения порядка на главной странице. Выключи ненужные блоки.
+    <div className="space-y-5">
+
+      {/* Размер Hero */}
+      <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Размер главного экрана</p>
+        <div className="grid grid-cols-2 gap-2">
+          {HERO_SIZES.map(s => (
+            <button key={s.key} onClick={() => onChange("hero.size", s.key)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                heroSize === s.key ? "border-green-500 bg-green-50" : "border-gray-200 bg-white hover:border-gray-300"
+              }`}>
+              <div className={`w-6 ${s.height} rounded bg-gradient-to-b shrink-0 ${heroSize === s.key ? "from-green-400 to-green-500" : "from-gray-200 to-gray-300"}`} />
+              <div>
+                <p className={`text-xs font-semibold ${heroSize === s.key ? "text-green-700" : "text-gray-700"}`}>{s.label}</p>
+                <p className="text-[10px] text-gray-400 leading-snug">{s.hint}</p>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Визуальная схема страницы */}
+      <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Структура страницы</p>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {/* Навбар */}
+          <div className="h-5 bg-gray-800 flex items-center px-2 gap-1">
+            <div className="w-3 h-2 rounded-sm bg-green-500" />
+            <div className="flex-1 flex gap-1 justify-center">
+              {[1,2,3,4].map(i => <div key={i} className="w-4 h-1.5 rounded-sm bg-gray-600" />)}
+            </div>
+            <div className="w-6 h-2 rounded-sm bg-green-500" />
+          </div>
+          {/* Блоки */}
+          {visibleBlocks.map((b) => {
+            const meta = HOME_BLOCKS.find(h => h.key === b.key);
+            if (!meta) return null;
+            const isHero = b.key === "hero";
+            const heightMap: Record<string,string> = {
+              compact: "h-8", medium: "h-12", large: "h-16", fullscreen: "h-20"
+            };
+            const blockH = isHero ? (heightMap[heroSize] || "h-12") : "h-6";
+            const colors: Record<string,string> = {
+              hero: "bg-gradient-to-r from-green-50 to-emerald-100 border-green-200",
+              carousel: "bg-blue-50 border-blue-100",
+              services: "bg-amber-50 border-amber-100",
+              onec: "bg-purple-50 border-purple-100",
+              partners: "bg-pink-50 border-pink-100",
+              about: "bg-teal-50 border-teal-100",
+              reviews: "bg-yellow-50 border-yellow-100",
+              map: "bg-gray-50 border-gray-200",
+            };
+            return (
+              <div key={b.key} className={`${blockH} border-b flex items-center px-3 gap-2 ${colors[b.key] || "bg-gray-50 border-gray-100"}`}>
+                <Icon name={meta.icon as "Home"} size={10} className="text-gray-400 shrink-0" />
+                <span className="text-[9px] font-medium text-gray-500 truncate">{meta.label}</span>
+                {isHero && <span className="ml-auto text-[9px] text-green-600 font-semibold">{HERO_SIZES.find(s=>s.key===heroSize)?.label}</span>}
+              </div>
+            );
+          })}
+          {/* Футер */}
+          <div className="h-5 bg-gray-100 flex items-center px-3 gap-1">
+            <span className="text-[9px] text-gray-400">Контакты / Футер</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Список блоков */}
       <div className="space-y-2">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Порядок и видимость блоков</p>
         {blocks.map((b, i) => {
           const meta = HOME_BLOCKS.find(h => h.key === b.key);
           if (!meta) return null;
@@ -884,7 +959,7 @@ function HomeBlocksEditor({ content, onChange }: { content: ContentMap; onChange
                 <Icon name={meta.icon as "Home"} size={16} className="text-gray-500" />
               </div>
               <span className={`flex-1 text-sm font-medium ${b.visible ? "text-gray-800" : "text-gray-400"}`}>{meta.label}</span>
-              <span className="text-xs text-gray-400 mr-1">#{i + 1}</span>
+              <span className="text-xs text-gray-300 mr-1">#{i + 1}</span>
               <div className="flex items-center gap-1">
                 <button onClick={() => move(i, -1)} disabled={i === 0} className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-20">
                   <Icon name="ChevronUp" size={14} />

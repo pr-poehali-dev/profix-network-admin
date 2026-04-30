@@ -41,6 +41,31 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
     return () => clearInterval(timer);
   }, [slides.length, onSetCarouselIdx]);
 
+  const heroSize = str("hero.size", "medium");
+  const sizeClasses: Record<string, string> = {
+    compact: "py-8 sm:py-10",
+    medium:  "py-12 sm:py-16",
+    large:   "py-20 sm:py-28",
+    fullscreen: "min-h-[calc(100vh-4rem)] py-16",
+  };
+  const paddingClass = sizeClasses[heroSize] ?? sizeClasses.medium;
+
+  const imgSize: Record<string, string> = {
+    compact: "w-52 h-52",
+    medium:  "w-64 h-64",
+    large:   "w-80 h-80",
+    fullscreen: "w-80 h-80",
+  };
+  const imgClass = imgSize[heroSize] ?? imgSize.medium;
+
+  const titleSize: Record<string, string> = {
+    compact:    "text-3xl sm:text-4xl",
+    medium:     "text-4xl sm:text-5xl",
+    large:      "text-5xl sm:text-6xl",
+    fullscreen: "text-5xl sm:text-6xl",
+  };
+  const titleClass = titleSize[heroSize] ?? titleSize.medium;
+
   return (
     <>
       {/* HERO */}
@@ -55,13 +80,13 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8]" style={{ opacity: 0.50 }} />
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 grid md:grid-cols-2 gap-12 items-center min-h-[calc(100vh-theme(spacing.16))]">
+        <div className={`relative max-w-6xl mx-auto px-4 sm:px-6 ${paddingClass} grid md:grid-cols-2 gap-8 items-center`}>
           <div className="animate-fade-in-up">
-            <div className="inline-flex items-center gap-2 bg-[#3ca615]/10 text-[#3ca615] px-4 py-2 rounded-full text-sm font-medium mb-6">
-              <Icon name="MapPin" size={14} />
+            <div className="inline-flex items-center gap-2 bg-[#3ca615]/10 text-[#3ca615] px-3 py-1.5 rounded-full text-sm font-medium mb-4">
+              <Icon name="MapPin" size={13} />
               {str("hero.address", "г. Якутск, ул. Халтурина, 6")}
             </div>
-            <h1 className="font-oswald text-5xl sm:text-6xl font-bold text-[#0D1B2A] leading-tight mb-6">
+            <h1 className={`font-oswald ${titleClass} font-bold text-[#0D1B2A] leading-tight mb-4`}>
               {titleLines.map((line, i) => (
                 <span key={i}>
                   {i === 1 ? <span className="text-[#3ca615]">{line}</span> : line}
@@ -69,19 +94,21 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
                 </span>
               ))}
             </h1>
-            <p className="text-[#4B5563] text-lg mb-8 leading-relaxed">
-              {str("hero.subtitle", "Ремонт компьютеров, видеонаблюдение, сети, 1С и заправка картриджей. Быстро, профессионально, с гарантией.")}
-            </p>
+            {heroSize !== "compact" && (
+              <p className="text-[#4B5563] text-base sm:text-lg mb-6 leading-relaxed">
+                {str("hero.subtitle", "Ремонт компьютеров, видеонаблюдение, сети, 1С и заправка картриджей. Быстро, профессионально, с гарантией.")}
+              </p>
+            )}
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => onScrollTo("Контакты")}
-                className="bg-[#3ca615] text-white px-7 py-3.5 rounded-xl font-semibold hover:bg-[#2d8a10] transition-all shadow-lg shadow-green-200 hover:shadow-green-300 hover:-translate-y-0.5"
+                className="bg-[#3ca615] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#2d8a10] transition-all shadow-lg shadow-green-200 hover:shadow-green-300 hover:-translate-y-0.5 text-sm sm:text-base"
               >
                 Оставить заявку
               </button>
               <button
                 onClick={() => onScrollTo("Услуги")}
-                className="border-2 border-[#3ca615] text-[#3ca615] px-7 py-3.5 rounded-xl font-semibold hover:bg-[#edf7e8] transition-all"
+                className="border-2 border-[#3ca615] text-[#3ca615] px-6 py-3 rounded-xl font-semibold hover:bg-[#edf7e8] transition-all text-sm sm:text-base"
               >
                 Наши услуги
               </button>
@@ -90,31 +117,35 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
 
           <div className="hidden md:flex justify-center animate-fade-in">
             <div className="relative">
-              <div className="w-80 h-80 rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
+              <div className={`${imgClass} rounded-3xl overflow-hidden shadow-2xl border-4 border-white`}>
                 <img src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/ad49d25f-c346-44dc-a332-4aa4552ce177.jpg" alt="ProFiX специалист" className="w-full h-full object-cover" />
               </div>
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                  <Icon name="CheckCircle" size={20} className="text-green-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400">Работаем</p>
-                  <p className="text-sm font-bold text-gray-800">{str("hero.hours", "Пн–пт, 10:00–18:00, Сб 11:00-18:00")}</p>
-                </div>
-              </div>
-              <div className="absolute -top-4 -right-4 bg-[#3ca615] rounded-2xl shadow-xl p-4 text-white">
-                <p className="text-2xl font-oswald font-bold">{str("hero.experience", "15+")}</p>
-                <p className="text-xs opacity-80">лет опыта</p>
-              </div>
+              {heroSize !== "compact" && (
+                <>
+                  <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-xl p-3 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
+                      <Icon name="CheckCircle" size={18} className="text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Работаем</p>
+                      <p className="text-sm font-bold text-gray-800">{str("hero.hours", "Пн–пт, 10:00–18:00, Сб 11:00-18:00")}</p>
+                    </div>
+                  </div>
+                  <div className="absolute -top-4 -right-4 bg-[#3ca615] rounded-2xl shadow-xl p-3 text-white">
+                    <p className="text-xl font-oswald font-bold">{str("hero.experience", "15+")}</p>
+                    <p className="text-xs opacity-80">лет опыта</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
 
         <div className="relative z-10 bg-white border-t border-gray-100 shadow-sm">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 grid grid-cols-3 gap-4 text-center">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 grid grid-cols-3 gap-4 text-center">
             {stats.map((s) => (
               <div key={s.label}>
-                <p className="font-oswald text-2xl font-bold text-[#3ca615]">{s.val}</p>
+                <p className="font-oswald text-xl sm:text-2xl font-bold text-[#3ca615]">{s.val}</p>
                 <p className="text-xs text-gray-500">{s.label}</p>
               </div>
             ))}
