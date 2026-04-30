@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { ContentMap, parseJson, Field, ImageUpload } from "./editor-shared";
+import { pagesApi } from "@/lib/pages-api";
 
 // ── Редактор навбара ──────────────────────────────────────────────────────────
 
@@ -42,6 +43,21 @@ const TYPE_COLOR: Record<string, string> = {
   page:    "bg-orange-50 text-orange-600",
 };
 
+// Стандартные страницы сайта для быстрого выбора
+const SITE_PAGES = [
+  { label: "Главная", href: "/" },
+  { label: "Магазин", href: "/shop" },
+  { label: "Кабинет клиента", href: "/cabinet" },
+  { label: "DataMobile", href: "/datamobile" },
+  { label: "POSCenter", href: "/poscenter" },
+  { label: "АТОЛ", href: "/atol" },
+  { label: "Дримкас", href: "/dreamkas" },
+  { label: "СБИС", href: "/sbis" },
+  { label: "ОФД Яндекс", href: "/ofd-yandex" },
+  { label: "Платформа ОФД", href: "/platforma-ofd" },
+  { label: "1С Франчайзи", href: "/1c" },
+];
+
 export function NavbarEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {
   const [items, setItems] = useState<NavItem[]>(() => {
     const saved = parseJson<NavItem[]>(content["navbar.items"] || "", []);
@@ -60,6 +76,13 @@ export function NavbarEditor({ content, onChange }: { content: ContentMap; onCha
   });
   const [expanded, setExpanded] = useState<string | null>(null);
   const dragIdx = useRef<number | null>(null);
+  const [customPages, setCustomPages] = useState<{slug:string;title:string;nav_label?:string}[]>([]);
+
+  useEffect(() => {
+    pagesApi.list(true).then(r => {
+      if (r.pages) setCustomPages(r.pages.filter((p: {is_published:boolean}) => p.is_published));
+    }).catch(() => {});
+  }, []);
 
   function save(arr: NavItem[]) {
     setItems(arr);
@@ -190,8 +213,41 @@ export function NavbarEditor({ content, onChange }: { content: ContentMap; onCha
 
             {/* Панель редактирования */}
             {expanded === item.id && (
-              <div className="px-3 pb-3 pt-0 border-t border-gray-100 space-y-2 bg-gray-50 rounded-b-xl">
-                <div className="grid grid-cols-2 gap-2 pt-3">
+              <div className="px-3 pb-3 pt-0 border-t border-gray-100 space-y-3 bg-gray-50 rounded-b-xl">
+                {/* Picker существующих страниц — только для type=link */}
+                {item.type === "link" && (
+                  <div className="pt-3">
+                    <label className="block text-xs font-semibold text-gray-500 mb-2">Выбрать страницу</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {/* Стандартные страницы */}
+                      {SITE_PAGES.map(p => (
+                        <button key={p.href}
+                          onClick={() => update(item.id, { href: p.href, label: item.label === "Новая ссылка" ? p.label : item.label })}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                            item.href === p.href
+                              ? "border-green-500 bg-green-50 text-green-700"
+                              : "border-gray-200 bg-white text-gray-600 hover:border-green-300 hover:text-green-600"
+                          }`}>
+                          {p.label}
+                        </button>
+                      ))}
+                      {/* Кастомные страницы из конструктора */}
+                      {customPages.map(p => (
+                        <button key={p.slug}
+                          onClick={() => update(item.id, { href: `/p/${p.slug}`, label: item.label === "Новая ссылка" ? (p.nav_label || p.title) : item.label })}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1 ${
+                            item.href === `/p/${p.slug}`
+                              ? "border-green-500 bg-green-50 text-green-700"
+                              : "border-gray-200 bg-white text-gray-600 hover:border-green-300 hover:text-green-600"
+                          }`}>
+                          <Icon name="FileText" size={10} />
+                          {p.nav_label || p.title}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
                   <Field label="Название" value={item.label}
                     onChange={v => update(item.id, { label: v })} />
                   {item.type === "link" && (
