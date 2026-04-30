@@ -9,6 +9,18 @@ import ChatWidget from "@/components/ChatWidget";
 import ReviewsSection from "@/components/ReviewsSection";
 import MapSection from "@/components/MapSection";
 import ShopPreview from "@/components/ShopPreview";
+import { useSiteContent } from "@/hooks/useSiteContent";
+
+const DEFAULT_ORDER = [
+  { key: "hero",     visible: true },
+  { key: "carousel", visible: true },
+  { key: "services", visible: true },
+  { key: "onec",     visible: true },
+  { key: "partners", visible: true },
+  { key: "about",    visible: true },
+  { key: "reviews",  visible: true },
+  { key: "map",      visible: true },
+];
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState("Главная");
@@ -20,7 +32,8 @@ const Index = () => {
   const [scrolled, setScrolled] = useState(false);
   const [carouselIdx, setCarouselIdx] = useState(0);
 
-  // Таймер карусели управляется внутри HeroSection
+  const { json } = useSiteContent();
+  const blocksOrder = json<{key:string;visible:boolean}[]>("home.blocks_order", DEFAULT_ORDER);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -68,6 +81,35 @@ const Index = () => {
     setFormData({ name: "", phone: "", email: "", topic: "", problem: "" });
   };
 
+  function renderBlock(key: string) {
+    switch (key) {
+      case "hero":
+        return (
+          <HeroSection
+            key="hero"
+            carouselIdx={carouselIdx}
+            onSetCarouselIdx={setCarouselIdx}
+            onScrollTo={scrollTo}
+          />
+        );
+      case "carousel":
+      case "services":
+      case "onec":
+      case "about":
+        return <ServicesAboutSection key="services" />;
+      case "partners":
+        return <PartnersSection key="partners" />;
+      case "reviews":
+        return <ReviewsSection key="reviews" />;
+      case "map":
+        return <MapSection key="map" />;
+      default:
+        return null;
+    }
+  }
+
+  const rendered = new Set<string>();
+
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
       <SEO
@@ -83,16 +125,23 @@ const Index = () => {
         onMenuToggle={() => setMenuOpen(!menuOpen)}
         onScrollTo={scrollTo}
       />
-      <HeroSection
-        carouselIdx={carouselIdx}
-        onSetCarouselIdx={setCarouselIdx}
-        onScrollTo={scrollTo}
-      />
-      <ServicesAboutSection />
-      <PartnersSection />
-      <ReviewsSection />
+
+      {/* Блоки в управляемом порядке */}
+      {blocksOrder
+        .filter(b => b.visible)
+        .map(b => {
+          // ServicesAboutSection рендерится один раз для группы carousel/services/onec/about
+          const renderKey = ["carousel","services","onec","about"].includes(b.key) ? "services" : b.key;
+          if (rendered.has(renderKey)) return null;
+          rendered.add(renderKey);
+          return renderBlock(renderKey);
+        })
+      }
+
+      {/* Магазин — всегда */}
       <ShopPreview />
-      <MapSection />
+
+      {/* Форма контактов/футер — всегда последний */}
       <ContactFooter
         formData={formData}
         submitted={submitted}

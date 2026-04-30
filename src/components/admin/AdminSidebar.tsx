@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
+import AdminBell, { BellNotification } from "@/components/admin/AdminBell";
 
 interface MenuItem {
   key: string;
@@ -15,9 +16,12 @@ interface Props {
   newCommentCount?: number;
   newTicketCount?: number;
   newReviewCount?: number;
+  bellNotifications?: BellNotification[];
+  onBellRead?: (id: string) => void;
+  onBellReadAll?: () => void;
 }
 
-export default function AdminSidebar({ manager, activeSection, onSectionChange, onLogout, newCommentCount = 0, newTicketCount = 0, newReviewCount = 0 }: Props) {
+export default function AdminSidebar({ manager, activeSection, onSectionChange, onLogout, newCommentCount = 0, newTicketCount = 0, newReviewCount = 0, bellNotifications = [], onBellRead, onBellReadAll }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -48,8 +52,8 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
 
   return (
     <aside className={`bg-[#111827] ${w} min-h-screen flex flex-col flex-shrink-0 transition-all duration-200`}>
-      {/* Логотип + кнопка свернуть */}
-      <div className="flex items-center gap-3 px-3 py-5 border-b border-white/10 min-h-[64px]">
+      {/* Логотип + кнопка свернуть + колокольчик */}
+      <div className="flex items-center gap-2 px-3 py-4 border-b border-white/10 min-h-[64px]">
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 hover:opacity-80 transition-opacity overflow-hidden"
@@ -66,8 +70,14 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
           }
         </button>
         {!collapsed && (
-          <span className="text-white font-bold text-lg tracking-tight whitespace-nowrap">ProFiX</span>
+          <span className="text-white font-bold text-lg tracking-tight whitespace-nowrap flex-1">ProFiX</span>
         )}
+        <AdminBell
+          notifications={bellNotifications}
+          onRead={onBellRead || (() => {})}
+          onReadAll={onBellReadAll || (() => {})}
+          onGoChat={() => onSectionChange("chat")}
+        />
       </div>
 
       {/* Пункты меню */}

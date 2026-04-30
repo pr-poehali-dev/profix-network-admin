@@ -1,4 +1,5 @@
 import Icon from "@/components/ui/icon";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const topics = [
   "Услуги по 1С",
@@ -42,6 +43,7 @@ const ContactFooter = ({
   onSubmit,
   onReset,
 }: ContactFooterProps) => {
+  const { str } = useSiteContent();
   return (
     <>
       {/* CONTACTS / FORM */}
@@ -175,18 +177,20 @@ const ContactFooter = ({
             </span>
           </div>
           <div className="text-center text-gray-500 text-sm">
-            <p>г. Якутск, ул. Халтурина, 6</p>
+            <p>{str("contacts.address", "г. Якутск, ул. Халтурина, 6")}</p>
             <p className="mt-1">© 2026 ProFiX. Все права защищены.</p>
           </div>
           <div className="flex flex-col items-end gap-1 text-sm">
-            <a href="tel:+79142727187" className="text-gray-900 hover:text-[#3ca615] transition-colors flex items-center gap-1.5">
+            <a href={str("contacts.phone_href", "tel:+79142727187")} className="text-gray-900 hover:text-[#3ca615] transition-colors flex items-center gap-1.5">
               <Icon name="Phone" size={14} />
-              +7 (914) 272-71-87
+              {str("contacts.phone", "+7 (914) 272-71-87")}
             </a>
-            <a href="mailto:727187@it-profix.ru" className="text-gray-500 hover:text-[#3ca615] transition-colors flex items-center gap-1.5">
+            <a href={str("contacts.email", "mailto:727187@it-profix.ru")} className="text-gray-500 hover:text-[#3ca615] transition-colors flex items-center gap-1.5">
               <Icon name="Mail" size={14} />
-              727187@it-profix.ru
+              {str("contacts.email", "727187@it-profix.ru")}
             </a>
+            {str("contacts.vk","") && <a href={str("contacts.vk","")} target="_blank" rel="noopener" className="text-gray-500 hover:text-[#3ca615] transition-colors flex items-center gap-1.5"><Icon name="ExternalLink" size={14}/>ВКонтакте</a>}
+            {str("contacts.telegram","") && <a href={str("contacts.telegram","")} target="_blank" rel="noopener" className="text-gray-500 hover:text-[#3ca615] transition-colors flex items-center gap-1.5"><Icon name="Send" size={14}/>Telegram</a>}
           </div>
         </div>
       </footer>

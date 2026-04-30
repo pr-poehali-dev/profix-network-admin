@@ -186,6 +186,13 @@ export const reviewsApi = {
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       body: JSON.stringify({ action: "publish", id, published }),
     }).then(r => r.json()),
+
+  delete: (id: number, token: string) =>
+    fetch(REVIEWS_URL, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ action: "delete", id }),
+    }).then(r => r.json()),
 };
 
 // ── Типы ─────────────────────────────────────────────────────────────────────

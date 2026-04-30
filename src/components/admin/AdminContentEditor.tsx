@@ -193,15 +193,48 @@ function CarouselEditor({ content, onChange }: { content: ContentMap; onChange: 
 
 function ContactsEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Телефон" value={content["contacts.phone"] || ""} onChange={v => onChange("contacts.phone", v)} />
-        <Field label="Email" value={content["contacts.email"] || ""} onChange={v => onChange("contacts.email", v)} />
+    <div className="space-y-5">
+      {/* Основные контакты */}
+      <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Основные контакты</p>
+        <p className="text-[10px] text-gray-400">Применяются в шапке, футере, на всех страницах сайта</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Телефон (отображаемый)" value={content["contacts.phone"] || ""} onChange={v => onChange("contacts.phone", v)} />
+          <Field label="Телефон (href)" value={content["contacts.phone_href"] || ""} onChange={v => onChange("contacts.phone_href", v)} hint="Например: tel:+79142727187" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Email" value={content["contacts.email"] || ""} onChange={v => onChange("contacts.email", v)} />
+          <Field label="Часы работы" value={content["contacts.hours"] || ""} onChange={v => onChange("contacts.hours", v)} />
+        </div>
+        <Field label="Адрес" value={content["contacts.address"] || ""} onChange={v => onChange("contacts.address", v)} />
       </div>
-      <Field label="Адрес" value={content["contacts.address"] || ""} onChange={v => onChange("contacts.address", v)} />
-      <Field label="Часы работы" value={content["contacts.hours"] || ""} onChange={v => onChange("contacts.hours", v)} />
-      <Field label="URL Яндекс.Карты (iframe)" value={content["contacts.map_url"] || ""} onChange={v => onChange("contacts.map_url", v)}
-        hint="Вставь ссылку из конструктора карт Яндекса" />
+
+      {/* Соцсети */}
+      <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Социальные сети</p>
+        <p className="text-[10px] text-gray-400">Оставь пустым — ссылка не будет отображаться</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="ВКонтакте (URL)" value={content["contacts.vk"] || ""} onChange={v => onChange("contacts.vk", v)} hint="https://vk.com/..." />
+          <Field label="Telegram (URL или @username)" value={content["contacts.telegram"] || ""} onChange={v => onChange("contacts.telegram", v)} hint="https://t.me/..." />
+          <Field label="WhatsApp (URL)" value={content["contacts.whatsapp"] || ""} onChange={v => onChange("contacts.whatsapp", v)} hint="https://wa.me/79142727187" />
+          <Field label="Instagram (URL)" value={content["contacts.instagram"] || ""} onChange={v => onChange("contacts.instagram", v)} hint="https://instagram.com/..." />
+        </div>
+      </div>
+
+      {/* Карта */}
+      <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Карта</p>
+        <Field label="URL Яндекс.Карты (iframe)" value={content["contacts.map_url"] || ""} onChange={v => onChange("contacts.map_url", v)}
+          hint="Вставь ссылку из конструктора карт Яндекса (Поделиться → Код для вставки → src=...)" />
+      </div>
+
+      {/* Футер */}
+      <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Футер сайта</p>
+        <Field label="Текст копирайта" value={content["footer.copyright"] || ""} onChange={v => onChange("footer.copyright", v)}
+          hint={`По умолчанию: © ${new Date().getFullYear()} ProFiX. Все права защищены.`} />
+        <ImageUpload label="Логотип в футере" value={content["footer.logo"] || ""} onChange={v => onChange("footer.logo", v)} />
+      </div>
     </div>
   );
 }
@@ -624,17 +657,117 @@ function PartnerEditor({ content, onChange }: { content: ContentMap; onChange: (
   );
 }
 
+// ── Редактор порядка блоков главной ──────────────────────────────────────────
+
+const HOME_BLOCKS = [
+  { key: "hero",     label: "Главный экран",    icon: "Home" },
+  { key: "carousel", label: "Карусель услуг",   icon: "Images" },
+  { key: "services", label: "Услуги",           icon: "Wrench" },
+  { key: "onec",     label: "Услуги 1С",        icon: "Monitor" },
+  { key: "partners", label: "Партнёры",         icon: "Handshake" },
+  { key: "about",    label: "О компании",       icon: "Building2" },
+  { key: "reviews",  label: "Отзывы",           icon: "Star" },
+  { key: "map",      label: "Карта / Контакты", icon: "MapPin" },
+];
+
+function HomeBlocksEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {
+  const stored = (() => {
+    try { return JSON.parse(content["home.blocks_order"] || "[]"); } catch { return []; }
+  })();
+  const [blocks, setBlocks] = useState<{key:string;visible:boolean}[]>(() => {
+    if (stored.length > 0) return stored;
+    return HOME_BLOCKS.map(b => ({ key: b.key, visible: true }));
+  });
+
+  const dragIdx = useRef<number | null>(null);
+
+  function save(arr: typeof blocks) {
+    setBlocks(arr);
+    onChange("home.blocks_order", JSON.stringify(arr));
+  }
+
+  function move(i: number, dir: -1 | 1) {
+    const n = [...blocks];
+    const j = i + dir;
+    if (j < 0 || j >= n.length) return;
+    [n[i], n[j]] = [n[j], n[i]];
+    save(n);
+  }
+
+  function toggle(i: number) {
+    const n = [...blocks];
+    n[i] = { ...n[i], visible: !n[i].visible };
+    save(n);
+  }
+
+  function onDragStart(i: number) { dragIdx.current = i; }
+  function onDragOver(e: React.DragEvent, i: number) {
+    e.preventDefault();
+    if (dragIdx.current === null || dragIdx.current === i) return;
+    const n = [...blocks];
+    const [item] = n.splice(dragIdx.current, 1);
+    n.splice(i, 0, item);
+    dragIdx.current = i;
+    save(n);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
+        Перетаскивай блоки для изменения порядка на главной странице. Выключи ненужные блоки.
+      </div>
+      <div className="space-y-2">
+        {blocks.map((b, i) => {
+          const meta = HOME_BLOCKS.find(h => h.key === b.key);
+          if (!meta) return null;
+          return (
+            <div
+              key={b.key}
+              draggable
+              onDragStart={() => onDragStart(i)}
+              onDragOver={e => onDragOver(e, i)}
+              className={`flex items-center gap-3 px-3 py-3 rounded-xl border transition-all cursor-grab active:cursor-grabbing select-none ${
+                b.visible ? "bg-white border-gray-200" : "bg-gray-50 border-gray-100 opacity-60"
+              }`}
+            >
+              <Icon name="GripVertical" size={16} className="text-gray-300 shrink-0" />
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                <Icon name={meta.icon as "Home"} size={16} className="text-gray-500" />
+              </div>
+              <span className={`flex-1 text-sm font-medium ${b.visible ? "text-gray-800" : "text-gray-400"}`}>{meta.label}</span>
+              <span className="text-xs text-gray-400 mr-1">#{i + 1}</span>
+              <div className="flex items-center gap-1">
+                <button onClick={() => move(i, -1)} disabled={i === 0} className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-20">
+                  <Icon name="ChevronUp" size={14} />
+                </button>
+                <button onClick={() => move(i, 1)} disabled={i === blocks.length - 1} className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-20">
+                  <Icon name="ChevronDown" size={14} />
+                </button>
+                <button onClick={() => toggle(i)}
+                  className={`ml-1 w-9 h-5 rounded-full transition-colors relative shrink-0 ${b.visible ? "bg-green-500" : "bg-gray-300"}`}>
+                  <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${b.visible ? "translate-x-4" : "translate-x-0.5"}`} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Главный редактор ──────────────────────────────────────────────────────────
 
 const TABS = [
-  { key: "hero", label: "Главный экран", icon: "Home" },
-  { key: "carousel", label: "Карусель", icon: "Images" },
-  { key: "services", label: "Услуги", icon: "Wrench" },
-  { key: "onec", label: "Услуги 1С", icon: "Monitor" },
-  { key: "about", label: "О компании", icon: "Building2" },
-  { key: "contacts", label: "Контакты", icon: "Phone" },
-  { key: "navbar", label: "Навигация", icon: "Menu" },
-  { key: "partners", label: "Страницы партнёров", icon: "Handshake" },
+  { key: "blocks",   label: "Блоки главной",    icon: "LayoutDashboard" },
+  { key: "hero",     label: "Главный экран",    icon: "Home" },
+  { key: "carousel", label: "Карусель",         icon: "Images" },
+  { key: "services", label: "Услуги",           icon: "Wrench" },
+  { key: "onec",     label: "Услуги 1С",        icon: "Monitor" },
+  { key: "about",    label: "О компании",       icon: "Building2" },
+  { key: "contacts", label: "Контакты и футер", icon: "Phone" },
+  { key: "navbar",   label: "Навигация",        icon: "Menu" },
+  { key: "partners", label: "Партнёры",         icon: "Handshake" },
 ] as const;
 
 type TabKey = typeof TABS[number]["key"];
@@ -741,13 +874,14 @@ export default function AdminContentEditor() {
 
         {/* Контент */}
         <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 min-w-0">
-          {tab === "hero" && <HeroEditor content={content} onChange={handleChange} />}
+          {tab === "blocks"   && <HomeBlocksEditor content={content} onChange={handleChange} />}
+          {tab === "hero"     && <HeroEditor content={content} onChange={handleChange} />}
           {tab === "carousel" && <CarouselEditor content={content} onChange={handleChange} />}
           {tab === "services" && <ServicesEditor content={content} onChange={handleChange} />}
-          {tab === "onec" && <OnecEditor content={content} onChange={handleChange} />}
-          {tab === "about" && <AboutEditor content={content} onChange={handleChange} />}
+          {tab === "onec"     && <OnecEditor content={content} onChange={handleChange} />}
+          {tab === "about"    && <AboutEditor content={content} onChange={handleChange} />}
           {tab === "contacts" && <ContactsEditor content={content} onChange={handleChange} />}
-          {tab === "navbar" && <NavbarEditor content={content} onChange={handleChange} />}
+          {tab === "navbar"   && <NavbarEditor content={content} onChange={handleChange} />}
           {tab === "partners" && <PartnerEditor content={content} onChange={handleChange} />}
         </div>
       </div>
