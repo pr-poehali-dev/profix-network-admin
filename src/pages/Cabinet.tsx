@@ -1,7 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { clientApi, clientSession, reviewsApi, Ticket, STATUS_COLORS, PRIORITY_COLORS } from "@/lib/crm-api";
+
+const CHAT_SEND_URL = "https://functions.poehali.dev/52fdb994-24e1-4c9a-ab41-fef309251496";
+const CHAT_POLL_URL = "https://functions.poehali.dev/41cfa64a-33a9-4226-847a-d2a2e2e3d987";
+
+function getSessionId() {
+  let sid = localStorage.getItem("profix_chat_session");
+  if (!sid) { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("profix_chat_session", sid); }
+  return sid;
+}
+const nowTime = () => new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 
 const BOT_USERNAME = "ProFiXBot"; // замени на реальный username бота если другой
 
@@ -21,7 +31,18 @@ export default function Cabinet() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [view, setView] = useState<"list" | "ticket" | "new" | "review">("list");
+  const [view, setView] = useState<"list" | "ticket" | "new" | "review" | "chat">("list");
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<{id?:number;from:"user"|"bot"|"operator";text:string;time:string}[]>([
+    { from: "bot", text: "Здравствуйте! Напишите вопрос — менеджер ответит в ближайшее время.", time: nowTime() }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatSending, setChatSending] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+  const chatLastIdRef = useRef(0);
+  const chatSessionId = useRef(getSessionId());
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
   const [reviewTicketId, setReviewTicketId] = useState<number | undefined>();
@@ -207,6 +228,51 @@ export default function Cabinet() {
     finally { setLoading(false); }
   }
 
+  // Chat polling
+  const pollChat = useCallback(async () => {
+    try {
+      const res = await fetch(`${CHAT_POLL_URL}?session_id=${chatSessionId.current}&after_id=${chatLastIdRef.current}`);
+      const data = await res.json();
+      if (data.messages?.length > 0) {
+        setChatMessages(prev => [...prev, ...data.messages.map((m: {id:number;text:string;time:string}) => ({
+          id: m.id, from: "operator" as const, text: m.text, time: m.time,
+        }))]);
+        chatLastIdRef.current = data.messages[data.messages.length - 1].id;
+        setChatUnread(prev => prev + data.messages.length);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    if (step !== "cabinet") return;
+    chatPollRef.current = setInterval(pollChat, 4000);
+    return () => { if (chatPollRef.current) clearInterval(chatPollRef.current); };
+  }, [step, pollChat]);
+
+  useEffect(() => {
+    if (view === "chat") {
+      setChatUnread(0);
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    }
+  }, [view, chatMessages]);
+
+  function sendChatMessage() {
+    const text = chatInput.trim();
+    if (!text || chatSending) return;
+    setChatInput("");
+    setChatMessages(prev => [...prev, { from: "user", text, time: nowTime() }]);
+    setChatSending(true);
+    fetch(CHAT_SEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: chatSessionId.current, text }),
+    }).catch(() => {});
+    setTimeout(() => {
+      setChatMessages(prev => [...prev, { from: "bot", text: "Сообщение получено. Менеджер ответит в ближайшее время.", time: nowTime() }]);
+      setChatSending(false);
+    }, 800);
+  }
+
   function handleLogout() {
     clientSession.clear();
     setClient(null);
@@ -374,7 +440,7 @@ export default function Cabinet() {
       <header className="bg-white border-b border-gray-100 shadow-sm h-16 flex items-center px-6">
         <div className="max-w-3xl mx-auto w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {(view === "ticket" || view === "new" || view === "review") && (
+            {(view === "ticket" || view === "new" || view === "review" || view === "chat") && (
               <button
                 onClick={() => { setView("list"); setSelectedTicket(null); setError(""); setReviewSent(false); }}
                 className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500"
@@ -382,7 +448,7 @@ export default function Cabinet() {
                 <Icon name="ArrowLeft" size={18} />
               </button>
             )}
-            <span className="font-oswald text-lg font-bold tracking-wide">
+            <span className="font-oswald text-lg font-bold tracking-wide hidden sm:block">
               <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
             </span>
             <span className="font-semibold text-gray-900">
@@ -390,9 +456,27 @@ export default function Cabinet() {
               {view === "new" && "Новая заявка"}
               {view === "ticket" && selectedTicket && `Заявка #${selectedTicket.id}`}
               {view === "review" && "Оставить отзыв"}
+              {view === "chat" && "Чат с менеджером"}
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Кнопка чата */}
+            <button
+              onClick={() => { setView("chat"); setChatUnread(0); }}
+              className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition ${
+                view === "chat"
+                  ? "bg-[#3ca615] text-white"
+                  : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <Icon name="MessageCircle" size={15} />
+              <span className="hidden sm:inline">Чат</span>
+              {chatUnread > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center px-1">
+                  <span className="text-white text-[10px] font-bold leading-none">{chatUnread}</span>
+                </span>
+              )}
+            </button>
             <span className="text-sm text-gray-500 hidden sm:block">
               {client?.name || client?.phone || phone}
             </span>
@@ -401,7 +485,7 @@ export default function Cabinet() {
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition"
             >
               <Icon name="LogOut" size={15} />
-              Выйти
+              <span className="hidden sm:inline">Выйти</span>
             </button>
           </div>
         </div>
@@ -852,6 +936,85 @@ export default function Cabinet() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Чат с менеджером ── */}
+        {view === "chat" && (
+          <div className="flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" style={{ height: "calc(100vh - 10rem)" }}>
+            {/* Шапка чата */}
+            <div className="flex items-center gap-3 px-4 py-3 bg-[#111827] shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#3ca615] flex items-center justify-center shrink-0">
+                <Icon name="MessageCircle" size={18} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-white font-semibold text-sm">Поддержка ProFiX</p>
+                <p className="text-gray-400 text-xs flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block" />
+                  Онлайн — отвечаем за 5 минут
+                </p>
+              </div>
+            </div>
+
+            {/* Соо��щения */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-[#f7f9fc]">
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}>
+                  {msg.from !== "user" && (
+                    <div className="w-7 h-7 rounded-full bg-[#3ca615] flex items-center justify-center shrink-0 mr-2 mt-0.5">
+                      <Icon name={msg.from === "operator" ? "UserCheck" : "Bot"} size={13} className="text-white" />
+                    </div>
+                  )}
+                  <div className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                    msg.from === "user"
+                      ? "bg-[#3ca615] text-white rounded-br-sm"
+                      : msg.from === "operator"
+                      ? "bg-white text-gray-800 rounded-bl-sm shadow-sm border border-green-100"
+                      : "bg-white text-gray-600 rounded-bl-sm shadow-sm border border-gray-100"
+                  }`}>
+                    {msg.from === "operator" && (
+                      <p className="text-[10px] text-[#3ca615] font-bold mb-1">Менеджер</p>
+                    )}
+                    <p>{msg.text}</p>
+                    <p className={`text-[10px] mt-1 ${msg.from === "user" ? "text-green-200" : "text-gray-400"}`}>{msg.time}</p>
+                  </div>
+                </div>
+              ))}
+              {chatSending && (
+                <div className="flex justify-start items-end gap-2">
+                  <div className="w-7 h-7 rounded-full bg-[#3ca615] flex items-center justify-center shrink-0">
+                    <Icon name="UserCheck" size={13} className="text-white" />
+                  </div>
+                  <div className="bg-white border border-gray-100 shadow-sm px-4 py-3 rounded-2xl rounded-bl-sm">
+                    <div className="flex gap-1 items-center h-4">
+                      {[0, 150, 300].map(d => (
+                        <span key={d} className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={chatBottomRef} />
+            </div>
+
+            {/* Ввод */}
+            <div className="px-4 py-3 bg-white border-t border-gray-100 flex gap-2 shrink-0">
+              <input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendChatMessage()}
+                placeholder="Напишите сообщение..."
+                className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#3ca615] transition"
+              />
+              <button
+                onClick={sendChatMessage}
+                disabled={!chatInput.trim() || chatSending}
+                className="w-10 h-10 rounded-full flex items-center justify-center transition disabled:opacity-50 shrink-0"
+                style={{ backgroundColor: "#3ca615" }}
+              >
+                <Icon name="Send" size={16} className="text-white" />
+              </button>
+            </div>
           </div>
         )}
       </main>
