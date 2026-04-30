@@ -166,7 +166,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
       </button>
     );
     if (it.type === "cabinet") return (
-      <button key={it.id} onClick={() => navigate("/cabinet")}
+      <button key={it.id} onClick={() => navigate("/login")}
         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
         <Icon name={it.icon as "Star" || "User"} size={15} fallback="User" />
         {it.label}
@@ -300,7 +300,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
               </button>
             );
             if (it.type === "cabinet") return (
-              <button key={it.id} onClick={() => { navigate("/cabinet"); onMenuToggle(); }}
+              <button key={it.id} onClick={() => { navigate("/login"); onMenuToggle(); }}
                 className="flex items-center gap-2 border border-gray-200 text-[#374151] px-4 py-3 rounded-lg text-sm font-medium justify-center hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
                 <Icon name={it.icon as "Star" || "User"} size={15} fallback="User" />
                 {it.label}
