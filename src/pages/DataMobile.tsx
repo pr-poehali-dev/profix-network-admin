@@ -99,9 +99,19 @@ const DataMobilePage = () => {
   const navigate = useNavigate();
   const [activeProduct, setActiveProduct] = useState<string | null>(null);
   const { str, json } = useSiteContent();
-  const MAIN_PRODUCTS = json("partner.datamobile.main_products", DEFAULT_MAIN_PRODUCTS) as typeof DEFAULT_MAIN_PRODUCTS;
-  const DYN_MODULES = json("partner.datamobile.modules", MODULES) as typeof MODULES;
+  const RAW_PRODUCTS = json("partner.datamobile.main_products", DEFAULT_MAIN_PRODUCTS) as typeof DEFAULT_MAIN_PRODUCTS;
+  const RAW_MODULES  = json("partner.datamobile.modules", MODULES) as typeof MODULES;
   const DYN_SOLUTIONS = json("partner.datamobile.solutions", PROFILE_SOLUTIONS) as typeof PROFILE_SOLUTIONS;
+
+  // Восстанавливаем image из дефолтов, если из БД пришло без картинки
+  const MAIN_PRODUCTS = RAW_PRODUCTS.map((p, i) => ({
+    ...p,
+    image: p.image || DEFAULT_MAIN_PRODUCTS[i]?.image || `${CDN}/dm_standart.png`,
+  }));
+  const DYN_MODULES = RAW_MODULES.map((m, i) => ({
+    ...m,
+    image: m.image || MODULES[i]?.image || "",
+  }));
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
