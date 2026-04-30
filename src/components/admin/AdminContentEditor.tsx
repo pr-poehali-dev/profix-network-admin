@@ -675,38 +675,54 @@ export default function AdminContentEditor() {
   const hasPending = Object.keys(pending).length > 0;
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="p-3 sm:p-6">
       {/* Шапка */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div className="flex items-start justify-between mb-4 gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Редактор сайта</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Изменения применяются сразу после сохранения</p>
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Редактор сайта</h2>
+          <p className="text-xs sm:text-sm text-gray-400 mt-0.5 hidden sm:block">Изменения применяются сразу после сохранения</p>
         </div>
-        <div className="flex items-center gap-3">
-          {hasPending && (
-            <span className="text-xs text-orange-500 font-medium flex items-center gap-1">
-              <Icon name="AlertCircle" size={13} />
-              Есть несохранённые изменения
-            </span>
-          )}
+        <div className="flex items-center gap-2 shrink-0">
+          <a href="/" target="_blank" className="flex items-center gap-1 p-2 sm:px-4 sm:py-2.5 rounded-xl border border-gray-200 text-gray-500 hover:border-green-400 hover:text-green-600 transition-colors">
+            <Icon name="ExternalLink" size={15} />
+            <span className="hidden sm:inline text-sm">Открыть сайт</span>
+          </a>
           <button
             onClick={handleSave}
             disabled={saving || !hasPending}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-40 ${saved ? "bg-green-500" : ""}`}
+            className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-40 ${saved ? "bg-green-500" : ""}`}
             style={saved ? {} : { background: "#3ca615" }}
           >
-            <Icon name={saved ? "Check" : "Save"} size={16} />
-            {saving ? "Сохранение..." : saved ? "Сохранено!" : "Сохранить"}
+            <Icon name={saved ? "Check" : "Save"} size={15} />
+            <span>{saving ? "Сохраняю..." : saved ? "Сохранено!" : "Сохранить"}</span>
           </button>
-          <a href="/" target="_blank" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-green-400 hover:text-green-600 transition-colors">
-            <Icon name="ExternalLink" size={15} />
-            Открыть сайт
-          </a>
         </div>
       </div>
 
-      <div className="flex gap-6">
-        {/* Боковое меню табов */}
+      {hasPending && (
+        <div className="mb-3 px-3 py-2 bg-orange-50 border border-orange-100 rounded-xl flex items-center gap-2 text-xs text-orange-600 font-medium">
+          <Icon name="AlertCircle" size={13} />
+          Есть несохранённые изменения
+        </div>
+      )}
+
+      {/* Мобильные табы — горизонтальный скролл */}
+      <div className="md:hidden flex gap-1.5 overflow-x-auto pb-2 mb-3 -mx-3 px-3">
+        {TABS.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors whitespace-nowrap ${tab === t.key ? "text-white" : "bg-white border border-gray-200 text-gray-600"}`}
+            style={tab === t.key ? {background:"#3ca615"} : {}}>
+            <Icon name={t.icon as "Home"} size={13} />
+            {t.label}
+            {Object.keys(pending).some(k => k.startsWith(`${t.key}.`)) && (
+              <span className="w-1.5 h-1.5 bg-orange-400 rounded-full" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-5">
+        {/* Боковое меню — только десктоп */}
         <aside className="w-48 shrink-0 hidden md:block">
           <nav className="space-y-1">
             {TABS.map(t => (
@@ -715,7 +731,7 @@ export default function AdminContentEditor() {
                 style={tab === t.key ? {background:"#3ca615"} : {}}>
                 <Icon name={t.icon as "Home"} size={16} />
                 {t.label}
-                {Object.keys(pending).some(k => k.startsWith(t.key === "hero" ? "hero." : t.key === "carousel" ? "carousel." : t.key === "contacts" ? "contacts." : t.key === "about" ? "about." : t.key === "services" ? "services." : "onec.")) && (
+                {Object.keys(pending).some(k => k.startsWith(`${t.key}.`)) && (
                   <span className="ml-auto w-2 h-2 bg-orange-400 rounded-full" />
                 )}
               </button>
@@ -723,20 +739,8 @@ export default function AdminContentEditor() {
           </nav>
         </aside>
 
-        {/* Мобильные табы */}
-        <div className="md:hidden flex gap-1 overflow-x-auto mb-4 pb-1 w-full">
-          {TABS.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${tab === t.key ? "text-white" : "bg-white border border-gray-200 text-gray-600"}`}
-              style={tab === t.key ? {background:"#3ca615"} : {}}>
-              <Icon name={t.icon as "Home"} size={13} />
-              {t.label}
-            </button>
-          ))}
-        </div>
-
         {/* Контент */}
-        <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 min-w-0">
+        <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 min-w-0">
           {tab === "hero" && <HeroEditor content={content} onChange={handleChange} />}
           {tab === "carousel" && <CarouselEditor content={content} onChange={handleChange} />}
           {tab === "services" && <ServicesEditor content={content} onChange={handleChange} />}
