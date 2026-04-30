@@ -32,6 +32,8 @@ const PartnersSection = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
           {PARTNERS_CONFIG.map((p) => {
             const logo = str(`partner.${p.key}.logo`, p.fallback) || p.fallback;
+            const name = str(`partner.${p.key}.card_name`, p.name);
+            const tag  = str(`partner.${p.key}.card_tag`,  p.tag);
             return (
               <button
                 key={p.key}
@@ -43,17 +45,17 @@ const PartnersSection = () => {
                 <div className="relative h-10 w-full flex items-center justify-center">
                   <img
                     src={logo}
-                    alt={p.name}
+                    alt={name}
                     className="max-h-9 max-w-[75px] object-contain grayscale group-hover:grayscale-0 opacity-50 group-hover:opacity-100 transition-all duration-300"
                   />
                 </div>
 
                 <span className="relative text-[10px] font-semibold text-gray-400 group-hover:text-[#3ca615] transition-colors text-center leading-tight line-clamp-1 w-full">
-                  {p.name}
+                  {name}
                 </span>
 
                 <span className="relative text-[9px] text-gray-300 group-hover:text-[#3ca615]/70 transition-colors text-center leading-tight line-clamp-1 w-full">
-                  {p.tag}
+                  {tag}
                 </span>
 
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">

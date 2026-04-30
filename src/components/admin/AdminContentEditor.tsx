@@ -554,9 +554,15 @@ function PartnerEditor({ content, onChange }: { content: ContentMap; onChange: (
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          <ImageUpload label="Логотип партнёра (в разделе «Партнёры» на главной)"
+          <ImageUpload label="Логотип партнёра (карточка на главной странице)"
             value={content[`${prefix}.logo`] || ""}
             onChange={v => onChange(`${prefix}.logo`, v)} />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Название (карточка на главной)" value={content[`${prefix}.card_name`] || ""}
+              onChange={v => onChange(`${prefix}.card_name`, v)} />
+            <Field label="Тег (карточка на главной)" value={content[`${prefix}.card_tag`] || ""}
+              onChange={v => onChange(`${prefix}.card_tag`, v)} />
+          </div>
           <Field label="Заголовок (H1)" value={content[`${prefix}.hero_title`] || ""}
             onChange={v => onChange(`${prefix}.hero_title`, v)} />
           <Field label="Описание под заголовком" value={content[`${prefix}.hero_desc`] || ""}
