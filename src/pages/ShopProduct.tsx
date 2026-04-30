@@ -239,20 +239,21 @@ export default function ShopProduct() {
                 {product.in_stock ? "В наличии" : "Нет в наличии"}
               </span>
             </div>
-            <div className="flex gap-3 mt-auto">
+            <div className="flex flex-col sm:flex-row gap-2 mt-auto">
               {product.in_stock && (
                 <button onClick={handleAddToCart}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${added ? "bg-green-500 text-white" : "text-white hover:opacity-90"}`}
                   style={added ? {} : { background: "#3ca615" }}>
                   <Icon name={added ? "Check" : "ShoppingCart"} size={18} />
-                  {added ? "Добавлено!" : "В корзину"}
+                  {added ? "Добавлено в корзину!" : "В корзину"}
                 </button>
               )}
               {added && (
                 <button onClick={() => setCartOpen(true)}
-                  className="px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-colors"
+                  className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 text-sm font-semibold transition-colors"
                   style={{ borderColor: "#3ca615", color: "#3ca615" }}>
-                  Перейти
+                  <Icon name="ShoppingBag" size={16} />
+                  Перейти в корзину
                 </button>
               )}
             </div>

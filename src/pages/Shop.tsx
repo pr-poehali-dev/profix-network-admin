@@ -41,7 +41,7 @@ function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: 
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1 truncate">{product.category_name || ""}</p>
         <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-2 leading-snug" style={{ minHeight: "2.5rem" }}>{product.name}</h3>
         <div className="mt-auto pt-2 border-t border-gray-50">
-          <div className="flex items-end justify-between gap-1">
+          <div className="flex flex-col gap-2">
             <div>
               {product.price != null
                 ? <p className="text-base font-bold text-gray-900 leading-none">{product.price.toLocaleString("ru-RU")} <span className="text-xs font-normal text-gray-500">₽</span></p>
@@ -52,14 +52,14 @@ function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart: 
               )}
             </div>
             {!product.in_stock
-              ? <span className="text-[10px] text-red-500 font-medium shrink-0">Нет</span>
+              ? <span className="text-[10px] text-red-500 font-medium">Нет в наличии</span>
               : <button
                   onClick={handleAdd}
-                  className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${added ? "bg-green-500 text-white" : "text-white hover:opacity-90"}`}
+                  className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${added ? "bg-green-500 text-white" : "text-white hover:opacity-90"}`}
                   style={added ? {} : { background: "#3ca615" }}
                 >
-                  <Icon name={added ? "Check" : "ShoppingCart"} size={12} />
-                  {added ? "OK" : "В корзину"}
+                  <Icon name={added ? "Check" : "ShoppingCart"} size={13} />
+                  {added ? "Добавлено!" : "В корзину"}
                 </button>
             }
           </div>
