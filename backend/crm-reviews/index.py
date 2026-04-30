@@ -185,5 +185,22 @@ def handler(event: dict, context) -> dict:
         conn.close()
         return ok({"updated": True})
 
+    # ── Удалить отзыв (менеджер) ───────────────────────────���──────────────────
+    if method == "DELETE" and action == "delete":
+        role = get_manager_role(event, conn)
+        if not role:
+            conn.close()
+            return err("Необходима авторизация", 401)
+        review_id = body.get("id")
+        if not review_id:
+            conn.close()
+            return err("Не указан id отзыва")
+        cur = conn.cursor()
+        cur.execute(f"DELETE FROM {SC}.reviews WHERE id=%s", (review_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return ok({"deleted": True})
+
     conn.close()
     return err("Неизвестное действие")
