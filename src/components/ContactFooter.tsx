@@ -199,9 +199,15 @@ const ContactFooter = ({
           <div className="text-center text-gray-500 text-sm">
             <p>{str("contacts.address", "г. Якутск, ул. Халтурина, 6")}</p>
             <p className="mt-1">© 2026 ProFiX. Все права защищены.</p>
-            <a href="/privacy" className="mt-1 inline-block text-xs text-gray-400 hover:text-[#3ca615] transition-colors underline underline-offset-2">
-              Политика обработки персональных данных
-            </a>
+            <div className="mt-1 flex items-center justify-center gap-3 flex-wrap">
+              <a href="/privacy" className="text-xs text-gray-400 hover:text-[#3ca615] transition-colors underline underline-offset-2">
+                Политика персональных данных
+              </a>
+              <span className="text-gray-300">·</span>
+              <a href="/requisites" className="text-xs text-gray-400 hover:text-[#3ca615] transition-colors underline underline-offset-2">
+                Реквизиты
+              </a>
+            </div>
           </div>
           <div className="flex flex-col items-end gap-1 text-sm">
             <a href={str("contacts.phone_href", "tel:+79142727187")} className="text-gray-900 hover:text-[#3ca615] transition-colors flex items-center gap-1.5">

@@ -2,6 +2,72 @@ import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { ContentMap, parseJson, Field, ImageUpload } from "./editor-shared";
 
+// ── Секция: Реквизиты компании ────────────────────────────────────────────────
+
+export function RequisitesEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {
+  const r = (key: string, def = "") => content[`requisites.${key}`] ?? def;
+  const set = (key: string) => (v: string) => onChange(`requisites.${key}`, v);
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Основные данные</p>
+        <div className="space-y-3">
+          <Field label="Полное наименование" value={r("company_full", "ООО «ПРОФИКС»")} onChange={set("company_full")} />
+          <Field label="Краткое наименование" value={r("company_short", "ООО «ПРОФИКС»")} onChange={set("company_short")} />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="ИНН" value={r("inn", "1435253577")} onChange={set("inn")} />
+            <Field label="КПП" value={r("kpp", "")} onChange={set("kpp")} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="ОГРН" value={r("ogrn", "1121435005790")} onChange={set("ogrn")} />
+            <Field label="ОКПО" value={r("okpo", "")} onChange={set("okpo")} />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Адреса</p>
+        <div className="space-y-3">
+          <Field label="Юридический адрес" value={r("legal_address", "677009, г. Якутск, ул. Халтурина, дом 6")} onChange={set("legal_address")} textarea />
+          <Field label="Фактический адрес" value={r("actual_address", "")} onChange={set("actual_address")} textarea />
+        </div>
+      </div>
+
+      <div>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Банковские реквизиты</p>
+        <div className="space-y-3">
+          <Field label="Банк" value={r("bank_name", "")} onChange={set("bank_name")} />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="БИК" value={r("bik", "")} onChange={set("bik")} />
+            <Field label="К/с (корр. счёт)" value={r("corr_account", "")} onChange={set("corr_account")} />
+          </div>
+          <Field label="Расчётный счёт" value={r("account", "")} onChange={set("account")} />
+        </div>
+      </div>
+
+      <div>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Контакты</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Телефон" value={r("phone", "+7 (914) 272-71-87")} onChange={set("phone")} />
+            <Field label="Email" value={r("email", "727187@it-profix.ru")} onChange={set("email")} />
+          </div>
+          <Field label="Сайт" value={r("website", "pfx.su")} onChange={set("website")} />
+          <Field label="Руководитель (должность и ФИО)" value={r("director", "")} onChange={set("director")} hint="Например: Генеральный директор Иванов И.И." />
+        </div>
+      </div>
+
+      <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-2">
+        <Icon name="Info" size={14} className="text-blue-400 shrink-0 mt-0.5" />
+        <p className="text-xs text-blue-600">
+          Реквизиты отображаются на странице <a href="/requisites" target="_blank" className="underline">/requisites</a> и добавляются в уведомления о заказах.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Секция: Главный экран ─────────────────────────────────────────────────────
 
 export function HeroEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {

@@ -25,6 +25,7 @@ import CustomPageView from "./pages/CustomPage";
 import ManagerApp from "./pages/ManagerApp";
 import Login from "./pages/Login";
 import Privacy from "./pages/Privacy";
+import Requisites from "./pages/Requisites";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
           <Route path="/manager" element={<ManagerApp />} />
           <Route path="/login" element={<Login />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/requisites" element={<Requisites />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

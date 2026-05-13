@@ -10,15 +10,17 @@ import {
   OnecEditor,
   AboutEditor,
   ContactsEditor,
+  RequisitesEditor,
 } from "./HomePageEditors";
 import { NavbarEditor, PartnerEditor } from "./NavbarPartnerEditors";
 
 // ── Константы табов ───────────────────────────────────────────────────────────
 
 const TABS = [
-  { key: "home",     label: "Главная страница", icon: "Home" },
-  { key: "navbar",   label: "Навигация",        icon: "Menu" },
-  { key: "partners", label: "Партнёры",         icon: "Handshake" },
+  { key: "home",        label: "Главная страница", icon: "Home" },
+  { key: "navbar",      label: "Навигация",        icon: "Menu" },
+  { key: "partners",    label: "Партнёры",         icon: "Handshake" },
+  { key: "requisites",  label: "Реквизиты",        icon: "FileText" },
 ] as const;
 
 type TabKey = typeof TABS[number]["key"];
@@ -177,6 +179,16 @@ export default function AdminContentEditor() {
               <span className="ml-auto w-2 h-2 bg-orange-400 rounded-full" />
             )}
           </button>
+          {/* Реквизиты */}
+          <button onClick={() => setTab("requisites")}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left ${tab === "requisites" ? "text-white" : "text-gray-600 hover:bg-gray-100"}`}
+            style={tab === "requisites" ? {background:"#3ca615"} : {}}>
+            <Icon name="FileText" size={16} />
+            Реквизиты
+            {Object.keys(pending).some(k => k.startsWith("requisites.")) && (
+              <span className="ml-auto w-2 h-2 bg-orange-400 rounded-full" />
+            )}
+          </button>
         </aside>
 
         {/* Контент */}
@@ -188,8 +200,9 @@ export default function AdminContentEditor() {
           {tab === "home" && homeSubTab === "onec"     && <OnecEditor content={content} onChange={handleChange} />}
           {tab === "home" && homeSubTab === "about"    && <AboutEditor content={content} onChange={handleChange} />}
           {tab === "home" && homeSubTab === "contacts" && <ContactsEditor content={content} onChange={handleChange} />}
-          {tab === "navbar"   && <NavbarEditor content={content} onChange={handleChange} />}
-          {tab === "partners" && <PartnerEditor content={content} onChange={handleChange} />}
+          {tab === "navbar"       && <NavbarEditor content={content} onChange={handleChange} />}
+          {tab === "partners"     && <PartnerEditor content={content} onChange={handleChange} />}
+          {tab === "requisites"   && <RequisitesEditor content={content} onChange={handleChange} />}
         </div>
       </div>
     </div>
