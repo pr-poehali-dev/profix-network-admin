@@ -200,6 +200,10 @@ const ContactFooter = ({
             <p>{str("contacts.address", "г. Якутск, ул. Халтурина, 6")}</p>
             <p className="mt-1">© 2026 ProFiX. Все права защищены.</p>
             <div className="mt-1 flex items-center justify-center gap-3 flex-wrap">
+              <a href="/blog" className="text-xs text-gray-400 hover:text-[#3ca615] transition-colors underline underline-offset-2">
+                Блог
+              </a>
+              <span className="text-gray-300">·</span>
               <a href="/privacy" className="text-xs text-gray-400 hover:text-[#3ca615] transition-colors underline underline-offset-2">
                 Политика персональных данных
               </a>

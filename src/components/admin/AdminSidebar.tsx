@@ -105,6 +105,7 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
     { key: "clients", label: "Клиенты", icon: "Users" },
     { key: "technicians", label: "Тех специалисты", icon: "Wrench" },
     { key: "shop", label: "Магазин", icon: "ShoppingCart" },
+    { key: "blog", label: "Блог", icon: "Newspaper" },
     { key: "content", label: "Редактор сайта", icon: "PenLine" },
     { key: "pages", label: "Конструктор страниц", icon: "LayoutTemplate" },
     { key: "reviews", label: "Отзывы", icon: "Star" },
@@ -285,12 +286,12 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
 
         {/* Кнопка профиля */}
         <button
-          onClick={() => setProfileOpen(v => !v)}
-          title={collapsed ? manager?.name : undefined}
-          className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl transition-colors mb-1 ${profileOpen ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+          onClick={() => { setProfileOpen(false); onSectionChange("profile"); }}
+          title={collapsed ? `${manager?.name} — профиль` : undefined}
+          className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl transition-colors mb-1 ${activeSection === "profile" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
         >
-          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-            <Icon name="User" size={14} className="text-gray-300" />
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#3ca615] to-[#2d8a10] flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold">
+            {manager?.name?.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || <Icon name="User" size={12} />}
           </div>
           {!collapsed && (
             <div className="flex-1 text-left overflow-hidden">
