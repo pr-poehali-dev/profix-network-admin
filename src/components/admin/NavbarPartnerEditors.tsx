@@ -22,6 +22,9 @@ const BUILTIN_ITEMS: NavItem[] = [
   { id: "sec-services", type: "section", label: "Услуги",   section: "Услуги",     visible: true, style: "text" },
   { id: "sec-1c",       type: "section", label: "1С",       section: "1С",         visible: true, style: "text" },
   { id: "sec-contacts", type: "section", label: "Контакты", section: "Контакты",   visible: true, style: "text" },
+  { id: "link-news",    type: "link",    label: "Новости",  href: "/blog?type=news",  visible: true, style: "text" },
+  { id: "link-forum",   type: "link",    label: "Форум",    href: "/blog?type=forum", visible: true, style: "text" },
+  { id: "link-blog",    type: "link",    label: "Блог",     href: "/blog",            visible: true, style: "text" },
   { id: "shop",         type: "shop",    label: "Магазин",                         visible: true, style: "button" },
   { id: "cabinet",      type: "cabinet", label: "Войти",                           visible: true, style: "button" },
 ];
