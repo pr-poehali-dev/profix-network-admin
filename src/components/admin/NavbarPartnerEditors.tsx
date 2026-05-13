@@ -192,7 +192,14 @@ export function NavbarEditor({ content, onChange }: { content: ContentMap; onCha
               <span className={`text-[10px] px-1.5 py-0.5 rounded-md shrink-0 ${item.style === "button" ? "bg-amber-50 text-amber-600" : "bg-sky-50 text-sky-600"}`}>
                 {item.style === "button" ? "кнопка" : "меню"}
               </span>
-              <span className="flex-1 text-sm font-medium text-gray-700 truncate">{item.label}</span>
+              {/* Инлайн-редактирование названия */}
+              <input
+                value={item.label}
+                onChange={e => update(item.id, { label: e.target.value })}
+                onClick={e => e.stopPropagation()}
+                className="flex-1 text-sm font-medium text-gray-700 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-green-500 focus:outline-none px-0.5 min-w-0 transition-colors"
+                placeholder="Название"
+              />
               <button onClick={() => move(i, -1)} disabled={i===0} className="p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20">
                 <Icon name="ChevronUp" size={13} />
               </button>
@@ -200,29 +207,30 @@ export function NavbarEditor({ content, onChange }: { content: ContentMap; onCha
                 <Icon name="ChevronDown" size={13} />
               </button>
               <button onClick={() => setExpanded(expanded === item.id ? null : item.id)}
-                className="p-1 text-gray-400 hover:text-gray-700">
+                className={`p-1 rounded-lg transition-colors ${expanded === item.id ? "bg-green-100 text-green-700" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
+                title="Дополнительные настройки">
                 <Icon name={expanded === item.id ? "ChevronUp" : "Settings2"} size={14} />
               </button>
               {item.type === "link" && (
-                <button onClick={() => remove(item.id)} className="p-1 text-gray-300 hover:text-red-500">
+                <button onClick={() => remove(item.id)} className="p-1 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
                   <Icon name="Trash2" size={13} />
                 </button>
               )}
               <button onClick={() => toggle(item.id)}
-                className={`ml-1 w-9 h-5 rounded-full transition-colors relative shrink-0 ${item.visible ? "bg-green-500" : "bg-gray-300"}`}>
+                className={`ml-1 w-9 h-5 rounded-full transition-colors relative shrink-0 ${item.visible ? "bg-green-500" : "bg-gray-300"}`}
+                title={item.visible ? "Скрыть" : "Показать"}>
                 <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${item.visible ? "translate-x-4" : "translate-x-0.5"}`} />
               </button>
             </div>
 
-            {/* Панель редактирования */}
+            {/* Панель дополнительных настроек */}
             {expanded === item.id && (
-              <div className="px-3 pb-3 pt-0 border-t border-gray-100 space-y-3 bg-gray-50 rounded-b-xl">
-                {/* Picker существующих страниц — только для type=link */}
+              <div className="px-3 pb-3 pt-2 border-t border-gray-100 space-y-3 bg-gray-50 rounded-b-xl">
+                {/* Picker страниц — для link */}
                 {item.type === "link" && (
-                  <div className="pt-3">
+                  <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-2">Выбрать страницу</label>
                     <div className="flex flex-wrap gap-1.5">
-                      {/* Стандартные страницы */}
                       {SITE_PAGES.map(p => (
                         <button key={p.href}
                           onClick={() => update(item.id, { href: p.href, label: item.label === "Новая ссылка" ? p.label : item.label })}
@@ -234,7 +242,6 @@ export function NavbarEditor({ content, onChange }: { content: ContentMap; onCha
                           {p.label}
                         </button>
                       ))}
-                      {/* Кастомные страницы из конструктора */}
                       {customPages.map(p => (
                         <button key={p.slug}
                           onClick={() => update(item.id, { href: `/p/${p.slug}`, label: item.label === "Новая ссылка" ? (p.nav_label || p.title) : item.label })}
@@ -251,8 +258,6 @@ export function NavbarEditor({ content, onChange }: { content: ContentMap; onCha
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-2">
-                  <Field label="Название" value={item.label}
-                    onChange={v => update(item.id, { label: v })} />
                   {item.type === "link" && (
                     <Field label="Ссылка (href)" value={item.href || ""}
                       onChange={v => update(item.id, { href: v })} />
@@ -262,22 +267,20 @@ export function NavbarEditor({ content, onChange }: { content: ContentMap; onCha
                       onChange={v => update(item.id, { section: v })}
                       hint="Главная / Услуги / 1С / О компании / Контакты" />
                   )}
-                </div>
-                <div className="grid grid-cols-2 gap-2">
                   {(item.type === "link" || item.type === "shop" || item.type === "cabinet") && (
-                    <Field label="Иконка (lucide, необязательно)" value={item.icon || ""}
-                      onChange={v => update(item.id, { icon: v })} hint="Например: ShoppingCart, User, Star" />
+                    <Field label="Иконка (lucide)" value={item.icon || ""}
+                      onChange={v => update(item.id, { icon: v })} hint="ShoppingCart, User, Star…" />
                   )}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Позиция в навбаре</label>
-                    <div className="flex gap-2">
-                      {[{v:"text",l:"В меню"},{v:"button",l:"Кнопка справа"}].map(opt => (
-                        <button key={opt.v} onClick={() => update(item.id, {style: opt.v as "text"|"button"})}
-                          className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${item.style===opt.v ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}>
-                          {opt.l}
-                        </button>
-                      ))}
-                    </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Позиция в навбаре</label>
+                  <div className="flex gap-2">
+                    {[{v:"text",l:"В меню"},{v:"button",l:"Кнопка справа"}].map(opt => (
+                      <button key={opt.v} onClick={() => update(item.id, {style: opt.v as "text"|"button"})}
+                        className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${item.style===opt.v ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}>
+                        {opt.l}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
