@@ -207,13 +207,29 @@ def handler(event: dict, context) -> dict:
             return ok({"ok": True})
 
         # ══════════════════════════════════════════════════════════════════════
-        # КОММЕНТАРИИ
+        # КОММЕНТАРИИ — только авторизованные клиенты
         # ══════════════════════════════════════════════════════════════════════
         if resource == "comments" and method == "POST":
-            post_id    = body.get("post_id")
-            author     = (body.get("author_name") or "Гость").strip()[:50]
-            text       = body.get("text", "").strip()
-            client_id  = body.get("client_id")
+            # Проверяем авторизацию клиента
+            headers  = event.get("headers") or {}
+            auth_hdr = headers.get("X-Authorization", "") or headers.get("Authorization", "")
+            token    = auth_hdr.replace("Bearer ", "").strip()
+            if not token:
+                return err("Для комментирования необходимо войти в личный кабинет", 401)
+            cur.execute(
+                f"SELECT c.id, c.name, c.phone FROM {SC}.client_sessions cs "
+                f"JOIN {SC}.clients c ON c.id=cs.client_id "
+                f"WHERE cs.token=%s AND cs.expires_at>NOW()",
+                (token,)
+            )
+            client_row = cur.fetchone()
+            if not client_row:
+                return err("Сессия истекла. Пожалуйста, войдите снова.", 401)
+            client_id  = client_row[0]
+            author     = client_row[1] or client_row[2] or "Клиент"
+
+            post_id = body.get("post_id")
+            text    = body.get("text", "").strip()
             if not post_id or not text:
                 return err("Укажите пост и текст комментария")
             if len(text) > 2000:
@@ -221,7 +237,7 @@ def handler(event: dict, context) -> dict:
             cur.execute(
                 f"""INSERT INTO {SC}.post_comments (post_id, client_id, author_name, text)
                     VALUES (%s,%s,%s,%s) RETURNING id, created_at""",
-                (post_id, client_id or None, author, text)
+                (post_id, client_id, author, text)
             )
             row = cur.fetchone()
             conn.commit()

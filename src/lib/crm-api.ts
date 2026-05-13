@@ -71,8 +71,8 @@ export const techSession = {
 // ── API клиента ──────────────────────────────────────────────────────────────
 
 export const clientApi = {
-  requestOtp: (phone: string, channel: "email" | "telegram", email?: string) =>
-    postAuth({ action: "client_request_otp", phone, channel, email }),
+  requestOtp: (phone: string, channel: "email" | "telegram", email?: string, cfToken?: string) =>
+    postAuth({ action: "client_request_otp", phone, channel, email, cf_turnstile_token: cfToken || "" }),
 
   verifyOtp: (phone: string, code: string) =>
     postAuth({ action: "client_verify_otp", phone, code }),
@@ -165,11 +165,11 @@ export const authApi = {
 // ── API менеджера ────────────────────────────────────────────────────────────
 
 export const managerApi = {
-  login: (login: string, password: string) =>
-    postAuth({ action: "manager_login", login, password }),
+  login: (login: string, password: string, cfToken?: string) =>
+    postAuth({ action: "manager_login", login, password, cf_turnstile_token: cfToken || "" }),
 
-  loginEmail: (email: string, password: string) =>
-    postAuth({ action: "manager_login_email", email, password }),
+  loginEmail: (email: string, password: string, cfToken?: string) =>
+    postAuth({ action: "manager_login_email", email, password, cf_turnstile_token: cfToken || "" }),
 
   verifyToken: (token: string) =>
     postAuthWithToken({ action: "verify_token", role: "manager" }, token),

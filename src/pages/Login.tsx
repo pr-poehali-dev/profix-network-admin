@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Icon from "@/components/ui/icon";
+import TurnstileWidget from "@/components/TurnstileWidget";
 import {
   clientApi, clientSession,
   managerApi, managerSession,
@@ -57,6 +58,7 @@ export default function Login() {
   const [method, setMethod] = useState<AuthMethod>("otp");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [cfToken, setCfToken] = useState("");
 
   // Менеджер
   const [login, setLogin] = useState("");
@@ -124,9 +126,10 @@ export default function Login() {
   // ── Менеджер — логин/пароль ─────────────────────────────────────────────
   async function handleManagerLogin() {
     if (!login.trim() || !password.trim()) { setError("Заполните логин и пароль"); return; }
+    if (!cfToken) { setError("Пожалуйста, подождите проверку безопасности"); return; }
     setError(""); setLoading(true);
     try {
-      const res = await managerApi.login(login.trim(), password.trim());
+      const res = await managerApi.login(login.trim(), password.trim(), cfToken);
       if (res.token) { managerSession.set(res.token); navigate("/admin"); }
       else setError(res.error || "Неверный логин или пароль");
     } catch { setError("Ошибка соединения"); }
@@ -136,9 +139,10 @@ export default function Login() {
   // ── Менеджер — email/пароль ─────────────────────────────────────────────
   async function handleManagerEmailLogin() {
     if (!login.trim() || !password.trim()) { setError("Заполните email и пароль"); return; }
+    if (!cfToken) { setError("Пожалуйста, подождите проверку безопасности"); return; }
     setError(""); setLoading(true);
     try {
-      const res = await managerApi.loginEmail(login.trim(), password.trim());
+      const res = await managerApi.loginEmail(login.trim(), password.trim(), cfToken);
       if (res.token) { managerSession.set(res.token); navigate("/admin"); }
       else setError(res.error || "Неверный email или пароль");
     } catch { setError("Ошибка соединения"); }
@@ -149,9 +153,10 @@ export default function Login() {
   async function handleRequestOtp() {
     if (!phone.trim()) { setError("Введите номер телефона"); return; }
     if (channel === "email" && !email.trim()) { setError("Введите email"); return; }
+    if (!cfToken) { setError("Пожалуйста, подождите проверку безопасности"); return; }
     setError(""); setLoading(true);
     try {
-      await clientApi.requestOtp(phone.trim(), channel, email.trim() || undefined);
+      await clientApi.requestOtp(phone.trim(), channel, email.trim() || undefined, cfToken);
       setOtpStep("code");
     } catch { setError("Ошибка отправки кода"); }
     finally { setLoading(false); }
@@ -329,9 +334,10 @@ export default function Login() {
                     </button>
                   </div>
                 </div>
+                <TurnstileWidget onVerify={setCfToken} onExpire={() => setCfToken("")} />
                 <button
                   onClick={() => login.includes("@") ? handleManagerEmailLogin() : handleManagerLogin()}
-                  disabled={loading}
+                  disabled={loading || !cfToken}
                   className={`w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${cr.btn}`}>
                   {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
                   {loading ? "Вход..." : "Войти"}
@@ -385,7 +391,8 @@ export default function Login() {
                           className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
                       </div>
                     )}
-                    <button onClick={handleRequestOtp} disabled={loading}
+                    <TurnstileWidget onVerify={setCfToken} onExpire={() => setCfToken("")} />
+                    <button onClick={handleRequestOtp} disabled={loading || !cfToken}
                       className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
                       {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="Send" size={16} />}
                       {loading ? "Отправка..." : "Получить код"}

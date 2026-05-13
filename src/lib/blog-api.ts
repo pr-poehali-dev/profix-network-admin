@@ -5,19 +5,27 @@ function authHeader() {
   return token ? { "Authorization": token } : {};
 }
 
+function clientAuthHeader() {
+  const token = localStorage.getItem("crm_client_token");
+  return token ? { "X-Authorization": `Bearer ${token}` } : {};
+}
+
 function getSessionId(): string {
   let id = localStorage.getItem("profix_session");
   if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("profix_session", id); }
   return id;
 }
 
-async function req(resource: string, method = "GET", body?: object, extra?: Record<string, string>) {
+async function req(resource: string, method = "GET", body?: object, extra?: Record<string, string>, useClientAuth = false) {
   const url = new URL(BLOG_URL);
   url.searchParams.set("resource", resource);
   if (extra) Object.entries(extra).forEach(([k, v]) => url.searchParams.set(k, v));
   const res = await fetch(url.toString(), {
     method,
-    headers: { "Content-Type": "application/json", ...authHeader() },
+    headers: {
+      "Content-Type": "application/json",
+      ...(useClientAuth ? clientAuthHeader() : authHeader()),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
   return res.json();
@@ -63,13 +71,8 @@ export const blogApi = {
   updatePost: (data: Partial<Post> & { id: number }) => req("posts", "PUT", data),
   deletePost: (id: number) => req("posts", "DELETE", { id }),
 
-  addComment: (postId: number, text: string, authorName: string, clientId?: number) =>
-    req("comments", "POST", {
-      post_id: postId,
-      text,
-      author_name: authorName,
-      client_id: clientId,
-    }),
+  addComment: (postId: number, text: string) =>
+    req("comments", "POST", { post_id: postId, text }, undefined, true),
 
   react: (postId: number | null, reaction: "like" | "dislike", commentId?: number) =>
     req("reactions", "POST", {

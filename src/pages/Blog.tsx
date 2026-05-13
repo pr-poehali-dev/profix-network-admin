@@ -81,35 +81,35 @@ function CommentSection({ postId, comments: initialComments, onCommentAdded }: {
 }) {
   const [comments, setComments] = useState(initialComments);
   const [text, setText] = useState("");
-  const [authorName, setAuthorName] = useState("");
   const [sending, setSending] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const [reactions, setReactions] = useState<Record<number, Record<string, number>>>({});
   const [myReactions, setMyReactions] = useState<Record<number, string>>({});
   const textRef = useRef<HTMLTextAreaElement>(null);
-  const sessionId = blogApi.getSessionId();
 
   // Клиент авторизован?
   const [clientName, setClientName] = useState("");
+  const [clientLoading, setClientLoading] = useState(true);
   useEffect(() => {
     const token = clientSession.get();
     if (token) {
-      clientApi.verifyToken(token).then(r => {
-        if (r.valid && r.client) setClientName(r.client.name || r.client.phone || "");
-      }).catch(() => {});
+      clientApi.verifyToken(token)
+        .then(r => { if (r.valid && r.client) setClientName(r.client.name || r.client.phone || "Клиент"); })
+        .catch(() => {})
+        .finally(() => setClientLoading(false));
+    } else {
+      setClientLoading(false);
     }
   }, []);
 
   async function handleSend() {
-    const name = clientName || authorName.trim() || "Гость";
-    if (!text.trim()) return;
+    if (!clientName || !text.trim()) return;
     setSending(true);
     try {
-      const res = await blogApi.addComment(postId, text.trim(), name);
+      const res = await blogApi.addComment(postId, text.trim());
       if (res.ok) {
-        const newComment = res.comment;
-        setComments(prev => [...prev, newComment]);
-        onCommentAdded(newComment);
+        setComments(prev => [...prev, res.comment]);
+        onCommentAdded(res.comment);
         setText("");
       }
     } catch { /* ignore */ }
@@ -177,16 +177,25 @@ function CommentSection({ postId, comments: initialComments, onCommentAdded }: {
         ))}
       </div>
 
-      {/* Форма комментария */}
+      {/* Форма комментария — только для авторизованных */}
+      {clientLoading ? (
+        <div className="flex items-center justify-center py-4">
+          <Icon name="Loader2" size={20} className="animate-spin text-gray-300" />
+        </div>
+      ) : !clientName ? (
+        <div className="bg-[#edf7e8] border border-green-200 rounded-2xl p-5 text-center">
+          <Icon name="Lock" size={24} className="text-[#3ca615] mx-auto mb-2" />
+          <p className="text-sm font-semibold text-gray-800 mb-1">Войдите, чтобы комментировать</p>
+          <p className="text-xs text-gray-500 mb-4">Комментарии доступны только для зарегистрированных пользователей</p>
+          <a href="/login" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold"
+            style={{ backgroundColor: "#3ca615" }}>
+            <Icon name="LogIn" size={15} />
+            Войти в личный кабинет
+          </a>
+        </div>
+      ) : (
       <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
-        {!clientName && (
-          <input value={authorName} onChange={e => setAuthorName(e.target.value)}
-            placeholder="Ваше имя (или оставьте как Гость)"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]" />
-        )}
-        {clientName && (
-          <p className="text-xs text-gray-500">Комментируете как: <b className="text-[#3ca615]">{clientName}</b></p>
-        )}
+        <p className="text-xs text-gray-500">Комментируете как: <b className="text-[#3ca615]">{clientName}</b></p>
         <div className="relative">
           <textarea ref={textRef} value={text} onChange={e => setText(e.target.value)}
             placeholder="Напишите комментарий..."
@@ -214,6 +223,7 @@ function CommentSection({ postId, comments: initialComments, onCommentAdded }: {
           Отправить
         </button>
       </div>
+      )}
     </div>
   );
 }

@@ -43,6 +43,27 @@ def make_token() -> str:
     return secrets.token_hex(32)
 
 
+def verify_turnstile(token: str) -> bool:
+    """Проверяет Cloudflare Turnstile токен. Возвращает True если прошёл."""
+    secret = os.environ.get("TURNSTILE_SECRET_KEY", "")
+    if not secret:
+        return True  # если ключ не настроен — пропускаем (dev-режим)
+    # Тестовый секрет Cloudflare — всегда проходит
+    if secret in ("1x0000000000000000000000000000000AA", ""):
+        return True
+    try:
+        data = json.dumps({"secret": secret, "response": token}).encode()
+        req = Request(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data=data,
+            headers={"Content-Type": "application/json"}
+        )
+        resp = json.loads(urlopen(req, timeout=5).read())
+        return bool(resp.get("success"))
+    except Exception:
+        return True  # при ошибке сети не блокируем
+
+
 def send_email_otp(to_email: str, code: str, phone: str):
     host = os.environ["SMTP_HOST"]
     port = int(os.environ["SMTP_PORT"])
@@ -136,9 +157,12 @@ def handler(event: dict, context) -> dict:
         phone = body.get("phone", "").strip()
         channel = body.get("channel", "email")
         email = body.get("email", "").strip()
+        cf_token = body.get("cf_turnstile_token", "")
 
         if not phone:
             return err("Укажите номер телефона")
+        if not verify_turnstile(cf_token):
+            return err("Проверка безопасности не пройдена. Попробуйте снова.", 400)
 
         conn = get_conn()
         cur = conn.cursor()
@@ -237,11 +261,14 @@ def handler(event: dict, context) -> dict:
 
     # ── МЕНЕДЖЕР: вход ──────────────────────────────────────────────────────
     if action == "manager_login":
-        login = body.get("login", "").strip()
+        login    = body.get("login", "").strip()
         password = body.get("password", "").strip()
+        cf_token = body.get("cf_turnstile_token", "")
 
         if not login or not password:
             return err("Укажите логин и пароль")
+        if not verify_turnstile(cf_token):
+            return err("Проверка безопасности не пройдена. Попробуйте снова.", 400)
 
         conn = get_conn()
         cur = conn.cursor()
