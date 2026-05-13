@@ -51,6 +51,31 @@ export default function Cabinet() {
   const [comment, setComment] = useState("");
   const [newTicket, setNewTicket] = useState({ title: "", description: "", priority: "normal" });
 
+  // Смена пароля
+  const [pwStep, setPwStep] = useState<"idle"|"sent"|"confirm">("idle");
+  const [pwCode, setPwCode] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwNew2, setPwNew2] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState(false);
+
+  // Смена email
+  const [emailStep, setEmailStep] = useState<"idle"|"sent"|"confirm">("idle");
+  const [emailNew, setEmailNew] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [emailSuccess, setEmailSuccess] = useState(false);
+
+  // Смена телефона
+  const [phoneStep, setPhoneStep] = useState<"idle"|"sent"|"confirm">("idle");
+  const [phoneNew, setPhoneNew] = useState("");
+  const [phoneCode, setPhoneCode] = useState("");
+  const [phoneLoading, setPhoneLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+  const [phoneSuccess, setPhoneSuccess] = useState(false);
+
   useEffect(() => {
     const token = clientSession.get();
     if (token) {
@@ -211,6 +236,78 @@ export default function Cabinet() {
     } finally {
       setProfileSaving(false);
     }
+  }
+
+  async function handlePasswordRequest() {
+    setPwLoading(true); setPwError("");
+    try {
+      const res = await clientApi.changePasswordRequest();
+      if (res.sent) { setPwStep("sent"); }
+      else setPwError(res.error || "Ошибка отправки");
+    } catch { setPwError("Ошибка соединения"); }
+    finally { setPwLoading(false); }
+  }
+
+  async function handlePasswordConfirm() {
+    if (pwNew !== pwNew2) { setPwError("Пароли не совпадают"); return; }
+    if (pwNew.length < 6) { setPwError("Минимум 6 символов"); return; }
+    setPwLoading(true); setPwError("");
+    try {
+      const res = await clientApi.changePasswordConfirm(pwCode, pwNew);
+      if (res.changed) { setPwSuccess(true); setPwStep("idle"); setPwCode(""); setPwNew(""); setPwNew2(""); }
+      else setPwError(res.error || "Неверный код");
+    } catch { setPwError("Ошибка"); }
+    finally { setPwLoading(false); }
+  }
+
+  async function handleEmailRequest() {
+    if (!emailNew.trim()) { setEmailError("Введите новый email"); return; }
+    setEmailLoading(true); setEmailError("");
+    try {
+      const res = await clientApi.changeEmailRequest(emailNew.trim());
+      if (res.sent) setEmailStep("sent");
+      else setEmailError(res.error || "Ошибка отправки");
+    } catch { setEmailError("Ошибка соединения"); }
+    finally { setEmailLoading(false); }
+  }
+
+  async function handleEmailConfirm() {
+    if (!emailCode.trim()) { setEmailError("Введите код"); return; }
+    setEmailLoading(true); setEmailError("");
+    try {
+      const res = await clientApi.changeEmailConfirm(emailCode, emailNew.trim());
+      if (res.changed) {
+        setClient(c => c ? { ...c, email: emailNew.trim() } : c);
+        setEmailSuccess(true); setEmailStep("idle"); setEmailNew(""); setEmailCode("");
+        setTimeout(() => setEmailSuccess(false), 3000);
+      } else setEmailError(res.error || "Неверный код");
+    } catch { setEmailError("Ошибка"); }
+    finally { setEmailLoading(false); }
+  }
+
+  async function handlePhoneRequest() {
+    if (!phoneNew.trim()) { setPhoneError("Введите новый телефон"); return; }
+    setPhoneLoading(true); setPhoneError("");
+    try {
+      const res = await clientApi.changePhoneRequest(phoneNew.trim());
+      if (res.sent) setPhoneStep("sent");
+      else setPhoneError(res.error || "Ошибка отправки");
+    } catch { setPhoneError("Ошибка соединения"); }
+    finally { setPhoneLoading(false); }
+  }
+
+  async function handlePhoneConfirm() {
+    if (!phoneCode.trim()) { setPhoneError("Введите код"); return; }
+    setPhoneLoading(true); setPhoneError("");
+    try {
+      const res = await clientApi.changePhoneConfirm(phoneCode, phoneNew.trim());
+      if (res.changed) {
+        setClient(c => c ? { ...c, phone: phoneNew.trim() } : c);
+        setPhoneSuccess(true); setPhoneStep("idle"); setPhoneNew(""); setPhoneCode("");
+        setTimeout(() => setPhoneSuccess(false), 3000);
+      } else setPhoneError(res.error || "Неверный код");
+    } catch { setPhoneError("Ошибка"); }
+    finally { setPhoneLoading(false); }
   }
 
   async function handleSubmitReview() {
@@ -584,10 +681,14 @@ export default function Cabinet() {
 
             {/* Профиль и Telegram */}
             <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h3 className="font-oswald text-base font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <h3 className="font-oswald text-base font-semibold text-gray-700 mb-1 flex items-center gap-2">
                 <Icon name="User" size={15} />
                 Профиль и уведомления
               </h3>
+              <p className="text-xs text-gray-400 mb-4">
+                Телефон: <span className="font-medium text-gray-600">{client?.phone}</span>
+                {client?.email && <> · Email: <span className="font-medium text-gray-600">{client.email}</span></>}
+              </p>
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1.5">Ваше имя</label>
@@ -641,10 +742,127 @@ export default function Cabinet() {
                   ) : profileSuccess ? (
                     <><Icon name="Check" size={14} />Сохранено!</>
                   ) : (
-                    "Сохранить"
+                    "Сохранить имя"
                   )}
                 </button>
               </div>
+            </div>
+
+            {/* Смена пароля */}
+            <div className="mt-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+              <h3 className="font-oswald text-base font-semibold text-gray-700 flex items-center gap-2">
+                <Icon name="KeyRound" size={15} />
+                Сменить пароль
+              </h3>
+              {pwSuccess && <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 text-green-700 text-sm"><Icon name="CheckCircle" size={14} />Пароль изменён!</div>}
+              {pwError && <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-red-600 text-sm"><Icon name="AlertCircle" size={14} />{pwError}</div>}
+              {pwStep === "idle" && (
+                <button onClick={handlePasswordRequest} disabled={pwLoading}
+                  className="w-full py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:border-[#3ca615] hover:text-[#3ca615] transition flex items-center justify-center gap-2 disabled:opacity-60">
+                  {pwLoading ? <Icon name="Loader2" size={14} className="animate-spin" /> : <Icon name="Mail" size={14} />}
+                  {pwLoading ? "Отправка..." : "Получить код на email"}
+                </button>
+              )}
+              {(pwStep === "sent" || pwStep === "confirm") && (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-400">Код отправлен на {client?.email}</p>
+                  <input type="text" value={pwCode} onChange={e => setPwCode(e.target.value)} placeholder="Код из письма"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                  <input type="password" value={pwNew} onChange={e => setPwNew(e.target.value)} placeholder="Новый пароль (мин. 6 символов)"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                  <input type="password" value={pwNew2} onChange={e => setPwNew2(e.target.value)} placeholder="Повторите новый пароль"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                  <div className="flex gap-2">
+                    <button onClick={() => { setPwStep("idle"); setPwCode(""); setPwNew(""); setPwNew2(""); setPwError(""); }}
+                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:border-gray-300 transition">Отмена</button>
+                    <button onClick={handlePasswordConfirm} disabled={pwLoading}
+                      className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center justify-center gap-1"
+                      style={{ backgroundColor: "#3ca615" }}>
+                      {pwLoading ? <Icon name="Loader2" size={13} className="animate-spin" /> : null}
+                      Сохранить
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Смена email */}
+            <div className="mt-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+              <h3 className="font-oswald text-base font-semibold text-gray-700 flex items-center gap-2">
+                <Icon name="Mail" size={15} />
+                Сменить email
+              </h3>
+              {emailSuccess && <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 text-green-700 text-sm"><Icon name="CheckCircle" size={14} />Email изменён!</div>}
+              {emailError && <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-red-600 text-sm"><Icon name="AlertCircle" size={14} />{emailError}</div>}
+              {emailStep === "idle" && (
+                <div className="flex gap-2">
+                  <input type="email" value={emailNew} onChange={e => setEmailNew(e.target.value)} placeholder="Новый email"
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                  <button onClick={handleEmailRequest} disabled={emailLoading}
+                    className="px-4 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center gap-1"
+                    style={{ backgroundColor: "#3ca615" }}>
+                    {emailLoading ? <Icon name="Loader2" size={13} className="animate-spin" /> : <Icon name="Send" size={13} />}
+                    Код
+                  </button>
+                </div>
+              )}
+              {emailStep === "sent" && (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-400">Код отправлен на {emailNew}</p>
+                  <input type="text" value={emailCode} onChange={e => setEmailCode(e.target.value)} placeholder="Код из письма"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                  <div className="flex gap-2">
+                    <button onClick={() => { setEmailStep("idle"); setEmailCode(""); setEmailError(""); }}
+                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:border-gray-300 transition">Отмена</button>
+                    <button onClick={handleEmailConfirm} disabled={emailLoading}
+                      className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center justify-center gap-1"
+                      style={{ backgroundColor: "#3ca615" }}>
+                      {emailLoading ? <Icon name="Loader2" size={13} className="animate-spin" /> : null}
+                      Подтвердить
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Смена телефона */}
+            <div className="mt-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+              <h3 className="font-oswald text-base font-semibold text-gray-700 flex items-center gap-2">
+                <Icon name="Phone" size={15} />
+                Сменить телефон
+              </h3>
+              {phoneSuccess && <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 text-green-700 text-sm"><Icon name="CheckCircle" size={14} />Телефон изменён!</div>}
+              {phoneError && <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-red-600 text-sm"><Icon name="AlertCircle" size={14} />{phoneError}</div>}
+              {phoneStep === "idle" && (
+                <div className="flex gap-2">
+                  <input type="tel" value={phoneNew} onChange={e => setPhoneNew(e.target.value)} placeholder="Новый телефон"
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                  <button onClick={handlePhoneRequest} disabled={phoneLoading}
+                    className="px-4 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center gap-1"
+                    style={{ backgroundColor: "#3ca615" }}>
+                    {phoneLoading ? <Icon name="Loader2" size={13} className="animate-spin" /> : <Icon name="Send" size={13} />}
+                    Код
+                  </button>
+                </div>
+              )}
+              {phoneStep === "sent" && (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-400">Код отправлен на email. Новый номер: {phoneNew}</p>
+                  <input type="text" value={phoneCode} onChange={e => setPhoneCode(e.target.value)} placeholder="Код из письма"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                  <div className="flex gap-2">
+                    <button onClick={() => { setPhoneStep("idle"); setPhoneCode(""); setPhoneError(""); }}
+                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:border-gray-300 transition">Отмена</button>
+                    <button onClick={handlePhoneConfirm} disabled={phoneLoading}
+                      className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center justify-center gap-1"
+                      style={{ backgroundColor: "#3ca615" }}>
+                      {phoneLoading ? <Icon name="Loader2" size={13} className="animate-spin" /> : null}
+                      Подтвердить
+                    </button>
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-gray-400">Код подтверждения придёт на привязанный email</p>
             </div>
           </div>
         )}

@@ -98,6 +98,21 @@ export const clientApi = {
 
   updateProfile: (data: { name?: string; telegram_id?: number | null }) =>
     postAuthWithToken({ action: "client_update_profile", ...data }, clientSession.get()!),
+
+  changePasswordRequest: () =>
+    postAuthWithToken({ action: "client_change_password_request" }, clientSession.get()!),
+  changePasswordConfirm: (code: string, password: string) =>
+    postAuthWithToken({ action: "client_change_password_confirm", code, password }, clientSession.get()!),
+
+  changeEmailRequest: (email: string) =>
+    postAuthWithToken({ action: "client_change_email_request", email }, clientSession.get()!),
+  changeEmailConfirm: (code: string, email: string) =>
+    postAuthWithToken({ action: "client_change_email_confirm", code, email }, clientSession.get()!),
+
+  changePhoneRequest: (phone: string) =>
+    postAuthWithToken({ action: "client_change_phone_request", phone }, clientSession.get()!),
+  changePhoneConfirm: (code: string, phone: string) =>
+    postAuthWithToken({ action: "client_change_phone_confirm", code, phone }, clientSession.get()!),
 };
 
 // ── API техника ──────────────────────────────────────────────────────────────

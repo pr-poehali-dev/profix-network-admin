@@ -439,6 +439,232 @@ def handler(event: dict, context) -> dict:
         cur.close(); conn.close()
         return ok({"client": {"id": c[0], "name": c[1], "phone": c[2], "email": c[3]}})
 
+    # ── КЛИЕНТ: запрос смены пароля (код на email) ──────────────────────────
+    if action == "client_change_password_request":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        if not token:
+            return err("Необходима авторизация", 401)
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(
+            f"SELECT c.id, c.email FROM {SC}.client_sessions cs JOIN {SC}.clients c ON c.id=cs.client_id WHERE cs.token=%s AND cs.expires_at>NOW()",
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            conn.close(); return err("Сессия истекла", 401)
+        client_id, client_email = row
+        if not client_email:
+            conn.close(); return err("Для смены пароля необходимо сначала привязать email")
+        code = str(secrets.randbelow(900000) + 100000)
+        expires = datetime.now() + timedelta(minutes=15)
+        cur.execute(
+            f"INSERT INTO {SC}.client_otp (phone, code, channel, expires_at) VALUES ((SELECT phone FROM {SC}.clients WHERE id=%s), %s, 'email', %s)",
+            (client_id, code, expires)
+        )
+        conn.commit(); cur.close(); conn.close()
+        try:
+            host = os.environ["SMTP_HOST"]; port = int(os.environ["SMTP_PORT"])
+            user = os.environ["SMTP_USER"]; pwd  = os.environ["SMTP_PASSWORD"]
+            msg  = MIMEText(
+                f"<h2>Смена пароля ProFiX</h2><p>Ваш код подтверждения: <b style='font-size:24px'>{code}</b></p><p>Код действует 15 минут.</p>",
+                "html", "utf-8"
+            )
+            msg["Subject"] = f"Код смены пароля ProFiX: {code}"
+            msg["From"] = user; msg["To"] = client_email
+            if port == 465:
+                with smtplib.SMTP_SSL(host, port) as s: s.login(user, pwd); s.sendmail(user, client_email, msg.as_string())
+            else:
+                with smtplib.SMTP(host, port) as s: s.starttls(); s.login(user, pwd); s.sendmail(user, client_email, msg.as_string())
+        except Exception as e:
+            import traceback; print(f"[SMTP ERROR] {e}\n{traceback.format_exc()}")
+            return err(f"Ошибка отправки письма: {str(e)}")
+        return ok({"sent": True, "email": client_email})
+
+    # ── КЛИЕНТ: подтверждение смены пароля ──────────────────────────────────
+    if action == "client_change_password_confirm":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        code     = body.get("code", "").strip()
+        password = body.get("password", "").strip()
+        if not token or not code or not password or len(password) < 6:
+            return err("Нужен код и пароль от 6 символов")
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(
+            f"SELECT c.id, c.phone FROM {SC}.client_sessions cs JOIN {SC}.clients c ON c.id=cs.client_id WHERE cs.token=%s AND cs.expires_at>NOW()",
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            conn.close(); return err("Сессия истекла", 401)
+        client_id, phone_val = row
+        cur.execute(
+            f"SELECT id FROM {SC}.client_otp WHERE phone=%s AND code=%s AND used=FALSE AND expires_at>NOW() ORDER BY created_at DESC LIMIT 1",
+            (phone_val, code)
+        )
+        otp = cur.fetchone()
+        if not otp:
+            conn.close(); return err("Неверный или истёкший код")
+        cur.execute(f"UPDATE {SC}.client_otp SET used=TRUE WHERE id=%s", (otp[0],))
+        cur.execute(f"UPDATE {SC}.clients SET password_hash=%s WHERE id=%s", (hash_password(password), client_id))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"changed": True})
+
+    # ── КЛИЕНТ: запрос смены email ───────────────────────────────────────────
+    if action == "client_change_email_request":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        new_email = body.get("email", "").strip()
+        if not token or not new_email:
+            return err("Необходимы токен и новый email")
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"SELECT client_id FROM {SC}.client_sessions WHERE token=%s AND expires_at>NOW()", (token,))
+        row = cur.fetchone()
+        if not row:
+            conn.close(); return err("Сессия истекла", 401)
+        code = str(secrets.randbelow(900000) + 100000)
+        expires = datetime.now() + timedelta(minutes=15)
+        cur.execute(
+            f"SELECT phone FROM {SC}.clients WHERE id=%s", (row[0],)
+        )
+        phone_val = cur.fetchone()[0]
+        cur.execute(
+            f"INSERT INTO {SC}.client_otp (phone, code, channel, expires_at) VALUES (%s, %s, 'email', %s)",
+            (phone_val, code, expires)
+        )
+        conn.commit(); cur.close(); conn.close()
+        try:
+            host = os.environ["SMTP_HOST"]; port = int(os.environ["SMTP_PORT"])
+            user = os.environ["SMTP_USER"]; pwd  = os.environ["SMTP_PASSWORD"]
+            msg  = MIMEText(
+                f"<h2>Подтверждение нового email ProFiX</h2><p>Код подтверждения: <b style='font-size:24px'>{code}</b></p><p>Код действует 15 минут.</p>",
+                "html", "utf-8"
+            )
+            msg["Subject"] = f"Код подтверждения email ProFiX: {code}"
+            msg["From"] = user; msg["To"] = new_email
+            if port == 465:
+                with smtplib.SMTP_SSL(host, port) as s: s.login(user, pwd); s.sendmail(user, new_email, msg.as_string())
+            else:
+                with smtplib.SMTP(host, port) as s: s.starttls(); s.login(user, pwd); s.sendmail(user, new_email, msg.as_string())
+        except Exception as e:
+            import traceback; print(f"[SMTP ERROR] {e}\n{traceback.format_exc()}")
+            return err(f"Ошибка отправки письма: {str(e)}")
+        return ok({"sent": True})
+
+    # ── КЛИЕНТ: подтверждение смены email ───────────────────────────────────
+    if action == "client_change_email_confirm":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        code      = body.get("code", "").strip()
+        new_email = body.get("email", "").strip()
+        if not token or not code or not new_email:
+            return err("Нужен код и новый email")
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(
+            f"SELECT c.id, c.phone FROM {SC}.client_sessions cs JOIN {SC}.clients c ON c.id=cs.client_id WHERE cs.token=%s AND cs.expires_at>NOW()",
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            conn.close(); return err("Сессия истекла", 401)
+        client_id, phone_val = row
+        cur.execute(
+            f"SELECT id FROM {SC}.client_otp WHERE phone=%s AND code=%s AND used=FALSE AND expires_at>NOW() ORDER BY created_at DESC LIMIT 1",
+            (phone_val, code)
+        )
+        otp = cur.fetchone()
+        if not otp:
+            conn.close(); return err("Неверный или истёкший код")
+        cur.execute(f"UPDATE {SC}.client_otp SET used=TRUE WHERE id=%s", (otp[0],))
+        cur.execute(f"UPDATE {SC}.clients SET email=%s WHERE id=%s", (new_email, client_id))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"changed": True})
+
+    # ── КЛИЕНТ: запрос смены телефона ───────────────────────────────────────
+    if action == "client_change_phone_request":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        new_phone = body.get("phone", "").strip()
+        if not token or not new_phone:
+            return err("Необходимы токен и новый телефон")
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"SELECT client_id FROM {SC}.client_sessions WHERE token=%s AND expires_at>NOW()", (token,))
+        row = cur.fetchone()
+        if not row:
+            conn.close(); return err("Сессия истекла", 401)
+        cur.execute(f"SELECT id FROM {SC}.clients WHERE phone=%s", (new_phone,))
+        if cur.fetchone():
+            conn.close(); return err("Этот номер уже используется в другом аккаунте")
+        client_id = row[0]
+        code = str(secrets.randbelow(900000) + 100000)
+        expires = datetime.now() + timedelta(minutes=15)
+        cur.execute(f"SELECT email FROM {SC}.clients WHERE id=%s", (client_id,))
+        email_row = cur.fetchone()
+        if not email_row or not email_row[0]:
+            conn.close(); return err("Для смены телефона необходимо привязать email")
+        send_to = email_row[0]
+        cur.execute(
+            f"SELECT phone FROM {SC}.clients WHERE id=%s", (client_id,)
+        )
+        old_phone = cur.fetchone()[0]
+        cur.execute(
+            f"INSERT INTO {SC}.client_otp (phone, code, channel, expires_at) VALUES (%s, %s, 'email', %s)",
+            (old_phone, code, expires)
+        )
+        conn.commit(); cur.close(); conn.close()
+        try:
+            host = os.environ["SMTP_HOST"]; port = int(os.environ["SMTP_PORT"])
+            user = os.environ["SMTP_USER"]; pwd  = os.environ["SMTP_PASSWORD"]
+            msg  = MIMEText(
+                f"<h2>Смена телефона ProFiX</h2><p>Код подтверждения: <b style='font-size:24px'>{code}</b></p><p>Новый номер: {new_phone}</p><p>Код действует 15 минут.</p>",
+                "html", "utf-8"
+            )
+            msg["Subject"] = f"Код смены телефона ProFiX: {code}"
+            msg["From"] = user; msg["To"] = send_to
+            if port == 465:
+                with smtplib.SMTP_SSL(host, port) as s: s.login(user, pwd); s.sendmail(user, send_to, msg.as_string())
+            else:
+                with smtplib.SMTP(host, port) as s: s.starttls(); s.login(user, pwd); s.sendmail(user, send_to, msg.as_string())
+        except Exception as e:
+            import traceback; print(f"[SMTP ERROR] {e}\n{traceback.format_exc()}")
+            return err(f"Ошибка отправки письма: {str(e)}")
+        return ok({"sent": True, "email": send_to})
+
+    # ── КЛИЕНТ: подтверждение смены телефона ────────────────────────────────
+    if action == "client_change_phone_confirm":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        code      = body.get("code", "").strip()
+        new_phone = body.get("phone", "").strip()
+        if not token or not code or not new_phone:
+            return err("Нужен код и новый телефон")
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(
+            f"SELECT c.id, c.phone FROM {SC}.client_sessions cs JOIN {SC}.clients c ON c.id=cs.client_id WHERE cs.token=%s AND cs.expires_at>NOW()",
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            conn.close(); return err("Сессия истекла", 401)
+        client_id, old_phone = row
+        cur.execute(
+            f"SELECT id FROM {SC}.client_otp WHERE phone=%s AND code=%s AND used=FALSE AND expires_at>NOW() ORDER BY created_at DESC LIMIT 1",
+            (old_phone, code)
+        )
+        otp = cur.fetchone()
+        if not otp:
+            conn.close(); return err("Неверный или истёкший код")
+        cur.execute(f"UPDATE {SC}.client_otp SET used=TRUE WHERE id=%s", (otp[0],))
+        cur.execute(f"UPDATE {SC}.clients SET phone=%s WHERE id=%s", (new_phone, client_id))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"changed": True})
+
     # ── КЛИЕНТ: вход по паролю ──────────────────────────────────────────────
     if action == "client_login_password":
         phone    = body.get("phone", "").strip()
@@ -571,6 +797,8 @@ def handler(event: dict, context) -> dict:
         try:
             send_email_reset(email, reset_token, role)
         except Exception as e:
+            import traceback
+            print(f"[SMTP ERROR] {str(e)}\n{traceback.format_exc()}")
             return err(f"Ошибка отправки письма: {str(e)}")
         return ok({"sent": True})
 

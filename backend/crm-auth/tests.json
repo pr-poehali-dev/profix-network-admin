@@ -13,7 +13,7 @@
       "body": {
         "action": "manager_login",
         "login": "admin",
-        "password": "profix2024"
+        "password": "Profix2026!"
       },
       "expectedStatus": 200,
       "expectedBody": {"token": "string"},
