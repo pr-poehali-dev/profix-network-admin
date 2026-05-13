@@ -27,13 +27,12 @@ type NavItem = {
 };
 
 const DEFAULT_ITEMS: NavItem[] = [
-  { id: "sec-main",     type: "section", label: "Главная",    section: "Главная",    visible: true, style: "text" },
-  { id: "sec-services", type: "section", label: "Услуги",     section: "Услуги",     visible: true, style: "text" },
-  { id: "sec-1c",       type: "section", label: "1С",         section: "1С",         visible: true, style: "text" },
-  { id: "sec-about",    type: "section", label: "О компании", section: "О компании", visible: true, style: "text" },
-  { id: "sec-contacts", type: "section", label: "Контакты",   section: "Контакты",   visible: true, style: "text" },
-  { id: "shop",         type: "shop",    label: "Магазин",                           visible: true, style: "button" },
-  { id: "cabinet",      type: "cabinet", label: "Кабинет",                           visible: true, style: "button" },
+  { id: "sec-main",     type: "section", label: "Главная",  section: "Главная",    visible: true, style: "text" },
+  { id: "sec-services", type: "section", label: "Услуги",   section: "Услуги",     visible: true, style: "text" },
+  { id: "sec-1c",       type: "section", label: "1С",       section: "1С",         visible: true, style: "text" },
+  { id: "sec-contacts", type: "section", label: "Контакты", section: "Контакты",   visible: true, style: "text" },
+  { id: "shop",         type: "shop",    label: "Магазин",                         visible: true, style: "button" },
+  { id: "cabinet",      type: "cabinet", label: "Войти",                           visible: true, style: "button" },
 ];
 
 interface NavbarProps {
@@ -126,7 +125,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
     if (it.type === "section") {
       return (
         <button key={it.id} onClick={() => handleNavClick(it.section || it.label)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             isOnMain && activeSection === (it.section || it.label)
               ? "bg-[#3ca615] text-white"
               : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
@@ -138,7 +137,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
     if (it.type === "page") {
       return (
         <button key={it.id} onClick={() => navigate(`/p/${it.slug}`)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             location.pathname === `/p/${it.slug}` ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
           }`}>
           {it.label}
@@ -148,7 +147,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
     if (it.type === "link") {
       return (
         <a key={it.id} href={it.href}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors">
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors">
           {it.icon && <Icon name={it.icon as "Star"} size={14} fallback="Link" />}
           {it.label}
         </a>
@@ -197,27 +196,13 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         </button>
 
         {/* Десктоп — меню */}
-        <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
+        <nav className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
           {menuItems.map(it => renderDesktopMenuItem(it))}
 
-          {/* Блог, Форум, Новости */}
-          <button onClick={() => navigate("/blog?type=news")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${location.pathname === "/blog" ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"}`}>
-            Новости
-          </button>
-          <button onClick={() => navigate("/blog?type=forum")}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors">
-            Форум
-          </button>
-          <button onClick={() => navigate("/blog")}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors">
-            Блог
-          </button>
-
-          {/* Партнёры — всегда */}
+          {/* Партнёры */}
           <div ref={dropdownRef} className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <button onClick={() => setPartnersOpen(v => !v)}
-              className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 partnersOpen ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
               }`}>
               Партнёры
@@ -239,6 +224,28 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
               </div>
             )}
           </div>
+
+          {/* О компании */}
+          <button onClick={() => handleNavClick("О компании")}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              isOnMain && activeSection === "О компании" ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
+            }`}>
+            О компании
+          </button>
+
+          {/* Новости · Форум · Блог */}
+          <button onClick={() => navigate("/blog?type=news")}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${location.pathname === "/blog" && new URLSearchParams(location.search).get("type") === "news" ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"}`}>
+            Новости
+          </button>
+          <button onClick={() => navigate("/blog?type=forum")}
+            className="px-3 py-2 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors">
+            Форум
+          </button>
+          <button onClick={() => navigate("/blog")}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${location.pathname === "/blog" && !new URLSearchParams(location.search).get("type") ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"}`}>
+            Блог
+          </button>
         </nav>
 
         {/* Десктоп — кнопки справа */}
@@ -317,6 +324,12 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
               ))}
             </div>
           )}
+
+          {/* О компании */}
+          <button onClick={() => { handleNavClick("О компании"); onMenuToggle(); }}
+            className="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors">
+            О компании
+          </button>
 
           {/* Кнопки */}
           {btnItems.map(it => {
