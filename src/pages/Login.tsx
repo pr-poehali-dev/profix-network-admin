@@ -306,7 +306,7 @@ export default function Login() {
                     <input
                       type="text" value={login} onChange={e => setLogin(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && (login.includes("@") ? handleManagerEmailLogin() : handleManagerLogin())}
-                      placeholder="admin или your@email.com" autoFocus
+                      placeholder="Логин или email" autoFocus
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 pr-10" />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">
                       <Icon name={login.includes("@") ? "Mail" : "User"} size={16} />

@@ -1,5 +1,5 @@
 """
-CRM авторизация: клиенты, менеджеры, техники — OTP, пароль, восстановление пароля.
+CRM авторизация: клиенты, менеджеры, техники — OTP, пароль, восстановление пароля. v2
 """
 import json
 import os
@@ -780,14 +780,14 @@ def handler(event: dict, context) -> dict:
                 f"UPDATE {SC}.technicians SET reset_token=%s, reset_expires_at=%s WHERE id=%s",
                 (reset_token, expires, row[0])
             )
-        else:  # manager — сброс только для роли admin и только по разрешённой почте
-            ADMIN_EMAIL = "727187@it-profix.ru"
+        else:  # manager — сброс admin только с разрешённых почт
+            ADMIN_EMAILS = {"727187@it-profix.ru", "crash16@mail.ru"}
             cur.execute(f"SELECT id, role FROM {SC}.managers WHERE email=%s", (email,))
             row = cur.fetchone()
             if not row:
                 conn.close(); return ok({"sent": True})
-            # Если это admin — только с разрешённой почты
-            if row[1] == "admin" and email.lower() != ADMIN_EMAIL:
+            # Если это admin — только с разрешённых почт
+            if row[1] == "admin" and email.lower() not in ADMIN_EMAILS:
                 conn.close(); return ok({"sent": True})  # молча игнорируем
             cur.execute(
                 f"UPDATE {SC}.managers SET reset_token=%s, reset_expires_at=%s WHERE id=%s",
