@@ -135,10 +135,10 @@ export default function Login() {
 
   // ── Менеджер — email/пароль ─────────────────────────────────────────────
   async function handleManagerEmailLogin() {
-    if (!managerEmail.trim() || !password.trim()) { setError("Заполните email и пароль"); return; }
+    if (!login.trim() || !password.trim()) { setError("Заполните email и пароль"); return; }
     setError(""); setLoading(true);
     try {
-      const res = await managerApi.loginEmail(managerEmail.trim(), password.trim());
+      const res = await managerApi.loginEmail(login.trim(), password.trim());
       if (res.token) { managerSession.set(res.token); navigate("/admin"); }
       else setError(res.error || "Неверный email или пароль");
     } catch { setError("Ошибка соединения"); }
@@ -298,72 +298,44 @@ export default function Login() {
             {/* ── МЕНЕДЖЕР ── */}
             {role === "manager" && (
               <div className="space-y-4">
-                {/* Переключатель метода */}
-                <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
-                  {[{v:"login",l:"Логин"},{v:"email",l:"Email"}].map(m => (
-                    <button key={m.v} onClick={() => { setMethod(m.v as AuthMethod); setError(""); }}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${method === m.v ? "bg-white shadow text-gray-900" : "text-gray-500"}`}>
-                      {m.l}
-                    </button>
-                  ))}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                    Логин или Email
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text" value={login} onChange={e => setLogin(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && (login.includes("@") ? handleManagerEmailLogin() : handleManagerLogin())}
+                      placeholder="admin или your@email.com" autoFocus
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 pr-10" />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">
+                      <Icon name={login.includes("@") ? "Mail" : "User"} size={16} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {login.includes("@") ? "Будет выполнен вход по email" : "Будет выполнен вход по логину"}
+                  </p>
                 </div>
-                {method === "login" ? (
-                  <>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Логин</label>
-                      <input type="text" value={login} onChange={e => setLogin(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && handleManagerLogin()}
-                        placeholder="Введите логин" autoFocus
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Пароль</label>
-                      <div className="relative">
-                        <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
-                          onKeyDown={e => e.key === "Enter" && handleManagerLogin()}
-                          placeholder="Введите пароль"
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 pr-10" />
-                        <button type="button" onClick={() => setShowPass(!showPass)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                          <Icon name={showPass ? "EyeOff" : "Eye"} size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    <button onClick={handleManagerLogin} disabled={loading}
-                      className={`w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${cr.btn}`}>
-                      {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
-                      {loading ? "Вход..." : "Войти"}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">Пароль</label>
+                  <div className="relative">
+                    <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && (login.includes("@") ? handleManagerEmailLogin() : handleManagerLogin())}
+                      placeholder="Введите пароль"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 pr-10" />
+                    <button type="button" onClick={() => setShowPass(!showPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <Icon name={showPass ? "EyeOff" : "Eye"} size={16} />
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Email</label>
-                      <input type="email" value={managerEmail} onChange={e => setManagerEmail(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && handleManagerEmailLogin()}
-                        placeholder="your@email.com" autoFocus
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Пароль</label>
-                      <div className="relative">
-                        <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
-                          onKeyDown={e => e.key === "Enter" && handleManagerEmailLogin()}
-                          placeholder="Введите пароль"
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 pr-10" />
-                        <button type="button" onClick={() => setShowPass(!showPass)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                          <Icon name={showPass ? "EyeOff" : "Eye"} size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    <button onClick={handleManagerEmailLogin} disabled={loading}
-                      className={`w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${cr.btn}`}>
-                      {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
-                      {loading ? "Вход..." : "Войти"}
-                    </button>
-                  </>
-                )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => login.includes("@") ? handleManagerEmailLogin() : handleManagerLogin()}
+                  disabled={loading}
+                  className={`w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${cr.btn}`}>
+                  {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
+                  {loading ? "Вход..." : "Войти"}
+                </button>
                 <button onClick={() => { setScreen("forgot"); setError(""); }}
                   className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors">
                   Забыли пароль?
