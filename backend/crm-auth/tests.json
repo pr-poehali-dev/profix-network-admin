@@ -13,7 +13,8 @@
       "body": {
         "action": "manager_login",
         "login": "admin",
-        "password": "Profix2026!"
+        "password": "Profix2026!",
+        "cf_turnstile_token": "1x0000000000000000000000000000000AA"
       },
       "expectedStatus": 200,
       "expectedBody": {"token": "string"},

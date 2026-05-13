@@ -156,9 +156,11 @@ export default function Admin() {
             setManager(res.manager);
             setLoggedIn(true);
             await loadDashboard();
+          } else {
+            managerSession.clear(); // токен невалиден — очищаем
           }
         } catch {
-          // token invalid
+          managerSession.clear(); // ошибка сети или 401 — очищаем
         } finally {
           setLoading(false);
         }

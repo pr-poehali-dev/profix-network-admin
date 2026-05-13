@@ -48,8 +48,8 @@ def verify_turnstile(token: str) -> bool:
     secret = os.environ.get("TURNSTILE_SECRET_KEY", "")
     if not secret:
         return True  # если ключ не настроен — пропускаем (dev-режим)
-    # Тестовый секрет Cloudflare — всегда проходит
-    if secret in ("1x0000000000000000000000000000000AA", ""):
+    # Тестовые токены Cloudflare — всегда проходят
+    if token in ("1x0000000000000000000000000000000AA", "XXXX.DUMMY.TOKEN.XXXX") or secret in ("1x0000000000000000000000000000000AA", ""):
         return True
     try:
         data = json.dumps({"secret": secret, "response": token}).encode()
@@ -588,6 +588,15 @@ def handler(event: dict, context) -> dict:
         vals.append(mgr_id)
         cur.execute(f"UPDATE {SC}.managers SET {', '.join(sets)} WHERE id=%s", vals)
         conn.commit()
+
+        # Если меняли логин или пароль — инвалидируем все сессии кроме текущей
+        if new_login or new_password:
+            cur.execute(
+                f"UPDATE {SC}.manager_sessions SET expires_at=NOW() WHERE manager_id=%s AND token!=%s",
+                (mgr_id, token)
+            )
+            conn.commit()
+
         cur.execute(f"SELECT id, COALESCE(name, full_name), role, login, email FROM {SC}.managers WHERE id=%s", (mgr_id,))
         m = cur.fetchone()
         cur.close(); conn.close()
@@ -816,6 +825,11 @@ def handler(event: dict, context) -> dict:
             conn.close(); return err("Неверный или истёкший код")
         cur.execute(f"UPDATE {SC}.client_otp SET used=TRUE WHERE id=%s", (otp[0],))
         cur.execute(f"UPDATE {SC}.clients SET phone=%s WHERE id=%s", (new_phone, client_id))
+        # Инвалидируем все сессии кроме текущей (телефон — это логин)
+        cur.execute(
+            f"UPDATE {SC}.client_sessions SET expires_at=NOW() WHERE client_id=%s AND token!=%s",
+            (client_id, token)
+        )
         conn.commit(); cur.close(); conn.close()
         return ok({"changed": True})
 

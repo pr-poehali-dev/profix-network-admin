@@ -91,9 +91,11 @@ export default function Cabinet() {
             setProfileTgId(res.client.telegram_id ? String(res.client.telegram_id) : "");
             setStep("cabinet");
             await loadTickets();
+          } else {
+            clientSession.clear(); // токен невалиден — очищаем
           }
         } catch {
-          // token invalid, show login
+          clientSession.clear(); // ошибка сети или 401 — очищаем
         } finally {
           setLoading(false);
         }

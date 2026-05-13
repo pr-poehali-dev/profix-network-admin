@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
-import { managerApi } from "@/lib/crm-api";
+import { managerApi, managerSession } from "@/lib/crm-api";
 
 type Manager = { id: number; name: string; role: string };
 
@@ -29,6 +29,7 @@ export default function AdminProfile({ manager, onManagerUpdate, onBack }: Props
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("Изменения сохранены!");
 
   async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -64,11 +65,22 @@ export default function AdminProfile({ manager, onManagerUpdate, onBack }: Props
       if (!Object.keys(data).length) { setError("Нечего сохранять"); setSaving(false); return; }
       const res = await managerApi.updateProfile(data);
       if (res.updated) {
-        setSuccess(true);
+        const needsRelogin = !!(data.login || data.password);
         if (res.manager) onManagerUpdate(res.manager);
         setLogin(""); setEmail(""); setPhone(""); setAddress("");
         setCurPw(""); setNewPw(""); setNewPw2("");
-        setTimeout(() => setSuccess(false), 2500);
+        if (needsRelogin) {
+          setSuccessMsg("Сохранено! Войдите заново с новыми данными...");
+          setSuccess(true);
+          setTimeout(() => {
+            managerSession.clear();
+            window.location.href = "/login";
+          }, 2000);
+        } else {
+          setSuccessMsg("Изменения сохранены!");
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 2500);
+        }
       } else setError(res.error || "Ошибка сохранения");
     } catch { setError("Ошибка соединения"); }
     finally { setSaving(false); }
@@ -92,7 +104,7 @@ export default function AdminProfile({ manager, onManagerUpdate, onBack }: Props
       )}
       {success && (
         <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-green-700 text-sm">
-          <Icon name="CheckCircle" size={15} className="shrink-0" />Изменения сохранены!
+          <Icon name="CheckCircle" size={15} className="shrink-0" />{successMsg}
         </div>
       )}
 
