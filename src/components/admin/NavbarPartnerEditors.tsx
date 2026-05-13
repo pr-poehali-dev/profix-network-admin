@@ -18,20 +18,19 @@ type NavItem = {
 };
 
 const BUILTIN_ITEMS: NavItem[] = [
-  { id: "sec-main",     type: "section", label: "Главная",    section: "Главная",    visible: true, style: "text" },
-  { id: "sec-services", type: "section", label: "Услуги",     section: "Услуги",     visible: true, style: "text" },
-  { id: "sec-1c",       type: "section", label: "1С",         section: "1С",         visible: true, style: "text" },
-  { id: "sec-about",    type: "section", label: "О компании", section: "О компании", visible: true, style: "text" },
-  { id: "sec-contacts", type: "section", label: "Контакты",   section: "Контакты",   visible: true, style: "text" },
-  { id: "shop",         type: "shop",    label: "Магазин",                           visible: true, style: "button" },
-  { id: "cabinet",      type: "cabinet", label: "Кабинет",                           visible: true, style: "button" },
+  { id: "sec-main",     type: "section", label: "Главная",  section: "Главная",    visible: true, style: "text" },
+  { id: "sec-services", type: "section", label: "Услуги",   section: "Услуги",     visible: true, style: "text" },
+  { id: "sec-1c",       type: "section", label: "1С",       section: "1С",         visible: true, style: "text" },
+  { id: "sec-contacts", type: "section", label: "Контакты", section: "Контакты",   visible: true, style: "text" },
+  { id: "shop",         type: "shop",    label: "Магазин",                         visible: true, style: "button" },
+  { id: "cabinet",      type: "cabinet", label: "Войти",                           visible: true, style: "button" },
 ];
 
 const TYPE_LABEL: Record<string, string> = {
   section: "Якорь",
   link:    "Ссылка",
   shop:    "Магазин",
-  cabinet: "Кабинет",
+  cabinet: "Войти",
   page:    "Страница",
 };
 
@@ -47,7 +46,11 @@ const TYPE_COLOR: Record<string, string> = {
 const SITE_PAGES = [
   { label: "Главная", href: "/" },
   { label: "Магазин", href: "/shop" },
-  { label: "Кабинет клиента", href: "/cabinet" },
+  { label: "Войти / Кабинет", href: "/login" },
+  { label: "Блог", href: "/blog" },
+  { label: "Новости", href: "/blog?type=news" },
+  { label: "Форум", href: "/blog?type=forum" },
+  { label: "Реквизиты", href: "/requisites" },
   { label: "DataMobile", href: "/datamobile" },
   { label: "POSCenter", href: "/poscenter" },
   { label: "АТОЛ", href: "/atol" },
