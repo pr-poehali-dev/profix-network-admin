@@ -200,6 +200,20 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
           {menuItems.map(it => renderDesktopMenuItem(it))}
 
+          {/* Блог, Форум, Новости */}
+          <button onClick={() => navigate("/blog?type=news")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${location.pathname === "/blog" ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"}`}>
+            Новости
+          </button>
+          <button onClick={() => navigate("/blog?type=forum")}
+            className="px-4 py-2 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors">
+            Форум
+          </button>
+          <button onClick={() => navigate("/blog")}
+            className="px-4 py-2 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors">
+            Блог
+          </button>
+
           {/* Партнёры — всегда */}
           <div ref={dropdownRef} className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <button onClick={() => setPartnersOpen(v => !v)}
@@ -272,6 +286,20 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
             );
             return null;
           })}
+
+          {/* Блог, Форум, Новости — мобильное */}
+          <button onClick={() => { navigate("/blog?type=news"); onMenuToggle(); }}
+            className="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors flex items-center gap-2">
+            <Icon name="Newspaper" size={15} />Новости
+          </button>
+          <button onClick={() => { navigate("/blog?type=forum"); onMenuToggle(); }}
+            className="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors flex items-center gap-2">
+            <Icon name="MessageSquare" size={15} />Форум
+          </button>
+          <button onClick={() => { navigate("/blog"); onMenuToggle(); }}
+            className="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors flex items-center gap-2">
+            <Icon name="FileText" size={15} />Блог
+          </button>
 
           {/* Партнёры */}
           <button onClick={() => setMobilePartnersOpen(!mobilePartnersOpen)}

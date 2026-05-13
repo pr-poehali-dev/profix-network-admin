@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
@@ -231,15 +231,15 @@ function CommentSection({ postId, comments: initialComments, onCommentAdded }: {
 export default function Blog() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
+  const [searchParams] = useSearchParams();
   const { str } = useSiteContent();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(searchParams.get("type") || "all");
   const [reactions, setReactions] = useState<Record<string, number>>({});
   const [myReaction, setMyReaction] = useState<string | null>(null);
-  const sessionId = blogApi.getSessionId();
 
   const youtubeChannel = str("blog.youtube_channel", "");
 
@@ -385,7 +385,9 @@ export default function Blog() {
           <span className="font-oswald text-lg font-bold">
             <span className="text-[#3ca615]">ПРО</span><span className="text-gray-900">ФИКС</span>
           </span>
-          <span className="text-gray-400 text-sm hidden sm:block">/ Блог</span>
+          <span className="text-gray-400 text-sm hidden sm:block">
+            / {filter === "news" ? "Новости" : filter === "forum" ? "Форум" : "Блог"}
+          </span>
           {youtubeChannel && (
             <a href={youtubeChannel} target="_blank" rel="noopener noreferrer"
               className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition">
@@ -398,8 +400,15 @@ export default function Blog() {
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="font-oswald text-3xl font-bold text-gray-900 mb-1">Блог ProFiX</h1>
-          <p className="text-gray-500 text-sm">Новости, статьи, видео и советы об IT в Якутске</p>
+          <h1 className="font-oswald text-3xl font-bold text-gray-900 mb-1">
+            {filter === "news" ? "Новости" : filter === "forum" ? "Форум" : filter === "video" ? "Видео" : filter === "article" ? "Статьи" : "Блог ProFiX"}
+          </h1>
+          <p className="text-gray-500 text-sm">
+            {filter === "news" ? "Последние новости IT-рынка и компании ProFiX в Якутске"
+              : filter === "forum" ? "Обсуждения, вопросы и ответы от пользователей — только для зарегистрированных"
+              : filter === "video" ? "Видеоматериалы, обзоры и обучающие ролики"
+              : "Новости, статьи, видео и советы об IT в Якутске"}
+          </p>
         </div>
 
         {/* Фильтры */}
