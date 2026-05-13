@@ -169,6 +169,9 @@ export const managerApi = {
   createManager: (data: { login: string; password: string; name: string; role: string }) =>
     postAuthWithToken({ action: "manager_create", ...data }, managerSession.get()!),
 
+  updateProfile: (data: { name?: string; login?: string; email?: string; password?: string; current_password?: string }) =>
+    postAuthWithToken({ action: "manager_update_profile", ...data }, managerSession.get()!),
+
   getTickets: (status?: string) =>
     getTickets({ action: "list", ...(status ? { status } : {}) }, managerSession.get()!),
 

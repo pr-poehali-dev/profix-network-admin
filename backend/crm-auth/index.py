@@ -439,6 +439,69 @@ def handler(event: dict, context) -> dict:
         cur.close(); conn.close()
         return ok({"client": {"id": c[0], "name": c[1], "phone": c[2], "email": c[3]}})
 
+    # ── МЕНЕДЖЕР: обновление профиля (имя, логин, email, пароль) ────────────
+    if action == "manager_update_profile":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        if not token:
+            return err("Необходима авторизация", 401)
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(
+            f"""SELECT m.id, m.login, m.role FROM {SC}.manager_sessions ms
+               JOIN {SC}.managers m ON m.id = ms.manager_id
+               WHERE ms.token=%s AND ms.expires_at > NOW()""",
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            conn.close(); return err("Сессия истекла", 401)
+        mgr_id, current_login, mgr_role = row
+
+        new_name     = body.get("name", "").strip()
+        new_login    = body.get("login", "").strip()
+        new_email    = body.get("email", "").strip()
+        new_password = body.get("password", "").strip()
+        cur_password = body.get("current_password", "").strip()
+
+        # Если меняем пароль — требуем текущий для подтверждения
+        if new_password:
+            if not cur_password:
+                conn.close(); return err("Укажите текущий пароль для подтверждения")
+            cur.execute(f"SELECT password_hash FROM {SC}.managers WHERE id=%s", (mgr_id,))
+            ph = cur.fetchone()
+            if not ph or ph[0] != hash_password(cur_password):
+                conn.close(); return err("Неверный текущий пароль", 401)
+            if len(new_password) < 6:
+                conn.close(); return err("Новый пароль — минимум 6 символов")
+
+        # Проверяем уникальность нового логина
+        if new_login and new_login != current_login:
+            cur.execute(f"SELECT id FROM {SC}.managers WHERE (login=%s OR username=%s) AND id!=%s", (new_login, new_login, mgr_id))
+            if cur.fetchone():
+                conn.close(); return err("Такой логин уже занят")
+
+        sets, vals = [], []
+        if new_name:
+            sets += ["name=%s", "full_name=%s"]; vals += [new_name, new_name]
+        if new_login and new_login != current_login:
+            sets += ["login=%s", "username=%s"]; vals += [new_login, new_login]
+        if new_email:
+            sets += ["email=%s"]; vals += [new_email]
+        if new_password:
+            sets += ["password_hash=%s"]; vals += [hash_password(new_password)]
+
+        if not sets:
+            conn.close(); return err("Нечего обновлять")
+
+        vals.append(mgr_id)
+        cur.execute(f"UPDATE {SC}.managers SET {', '.join(sets)} WHERE id=%s", vals)
+        conn.commit()
+        cur.execute(f"SELECT id, COALESCE(name, full_name), role, login, email FROM {SC}.managers WHERE id=%s", (mgr_id,))
+        m = cur.fetchone()
+        cur.close(); conn.close()
+        return ok({"updated": True, "manager": {"id": m[0], "name": m[1], "role": m[2], "login": m[3], "email": m[4]}})
+
     # ── КЛИЕНТ: запрос смены пароля (код на email) ──────────────────────────
     if action == "client_change_password_request":
         auth = (event.get("headers") or {}).get("X-Authorization", "") or \

@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import AdminNotificationPanel from "@/components/admin/AdminNotificationPanel";
-import { managerSession } from "@/lib/crm-api";
+import { managerSession, managerApi } from "@/lib/crm-api";
 
 interface MenuItem {
   key: string;
@@ -14,14 +14,75 @@ interface Props {
   activeSection: string;
   onSectionChange: (s: string) => void;
   onLogout: () => void;
+  onManagerUpdate?: (m: { id: number; name: string; role: string }) => void;
   newCommentCount?: number;
   newTicketCount?: number;
   newReviewCount?: number;
 }
 
-export default function AdminSidebar({ manager, activeSection, onSectionChange, onLogout, newCommentCount = 0, newTicketCount = 0, newReviewCount = 0 }: Props) {
+export default function AdminSidebar({ manager, activeSection, onSectionChange, onLogout, onManagerUpdate, newCommentCount = 0, newTicketCount = 0, newReviewCount = 0 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Профиль-попап
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileName, setProfileName] = useState(manager?.name || "");
+  const [profileLogin, setProfileLogin] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profileCurPw, setProfileCurPw] = useState("");
+  const [profileNewPw, setProfileNewPw] = useState("");
+  const [profileNewPw2, setProfileNewPw2] = useState("");
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (profileOpen) {
+      setProfileName(manager?.name || "");
+      setProfileLogin(""); setProfileEmail("");
+      setProfileCurPw(""); setProfileNewPw(""); setProfileNewPw2("");
+      setProfileError(""); setProfileSuccess(false);
+    }
+  }, [profileOpen, manager?.name]);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    if (profileOpen) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [profileOpen]);
+
+  async function handleProfileSave() {
+    if (profileNewPw && profileNewPw !== profileNewPw2) {
+      setProfileError("Пароли не совпадают"); return;
+    }
+    if (profileNewPw && !profileCurPw) {
+      setProfileError("Укажите текущий пароль"); return;
+    }
+    setProfileLoading(true); setProfileError("");
+    try {
+      const data: Record<string, string> = {};
+      if (profileName.trim() && profileName.trim() !== manager?.name) data.name = profileName.trim();
+      if (profileLogin.trim()) data.login = profileLogin.trim();
+      if (profileEmail.trim()) data.email = profileEmail.trim();
+      if (profileNewPw.trim()) { data.password = profileNewPw.trim(); data.current_password = profileCurPw.trim(); }
+      if (!Object.keys(data).length) { setProfileError("Нечего сохранять"); setProfileLoading(false); return; }
+      const res = await managerApi.updateProfile(data);
+      if (res.updated) {
+        setProfileSuccess(true);
+        if (res.manager && onManagerUpdate) onManagerUpdate(res.manager);
+        setTimeout(() => { setProfileOpen(false); setProfileSuccess(false); }, 1500);
+      } else {
+        setProfileError(res.error || "Ошибка сохранения");
+      }
+    } catch { setProfileError("Ошибка соединения"); }
+    finally { setProfileLoading(false); }
+  }
 
   useEffect(() => {
     const check = () => {
@@ -130,18 +191,100 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
       </nav>
 
       {/* Нижняя часть */}
-      <div className="px-2 py-4 border-t border-white/10">
-        {!collapsed && (
-          <div className="flex items-center gap-3 mb-3 px-1">
-            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-              <Icon name="User" size={16} className="text-gray-300" />
+      <div className="px-2 py-4 border-t border-white/10 relative" ref={profileRef}>
+
+        {/* Профиль-попап */}
+        {profileOpen && (
+          <div className="absolute bottom-full left-0 right-0 mb-2 mx-1 bg-[#1e2533] border border-white/10 rounded-2xl shadow-2xl p-4 z-50">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-white text-sm font-semibold">Мой профиль</p>
+              <button onClick={() => setProfileOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+                <Icon name="X" size={16} />
+              </button>
             </div>
-            <div className="overflow-hidden">
-              <p className="text-white text-sm font-medium truncate">{manager?.name}</p>
-              <p className="text-gray-400 text-xs capitalize">{manager?.role}</p>
+
+            {profileError && (
+              <div className="mb-3 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs flex items-center gap-2">
+                <Icon name="AlertCircle" size={13} className="shrink-0" />{profileError}
+              </div>
+            )}
+            {profileSuccess && (
+              <div className="mb-3 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-xs flex items-center gap-2">
+                <Icon name="CheckCircle" size={13} className="shrink-0" />Сохранено!
+              </div>
+            )}
+
+            <div className="space-y-2.5">
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Имя</label>
+                <input value={profileName} onChange={e => setProfileName(e.target.value)}
+                  placeholder={manager?.name || "Ваше имя"}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3ca615]" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Новый логин</label>
+                <input value={profileLogin} onChange={e => setProfileLogin(e.target.value)}
+                  placeholder="Оставьте пустым, чтобы не менять"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3ca615]" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Email</label>
+                <input value={profileEmail} onChange={e => setProfileEmail(e.target.value)}
+                  placeholder="Для восстановления пароля" type="email"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3ca615]" />
+              </div>
+
+              <div className="pt-1 border-t border-white/5">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Сменить пароль</p>
+                <div className="space-y-2">
+                  <input value={profileCurPw} onChange={e => setProfileCurPw(e.target.value)}
+                    placeholder="Текущий пароль" type="password"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3ca615]" />
+                  <div className="relative">
+                    <input value={profileNewPw} onChange={e => setProfileNewPw(e.target.value)}
+                      placeholder="Новый пароль" type={showNewPw ? "text" : "password"}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3ca615] pr-9" />
+                    <button type="button" onClick={() => setShowNewPw(v => !v)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
+                      <Icon name={showNewPw ? "EyeOff" : "Eye"} size={14} />
+                    </button>
+                  </div>
+                  <input value={profileNewPw2} onChange={e => setProfileNewPw2(e.target.value)}
+                    placeholder="Повторите новый пароль" type={showNewPw ? "text" : "password"}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3ca615]" />
+                  {profileNewPw && profileNewPw2 && profileNewPw !== profileNewPw2 && (
+                    <p className="text-xs text-red-400">Пароли не совпадают</p>
+                  )}
+                </div>
+              </div>
+
+              <button onClick={handleProfileSave} disabled={profileLoading}
+                className="w-full py-2 rounded-xl bg-[#3ca615] hover:bg-[#2d8a10] text-white text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2 mt-1">
+                {profileLoading ? <Icon name="Loader2" size={14} className="animate-spin" /> : <Icon name="Save" size={14} />}
+                {profileLoading ? "Сохранение..." : "Сохранить"}
+              </button>
             </div>
           </div>
         )}
+
+        {/* Кнопка профиля */}
+        <button
+          onClick={() => setProfileOpen(v => !v)}
+          title={collapsed ? manager?.name : undefined}
+          className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl transition-colors mb-1 ${profileOpen ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+        >
+          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+            <Icon name="User" size={14} className="text-gray-300" />
+          </div>
+          {!collapsed && (
+            <div className="flex-1 text-left overflow-hidden">
+              <p className="text-white text-xs font-medium truncate">{manager?.name}</p>
+              <p className="text-gray-400 text-[10px] capitalize">{manager?.role === "admin" ? "Администратор" : "Менеджер"}</p>
+            </div>
+          )}
+          {!collapsed && <Icon name="Settings" size={13} className="text-gray-500 shrink-0" />}
+        </button>
+
         <button
           onClick={onLogout}
           title={collapsed ? "Выйти" : undefined}

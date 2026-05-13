@@ -554,6 +554,7 @@ export default function Admin() {
         activeSection={activeSection}
         onSectionChange={handleSectionChange}
         onLogout={handleLogout}
+        onManagerUpdate={m => setManager(m)}
         newCommentCount={newCommentCount}
         newTicketCount={newTicketCount}
         newReviewCount={newReviewCount}
