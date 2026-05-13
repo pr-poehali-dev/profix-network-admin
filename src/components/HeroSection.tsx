@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Icon from "@/components/ui/icon";
 import { useSiteContent } from "@/hooks/useSiteContent";
 
@@ -25,10 +25,22 @@ interface HeroSectionProps {
   carouselIdx: number;
   onSetCarouselIdx: (idx: number) => void;
   onScrollTo: (section: string) => void;
+  onQuickOrder?: (serviceName: string) => void;
 }
 
-const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionProps) => {
+const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }: HeroSectionProps) => {
   const { str, json } = useSiteContent();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const perView = isMobile ? 2 : 3;
+  const slideWidth = isMobile ? "calc(50% - 8px)" : "calc(33.333% - 11px)";
   const slides = json<{img:string;title:string;desc:string}[]>("carousel.slides", DEFAULT_SLIDES);
   const stats = json<{val:string;label:string}[]>("hero.stats", [{val:"1000+",label:"клиентов"},{val:"15+",label:"лет опыта"},{val:"100%",label:"гарантия"}]);
   const titleLines = str("hero.title", "IT-ПОДДЕРЖКА\nДЛЯ БИЗНЕСА\nИ ЧАСТНЫХ ЛИЦ").split("\n");
@@ -174,11 +186,11 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
               <Icon name="ChevronRight" size={20} />
             </button>
 
-            {/* Трек — 3 карточки видны одновременно */}
+            {/* Трек — 3 карточки на десктопе, 2 на мобильном */}
             <div className="overflow-hidden mx-6">
               <div
                 className="flex gap-4 transition-transform duration-700 ease-in-out"
-                style={{ transform: `translateX(-${carouselIdx * (100 / 3)}%)` }}
+                style={{ transform: `translateX(-${carouselIdx * (100 / perView)}%)` }}
               >
                 {slides.map((slide, i) => {
                   const isActive = i === carouselIdx;
@@ -191,9 +203,9 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
                           ? "shadow-2xl scale-100 opacity-100"
                           : "shadow-md scale-95 opacity-70 hover:opacity-90 hover:scale-[0.97]"
                       }`}
-                      style={{ width: "calc(33.333% - 11px)" }}
+                      style={{ width: slideWidth }}
                     >
-                      <div className="relative" style={{ height: isActive ? "300px" : "260px", transition: "height 0.4s ease" }}>
+                      <div className="relative" style={{ height: isActive ? (isMobile ? "220px" : "300px") : (isMobile ? "190px" : "260px"), transition: "height 0.4s ease" }}>
                         <img
                           src={slide.img}
                           alt={slide.title || `Фото ${i + 1}`}
@@ -204,18 +216,22 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo }: HeroSectionP
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                         {/* Подпись */}
                         {slide.title && (
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <p className={`font-oswald font-bold text-white leading-tight transition-all duration-300 ${isActive ? "text-base" : "text-sm"}`}>
+                          <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
+                            <p className={`font-oswald font-bold text-white leading-tight transition-all duration-300 ${isActive ? (isMobile ? "text-sm" : "text-base") : "text-xs sm:text-sm"}`}>
                               {slide.title}
                             </p>
                             {isActive && (
                               <>
-                                <p className="text-white/70 text-xs mt-1 leading-snug line-clamp-2">{slide.desc}</p>
+                                {!isMobile && <p className="text-white/70 text-xs mt-1 leading-snug line-clamp-2">{slide.desc}</p>}
                                 <button
-                                  onClick={e => { e.stopPropagation(); onScrollTo("Контакты"); }}
-                                  className="mt-3 flex items-center gap-1.5 bg-[#3ca615] hover:bg-[#2d8a10] text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-lg hover:shadow-green-500/30 hover:-translate-y-0.5 w-fit"
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    if (onQuickOrder) onQuickOrder(slide.title || "");
+                                    else onScrollTo("Контакты");
+                                  }}
+                                  className="mt-2 sm:mt-3 flex items-center gap-1.5 bg-[#3ca615] hover:bg-[#2d8a10] text-white text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all shadow-lg hover:shadow-green-500/30 hover:-translate-y-0.5 w-fit"
                                 >
-                                  <Icon name="Zap" size={13} />
+                                  <Icon name="Zap" size={12} />
                                   Заказать в 1 клик
                                 </button>
                               </>

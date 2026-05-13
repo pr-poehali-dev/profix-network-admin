@@ -9,6 +9,7 @@ import ChatWidget from "@/components/ChatWidget";
 import ReviewsSection from "@/components/ReviewsSection";
 import MapSection from "@/components/MapSection";
 import ShopPreview from "@/components/ShopPreview";
+import QuickOrderModal from "@/components/QuickOrderModal";
 import { useSiteContent } from "@/hooks/useSiteContent";
 
 const DEFAULT_ORDER = [
@@ -31,6 +32,8 @@ const Index = () => {
   const [error, setError] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [carouselIdx, setCarouselIdx] = useState(0);
+  const [quickOrderOpen, setQuickOrderOpen] = useState(false);
+  const [quickOrderService, setQuickOrderService] = useState("");
 
   const { json } = useSiteContent();
   const blocksOrder = json<{key:string;visible:boolean}[]>("home.blocks_order", DEFAULT_ORDER);
@@ -90,6 +93,7 @@ const Index = () => {
             carouselIdx={carouselIdx}
             onSetCarouselIdx={setCarouselIdx}
             onScrollTo={scrollTo}
+            onQuickOrder={(service) => { setQuickOrderService(service); setQuickOrderOpen(true); }}
           />
         );
       case "carousel":
@@ -152,6 +156,12 @@ const Index = () => {
         onReset={handleReset}
       />
       <ChatWidget />
+
+      <QuickOrderModal
+        open={quickOrderOpen}
+        serviceName={quickOrderService}
+        onClose={() => setQuickOrderOpen(false)}
+      />
     </div>
   );
 };

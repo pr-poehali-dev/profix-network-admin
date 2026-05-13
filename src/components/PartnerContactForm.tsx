@@ -28,6 +28,7 @@ const PartnerContactForm = ({ accentColor = "#3ca615", defaultTopic = "" }: Prop
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [agreed, setAgreed] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,9 +159,24 @@ const PartnerContactForm = ({ accentColor = "#3ca615", defaultTopic = "" }: Prop
         </div>
       )}
 
+      <label className="flex items-start gap-3 cursor-pointer group">
+        <div className="relative mt-0.5 shrink-0">
+          <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="sr-only" />
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${agreed ? "border-[#3ca615] bg-[#3ca615]" : "border-gray-300 bg-white group-hover:border-[#3ca615]"}`}
+            style={agreed ? { backgroundColor: accent, borderColor: accent } : {}}>
+            {agreed && <Icon name="Check" size={12} className="text-white" />}
+          </div>
+        </div>
+        <span className="text-xs text-gray-500 leading-relaxed">
+          Я согласен(а) с{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: accent }}>
+            политикой обработки персональных данных
+          </a>
+        </span>
+      </label>
       <button
         type="submit"
-        disabled={loading || !form.topic}
+        disabled={loading || !form.topic || !agreed}
         className="w-full text-white py-4 rounded-xl font-semibold transition-all shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         style={{ backgroundColor: accent }}
       >

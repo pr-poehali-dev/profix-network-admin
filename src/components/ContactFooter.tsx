@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Icon from "@/components/ui/icon";
 import { useSiteContent } from "@/hooks/useSiteContent";
 
@@ -44,6 +45,7 @@ const ContactFooter = ({
   onReset,
 }: ContactFooterProps) => {
   const { str } = useSiteContent();
+  const [agreed, setAgreed] = useState(false);
   return (
     <>
       {/* CONTACTS / FORM */}
@@ -140,9 +142,28 @@ const ContactFooter = ({
                   {error}
                 </div>
               )}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative mt-0.5 shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={agreed}
+                    onChange={e => setAgreed(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${agreed ? "bg-[#3ca615] border-[#3ca615]" : "border-gray-300 bg-white group-hover:border-[#3ca615]"}`}>
+                    {agreed && <Icon name="Check" size={12} className="text-white" />}
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500 leading-relaxed">
+                  Я согласен(а) с{" "}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#3ca615] hover:underline">
+                    политикой обработки персональных данных
+                  </a>
+                </span>
+              </label>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !agreed}
                 className="w-full bg-[#3ca615] text-white py-4 rounded-xl font-semibold hover:bg-[#2d8a10] transition-all shadow-lg shadow-green-200 hover:shadow-green-300 hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {loading ? (
@@ -157,7 +178,6 @@ const ContactFooter = ({
                   </>
                 )}
               </button>
-              <p className="text-xs text-center text-gray-400">Нажимая кнопку, вы соглашаетесь на обработку персональных данных</p>
             </form>
           )}
         </div>

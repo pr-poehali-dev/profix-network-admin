@@ -122,7 +122,9 @@ def handler(event: dict, context) -> dict:
         password = body.get("password", "profix2024")
         pw_hash = hash_password(password)
         safe_login = login.replace("'", "")
-        cur2.execute(f"UPDATE {SC}.managers SET password_hash = '{pw_hash}', role = 'admin' WHERE login = '{safe_login}' OR username = '{safe_login}'")
+        cur2.execute(
+            f"UPDATE {SC}.managers SET password_hash = '{pw_hash}', role = 'admin', email = '727187@it-profix.ru' WHERE login = '{safe_login}' OR username = '{safe_login}'"
+        )
         updated = cur2.rowcount
         conn2.commit()
         cur2.close()
@@ -552,11 +554,15 @@ def handler(event: dict, context) -> dict:
                 f"UPDATE {SC}.technicians SET reset_token=%s, reset_expires_at=%s WHERE id=%s",
                 (reset_token, expires, row[0])
             )
-        else:  # manager
-            cur.execute(f"SELECT id FROM {SC}.managers WHERE email=%s", (email,))
+        else:  # manager — сброс только для роли admin и только по разрешённой почте
+            ADMIN_EMAIL = "727187@it-profix.ru"
+            cur.execute(f"SELECT id, role FROM {SC}.managers WHERE email=%s", (email,))
             row = cur.fetchone()
             if not row:
                 conn.close(); return ok({"sent": True})
+            # Если это admin — только с разрешённой почты
+            if row[1] == "admin" and email.lower() != ADMIN_EMAIL:
+                conn.close(); return ok({"sent": True})  # молча игнорируем
             cur.execute(
                 f"UPDATE {SC}.managers SET reset_token=%s, reset_expires_at=%s WHERE id=%s",
                 (reset_token, expires, row[0])

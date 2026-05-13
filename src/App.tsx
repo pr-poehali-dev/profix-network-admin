@@ -24,6 +24,7 @@ import ShopProduct from "./pages/ShopProduct";
 import CustomPageView from "./pages/CustomPage";
 import ManagerApp from "./pages/ManagerApp";
 import Login from "./pages/Login";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ const App = () => (
           <Route path="/p/:slug" element={<CustomPageView />} />
           <Route path="/manager" element={<ManagerApp />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/privacy" element={<Privacy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

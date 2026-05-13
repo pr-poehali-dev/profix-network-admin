@@ -8,6 +8,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
   const [form, setForm] = useState({ name: "", phone: "", comment: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [agreed, setAgreed] = useState(false);
 
   function reload() { setItems(cart.get()); }
 
@@ -155,8 +156,22 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
                 </div>
               </div>
             </div>
-            <div className="px-5 py-4 border-t border-gray-100">
-              <button type="submit" disabled={loading}
+            <div className="px-5 py-4 border-t border-gray-100 space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative mt-0.5 shrink-0">
+                  <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="sr-only" />
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${agreed ? "bg-[#3ca615] border-[#3ca615]" : "border-gray-300 bg-white group-hover:border-[#3ca615]"}`}>
+                    {agreed && <Icon name="Check" size={12} className="text-white" />}
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500 leading-relaxed">
+                  Я согласен(а) с{" "}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#3ca615] hover:underline">
+                    политикой обработки персональных данных
+                  </a>
+                </span>
+              </label>
+              <button type="submit" disabled={loading || !agreed}
                 className="w-full py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
                 style={{ background: "#3ca615" }}>
                 {loading ? "Отправка..." : "Отправить заявку"}
