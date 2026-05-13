@@ -76,7 +76,7 @@ def send_email_reset(to_email: str, token: str, role: str):
     port = int(os.environ["SMTP_PORT"])
     user = os.environ["SMTP_USER"]
     pwd  = os.environ["SMTP_PASSWORD"]
-    link = f"https://profix-network-admin.poehali.dev/login?reset={token}&role={role}"
+    link = f"https://pfx.su/login?reset={token}&role={role}"
     msg  = MIMEText(
         f"<h2>Сброс пароля ProFiX</h2>"
         f"<p>Для установки нового пароля перейдите по ссылке:</p>"
