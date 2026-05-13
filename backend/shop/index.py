@@ -391,9 +391,11 @@ def handler(event: dict, context) -> dict:
         # ОФОРМЛЕНИЕ ЗАКАЗА
         # ══════════════════════════════════════════════════════════════════════
         if resource == "order" and method == "POST":
-            name = body.get("name", "").strip()
-            phone = body.get("phone", "").strip()
-            items = body.get("items", [])
+            name           = body.get("name", "").strip()
+            phone          = body.get("phone", "").strip()
+            email          = body.get("email", "").strip()
+            payment_method = body.get("payment_method", "").strip()  # cash | card | invoice | qr
+            items          = body.get("items", [])
             if not name or not phone:
                 return err("Укажите имя и телефон")
             if not items:
@@ -405,7 +407,13 @@ def handler(event: dict, context) -> dict:
             ])
             total = sum(i.get("price", 0) * i.get("qty", 1) for i in items)
             title = f"Заказ из магазина: {len(items)} поз. на {total:,.0f} ₽"
-            description = f"Клиент: {name}\nТелефон: {phone}\n\nТовары:\n{items_text}"
+            description = f"Клиент: {name}\nТелефон: {phone}"
+            if email:
+                description += f"\nEmail: {email}"
+            if payment_method:
+                pm_labels = {"cash": "Наличными", "card": "Картой", "invoice": "По счёту", "qr": "QR / СБП"}
+                description += f"\nСпособ оплаты: {pm_labels.get(payment_method, payment_method)}"
+            description += f"\n\nТовары:\n{items_text}"
             if body.get("comment"):
                 description += f"\n\nКомментарий: {body['comment']}"
 
@@ -415,20 +423,34 @@ def handler(event: dict, context) -> dict:
             cl = cur.fetchone()
             if cl:
                 client_id = cl[0]
+                if email:
+                    cur.execute(f"UPDATE {SC}.clients SET email=COALESCE(email,%s), name=COALESCE(NULLIF(name,''),%s) WHERE id=%s", (email, name, client_id))
             else:
                 cur.execute(
-                    f"INSERT INTO {SC}.clients (name, phone) VALUES (%s, %s) RETURNING id",
-                    (name, phone)
+                    f"INSERT INTO {SC}.clients (name, phone, email) VALUES (%s, %s, %s) RETURNING id",
+                    (name, phone, email or None)
                 )
                 client_id = cur.fetchone()[0]
 
+            # Генерируем номер счёта
+            cur.execute(f"SELECT COALESCE(MAX(id),0)+1 FROM {SC}.tickets")
+            next_id = cur.fetchone()[0]
+            invoice_number = f"INV-{next_id:05d}"
+
             cur.execute(f"""
-                INSERT INTO {SC}.tickets (client_id, title, description, status, priority)
-                VALUES (%s, %s, %s, 'new', 'normal') RETURNING id
-            """, (client_id, title, description))
+                INSERT INTO {SC}.tickets
+                  (client_id, title, description, status, priority, amount, payment_method, invoice_number, payment_status, source)
+                VALUES (%s, %s, %s, 'new', 'normal', %s, %s, %s, %s, 'shop') RETURNING id
+            """, (client_id, title, description, total,
+                  payment_method or None, invoice_number,
+                  'pending' if payment_method in ('invoice','qr') else 'not_required'))
             ticket_id = cur.fetchone()[0]
+            # Обновляем invoice_number финальным id
+            final_invoice = f"INV-{ticket_id:05d}"
+            cur.execute(f"UPDATE {SC}.tickets SET invoice_number=%s WHERE id=%s", (final_invoice, ticket_id))
             conn.commit()
-            return ok({"ok": True, "ticket_id": ticket_id})
+            return ok({"ok": True, "ticket_id": ticket_id, "invoice_number": final_invoice,
+                       "payment_method": payment_method, "total": total})
 
         # ══════════════════════════════════════════════════════════════════════
         # ДОПОЛНИТЕЛЬНЫЕ ФОТО
@@ -506,6 +528,101 @@ def handler(event: dict, context) -> dict:
                 cur.execute(f"UPDATE {SC}.shop_product_reviews SET is_published = FALSE WHERE id = %s", (rid,))
                 conn.commit()
                 return ok({"ok": True})
+
+        # ══════════════════════════════════════════════════════════════════════
+        # ДАННЫЕ СЧЁТА (публичный доступ по invoice_number)
+        # ══════════════════════════════════════════════════════════════════════
+        if resource == "invoice" and method == "GET":
+            inv = params.get("invoice_number") or params.get("id")
+            if not inv:
+                return err("Укажите invoice_number")
+            cur.execute(
+                f"""SELECT t.id, t.invoice_number, t.title, t.description, t.amount,
+                           t.payment_method, t.payment_status, t.created_at,
+                           c.name, c.phone, c.email
+                    FROM {SC}.tickets t
+                    JOIN {SC}.clients c ON c.id = t.client_id
+                    WHERE t.invoice_number = %s""",
+                (inv,)
+            )
+            row = cur.fetchone()
+            if not row:
+                return err("Счёт не найден", 404)
+
+            # Реквизиты компании из site_content
+            cur.execute(f"SELECT key, value FROM {SC}.site_content WHERE key LIKE 'requisites.%%'")
+            req = {r[0].replace("requisites.", ""): r[1] for r in cur.fetchall()}
+
+            # Парсим товары из description
+            lines = row[3].split("\n") if row[3] else []
+            items = []
+            for line in lines:
+                if line.startswith("- ") and " x" in line and " = " in line:
+                    items.append(line[2:])
+
+            return ok({
+                "ticket_id":      row[0],
+                "invoice_number": row[1],
+                "title":          row[2],
+                "description":    row[3],
+                "amount":         float(row[4]) if row[4] else 0,
+                "payment_method": row[5],
+                "payment_status": row[6],
+                "created_at":     str(row[7]),
+                "client": {"name": row[8], "phone": row[9], "email": row[10]},
+                "items":          items,
+                "requisites":     req,
+            })
+
+        # ══════════════════════════════════════════════════════════════════════
+        # ЗАГРУЗКА ЧЕКА ОБ ОПЛАТЕ (от клиента)
+        # ══════════════════════════════════════════════════════════════════════
+        if resource == "payment_proof" and method == "POST":
+            inv    = body.get("invoice_number", "").strip()
+            b64    = body.get("image_b64", "")
+            mime   = body.get("image_type", "image/jpeg")
+            if not inv or not b64:
+                return err("Укажите invoice_number и изображение")
+
+            cur.execute(f"SELECT id FROM {SC}.tickets WHERE invoice_number=%s", (inv,))
+            row = cur.fetchone()
+            if not row:
+                return err("Счёт не найден", 404)
+            ticket_id = row[0]
+
+            # Загружаем в S3
+            s3 = boto3.client(
+                "s3",
+                endpoint_url="https://bucket.poehali.dev",
+                aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+                aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+            )
+            ext = "jpg" if "jpeg" in mime else mime.split("/")[-1]
+            key = f"payment_proofs/{inv}_{uuid.uuid4().hex[:8]}.{ext}"
+            s3.put_object(Bucket="files", Key=key, Body=base64.b64decode(b64), ContentType=mime)
+            proof_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+
+            cur.execute(
+                f"UPDATE {SC}.tickets SET payment_proof_url=%s, payment_status='proof_uploaded' WHERE id=%s",
+                (proof_url, ticket_id)
+            )
+            conn.commit()
+            return ok({"ok": True, "proof_url": proof_url})
+
+        # ══════════════════════════════════════════════════════════════════════
+        # ПОДТВЕРЖДЕНИЕ ОПЛАТЫ (менеджером)
+        # ══════════════════════════════════════════════════════════════════════
+        if resource == "confirm_payment" and method == "POST":
+            if not check_auth():
+                return err("Unauthorized", 401)
+            ticket_id = body.get("ticket_id")
+            status    = body.get("status", "paid")  # paid | rejected
+            cur.execute(
+                f"UPDATE {SC}.tickets SET payment_status=%s, paid=(%s='paid') WHERE id=%s",
+                (status, status, ticket_id)
+            )
+            conn.commit()
+            return ok({"ok": True})
 
         return err("Not found", 404)
 

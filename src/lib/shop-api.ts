@@ -94,8 +94,23 @@ export const shopApi = {
   importCsv: (csvBase64: string) => req("products", "POST", { action: "import_csv", csv_data: csvBase64 }),
 
   // Заказ
-  placeOrder: (data: { name: string; phone: string; comment?: string; items: { name: string; qty: number; price: number }[] }) =>
-    req("order", "POST", data),
+  placeOrder: (data: {
+    name: string; phone: string; email?: string; comment?: string;
+    payment_method?: string;
+    items: { name: string; qty: number; price: number }[];
+  }) => req("order", "POST", data),
+
+  // Счёт
+  getInvoice: (invoiceNumber: string) =>
+    req("invoice", "GET", undefined, { invoice_number: invoiceNumber }),
+
+  // Загрузка чека
+  uploadPaymentProof: (invoiceNumber: string, imageB64: string, imageType: string) =>
+    req("payment_proof", "POST", { invoice_number: invoiceNumber, image_b64: imageB64, image_type: imageType }),
+
+  // Подтверждение оплаты менеджером
+  confirmPayment: (ticketId: number, status: "paid" | "rejected") =>
+    req("confirm_payment", "POST", { ticket_id: ticketId, status }),
 
   // Доп. фото
   getImages: (productId: number) => req("images", "GET", undefined, { product_id: String(productId) }),

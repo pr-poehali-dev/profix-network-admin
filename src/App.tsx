@@ -26,6 +26,7 @@ import ManagerApp from "./pages/ManagerApp";
 import Login from "./pages/Login";
 import Privacy from "./pages/Privacy";
 import Requisites from "./pages/Requisites";
+import Invoice from "./pages/Invoice";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/requisites" element={<Requisites />} />
+          <Route path="/invoice/:id" element={<Invoice />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

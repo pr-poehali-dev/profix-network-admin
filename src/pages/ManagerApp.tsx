@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession, Ticket, STATUS_COLORS } from "@/lib/crm-api";
+import { shopApi } from "@/lib/shop-api";
 
 const STATUS_LABELS: Record<string, string> = {
   new: "Новая", in_progress: "В работе", waiting: "Ожидание",
@@ -38,6 +39,14 @@ function notify(title: string, body: string) {
   }
 }
 
+const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string; icon: string }> = {
+  pending:        { label: "Ожидает оплаты",  color: "bg-yellow-50 text-yellow-700 border border-yellow-200", icon: "Clock" },
+  proof_uploaded: { label: "Чек загружен",     color: "bg-blue-50 text-blue-700 border border-blue-200",      icon: "Upload" },
+  paid:           { label: "Оплачен",          color: "bg-green-50 text-green-700 border border-green-200",    icon: "CheckCircle" },
+  rejected:       { label: "Отклонён",         color: "bg-red-50 text-red-700 border border-red-200",          icon: "XCircle" },
+  not_required:   { label: "Без оплаты",       color: "bg-gray-50 text-gray-500 border border-gray-200",       icon: "Minus" },
+};
+
 // ── Детальный вид заявки ──────────────────────────────────────────────────────
 function TicketDetail({ ticket, onBack, onRefresh }: {
   ticket: Ticket; onBack: () => void; onRefresh: (t: Ticket) => void;
@@ -45,6 +54,18 @@ function TicketDetail({ ticket, onBack, onRefresh }: {
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [newStatus, setNewStatus] = useState(ticket.status);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
+
+  const ext = ticket as Ticket & { invoice_number?: string; payment_status?: string; payment_proof_url?: string };
+
+  async function handleConfirmPayment(status: "paid" | "rejected") {
+    if (!ext.invoice_number) return;
+    setConfirmingPayment(true);
+    await shopApi.confirmPayment(ticket.id, status);
+    const r = await managerApi.getTicket(ticket.id);
+    if (r.ticket) onRefresh(r.ticket);
+    setConfirmingPayment(false);
+  }
 
   async function sendComment() {
     if (!comment.trim()) return;
@@ -107,6 +128,68 @@ function TicketDetail({ ticket, onBack, onRefresh }: {
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <p className="text-xs font-semibold text-gray-400 mb-2">Описание</p>
             <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{ticket.description}</p>
+          </div>
+        )}
+
+        {/* Оплата / Счёт */}
+        {ext.invoice_number && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-gray-400">Счёт и оплата</p>
+              {ext.payment_status && PAYMENT_STATUS_LABELS[ext.payment_status] && (
+                <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-xl ${PAYMENT_STATUS_LABELS[ext.payment_status].color}`}>
+                  <Icon name={PAYMENT_STATUS_LABELS[ext.payment_status].icon as "Clock"} size={12} />
+                  {PAYMENT_STATUS_LABELS[ext.payment_status].label}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-500">Номер счёта:</span>
+              <span className="font-mono font-semibold text-gray-900">{ext.invoice_number}</span>
+            </div>
+            {ticket.amount != null && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Сумма:</span>
+                <span className="font-bold text-gray-900">{ticket.amount.toLocaleString("ru-RU")} ₽</span>
+              </div>
+            )}
+
+            <a href={`/invoice/${ext.invoice_number}`} target="_blank" rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#3ca615] text-[#3ca615] text-sm font-semibold hover:bg-[#edf7e8] transition-colors">
+              <Icon name="FileText" size={15} />
+              Открыть счёт
+            </a>
+
+            {/* Чек от клиента */}
+            {ext.payment_status === "proof_uploaded" && ext.payment_proof_url && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-blue-600">Клиент загрузил чек — требует проверки:</p>
+                <a href={ext.payment_proof_url} target="_blank" rel="noopener noreferrer"
+                  className="block rounded-xl overflow-hidden border border-blue-200">
+                  <img src={ext.payment_proof_url} alt="Чек оплаты" className="w-full max-h-48 object-cover" />
+                </a>
+                <div className="flex gap-2">
+                  <button onClick={() => handleConfirmPayment("paid")} disabled={confirmingPayment}
+                    className="flex-1 py-2 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-60 flex items-center justify-center gap-1.5 transition-colors">
+                    <Icon name="CheckCircle" size={14} />
+                    Подтвердить
+                  </button>
+                  <button onClick={() => handleConfirmPayment("rejected")} disabled={confirmingPayment}
+                    className="flex-1 py-2 rounded-xl bg-red-50 text-red-600 border border-red-200 text-sm font-semibold hover:bg-red-100 disabled:opacity-60 flex items-center justify-center gap-1.5 transition-colors">
+                    <Icon name="XCircle" size={14} />
+                    Отклонить
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {ext.payment_status === "paid" && (
+              <div className="flex items-center gap-2 bg-green-50 rounded-xl px-3 py-2">
+                <Icon name="CheckCircle" size={14} className="text-green-600 shrink-0" />
+                <p className="text-xs text-green-700 font-medium">Оплата подтверждена</p>
+              </div>
+            )}
           </div>
         )}
 

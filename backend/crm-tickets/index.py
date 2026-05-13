@@ -318,7 +318,8 @@ def handler(event: dict, context) -> dict:
                       COALESCE(m.name, m.full_name) as manager_name,
                       t.client_id, t.manager_id,
                       tech.id, tech.name, tech.phone,
-                      t.scheduled_date, t.scheduled_hour, t.tech_notes
+                      t.scheduled_date, t.scheduled_hour, t.tech_notes,
+                      t.invoice_number, t.payment_status, t.payment_proof_url
                FROM {SC}.tickets t
                LEFT JOIN {SC}.clients c ON c.id = t.client_id
                LEFT JOIN {SC}.managers m ON m.id = t.manager_id
@@ -355,6 +356,9 @@ def handler(event: dict, context) -> dict:
             "scheduled_date": str(r[19]) if r[19] else None,
             "scheduled_hour": r[20],
             "tech_notes": r[21],
+            "invoice_number": r[22],
+            "payment_status": r[23],
+            "payment_proof_url": r[24],
         }
 
         cur.execute(
