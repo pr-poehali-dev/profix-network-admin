@@ -48,8 +48,12 @@ export default function Login() {
   const resetToken = params.get("reset");
   const resetRole  = (params.get("role") || "client") as Role;
 
+  // Сохраняем токен в state чтобы не потерять при навигации
+  const [savedResetToken] = useState<string | null>(resetToken);
+  const [savedResetRole] = useState<Role>(resetRole);
+
   const [screen, setScreen] = useState<Screen>(resetToken ? "reset_confirm" : "roles");
-  const [role, setRole] = useState<Role>(resetRole);
+  const [role, setRole] = useState<Role>(resetToken ? resetRole : "client");
   const [method, setMethod] = useState<AuthMethod>("otp");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -220,8 +224,8 @@ export default function Login() {
     if (newPassword.length < 6) { setError("Минимум 6 символов"); return; }
     setError(""); setLoading(true);
     try {
-      const apiRole = resetRole === "tech" ? "technician" : resetRole === "manager" ? "manager" : "client";
-      const res = await authApi.resetConfirm(resetToken!, newPassword.trim(), apiRole);
+      const apiRole = savedResetRole === "tech" ? "technician" : savedResetRole === "manager" ? "manager" : "client";
+      const res = await authApi.resetConfirm(savedResetToken!, newPassword.trim(), apiRole);
       if (res.reset) setScreen("reset_done");
       else setError(res.error || "Ошибка сброса пароля");
     } catch { setError("Ошибка"); }
@@ -678,9 +682,14 @@ export default function Login() {
             </div>
             <h2 className="font-bold text-gray-900 text-lg mb-2">Пароль установлен!</h2>
             <p className="text-gray-500 text-sm mb-6">Теперь вы можете войти используя новый пароль.</p>
-            <button onClick={() => { setScreen("form"); setError(""); }}
+            <button onClick={() => {
+                setScreen("form");
+                setRole(savedResetRole);
+                setMethod("password");
+                setError("");
+              }}
               className="w-full py-3 rounded-xl text-white font-semibold text-sm" style={{background:"#3ca615"}}>
-              Войти
+              Войти с новым паролем
             </button>
           </div>
         )}
