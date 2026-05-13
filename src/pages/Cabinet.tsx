@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { clientApi, clientSession, reviewsApi, Ticket, STATUS_COLORS, PRIORITY_COLORS } from "@/lib/crm-api";
+import CabinetProfile from "@/components/cabinet/CabinetProfile";
 
 const CHAT_SEND_URL = "https://functions.poehali.dev/52fdb994-24e1-4c9a-ab41-fef309251496";
 const CHAT_POLL_URL = "https://functions.poehali.dev/41cfa64a-33a9-4226-847a-d2a2e2e3d987";
@@ -13,7 +14,7 @@ function getSessionId() {
 }
 const nowTime = () => new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 
-const BOT_USERNAME = "ProFiXBot"; // замени на реальный username бота если другой
+const BOT_USERNAME = "ProFiXBot";
 
 export default function Cabinet() {
   const navigate = useNavigate();
@@ -25,13 +26,14 @@ export default function Cabinet() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [client, setClient] = useState<{ id: number; name?: string; phone: string; email?: string; telegram_id?: number | null } | null>(null);
+  const [client, setClient] = useState<{ id: number; name?: string; phone: string; email?: string; telegram_id?: number | null; avatar_url?: string | null; delivery_address?: string | null; socials?: Record<string, string> } | null>(null);
   const [profileName, setProfileName] = useState("");
   const [profileTgId, setProfileTgId] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [view, setView] = useState<"list" | "ticket" | "new" | "review" | "chat">("list");
+  const [view, setView] = useState<"list" | "ticket" | "new" | "review" | "chat" | "profile">("list");
+
   // Chat state
   const [chatMessages, setChatMessages] = useState<{id?:number;from:"user"|"bot"|"operator";text:string;time:string}[]>([
     { from: "bot", text: "Здравствуйте! Напишите вопрос — менеджер ответит в ближайшее время.", time: nowTime() }
@@ -126,7 +128,6 @@ export default function Cabinet() {
     } finally {
       setLoading(false);
     }
-    // всегда переходим к вводу кода
     setStep("code");
   }
 
@@ -537,7 +538,7 @@ export default function Cabinet() {
       <header className="bg-white border-b border-gray-100 shadow-sm h-16 flex items-center px-6">
         <div className="max-w-3xl mx-auto w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {(view === "ticket" || view === "new" || view === "review" || view === "chat") && (
+            {(view === "ticket" || view === "new" || view === "review" || view === "chat" || view === "profile") && (
               <button
                 onClick={() => { setView("list"); setSelectedTicket(null); setError(""); setReviewSent(false); }}
                 className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500"
@@ -554,6 +555,7 @@ export default function Cabinet() {
               {view === "ticket" && selectedTicket && `Заявка #${selectedTicket.id}`}
               {view === "review" && "Оставить отзыв"}
               {view === "chat" && "Чат с менеджером"}
+              {view === "profile" && "Профиль"}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -574,9 +576,20 @@ export default function Cabinet() {
                 </span>
               )}
             </button>
-            <span className="text-sm text-gray-500 hidden sm:block">
-              {client?.name || client?.phone || phone}
-            </span>
+            {/* Аватар/кнопка профиля */}
+            <button
+              onClick={() => setView("profile")}
+              className={`flex items-center gap-2 px-2 py-1.5 rounded-xl transition ${view === "profile" ? "bg-[#edf7e8]" : "hover:bg-gray-50"}`}
+            >
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-[#edf7e8] border-2 border-[#3ca615]/20 flex items-center justify-center shrink-0">
+                {client?.avatar_url
+                  ? <img src={client.avatar_url} alt="" className="w-full h-full object-cover" />
+                  : <Icon name="User" size={15} className="text-[#3ca615]" />}
+              </div>
+              <span className="text-sm text-gray-600 hidden sm:block max-w-[100px] truncate">
+                {client?.name || client?.phone || phone}
+              </span>
+            </button>
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition"
@@ -679,192 +692,35 @@ export default function Cabinet() {
               </div>
             )}
 
-            {/* Профиль и Telegram */}
-            <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h3 className="font-oswald text-base font-semibold text-gray-700 mb-1 flex items-center gap-2">
-                <Icon name="User" size={15} />
-                Профиль и уведомления
-              </h3>
-              <p className="text-xs text-gray-400 mb-4">
-                Телефон: <span className="font-medium text-gray-600">{client?.phone}</span>
-                {client?.email && <> · Email: <span className="font-medium text-gray-600">{client.email}</span></>}
-              </p>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">Ваше имя</label>
-                  <input
-                    type="text"
-                    value={profileName}
-                    onChange={(e) => setProfileName(e.target.value)}
-                    placeholder="Как к вам обращаться?"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/30 focus:border-[#3ca615] transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2 flex items-center gap-1.5">
-                    <Icon name="Send" size={12} />
-                    Telegram для уведомлений и входа
-                  </label>
-                  {client?.telegram_id ? (
-                    <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-3">
-                      <Icon name="CheckCircle" size={15} className="text-green-600 shrink-0" />
-                      <span className="text-sm text-green-700 font-medium">Telegram привязан</span>
-                      <a
-                        href={`https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(client.phone)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-auto text-xs text-gray-400 underline hover:text-gray-600"
-                      >
-                        Переподключить
-                      </a>
-                    </div>
-                  ) : (
-                    <a
-                      href={`https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(client?.phone || phone)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 bg-[#2AABEE] text-white rounded-xl py-3 text-sm font-semibold hover:bg-[#1e96d6] transition w-full"
-                    >
-                      <Icon name="Send" size={15} />
-                      Привязать Telegram
-                    </a>
-                  )}
-                  <p className="text-xs text-gray-400 mt-2">После нажатия откроется бот — просто нажмите «Старт»</p>
-                </div>
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={profileSaving}
-                  className="w-full py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center justify-center gap-2"
-                  style={{ backgroundColor: "#3ca615" }}
-                >
-                  {profileSaving ? (
-                    <><Icon name="Loader2" size={14} className="animate-spin" />Сохранение...</>
-                  ) : profileSuccess ? (
-                    <><Icon name="Check" size={14} />Сохранено!</>
-                  ) : (
-                    "Сохранить имя"
-                  )}
-                </button>
+            {/* Кнопка перехода в профиль */}
+            <button
+              onClick={() => setView("profile")}
+              className="mt-6 w-full flex items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:border-[#3ca615] hover:shadow-md transition-all group text-left"
+            >
+              <div className="w-12 h-12 rounded-xl overflow-hidden bg-[#edf7e8] flex items-center justify-center shrink-0 border-2 border-[#3ca615]/20">
+                {client?.avatar_url
+                  ? <img src={client.avatar_url} alt="" className="w-full h-full object-cover" />
+                  : <Icon name="User" size={22} className="text-[#3ca615]" />}
               </div>
-            </div>
-
-            {/* Смена пароля */}
-            <div className="mt-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-              <h3 className="font-oswald text-base font-semibold text-gray-700 flex items-center gap-2">
-                <Icon name="KeyRound" size={15} />
-                Сменить пароль
-              </h3>
-              {pwSuccess && <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 text-green-700 text-sm"><Icon name="CheckCircle" size={14} />Пароль изменён!</div>}
-              {pwError && <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-red-600 text-sm"><Icon name="AlertCircle" size={14} />{pwError}</div>}
-              {pwStep === "idle" && (
-                <button onClick={handlePasswordRequest} disabled={pwLoading}
-                  className="w-full py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:border-[#3ca615] hover:text-[#3ca615] transition flex items-center justify-center gap-2 disabled:opacity-60">
-                  {pwLoading ? <Icon name="Loader2" size={14} className="animate-spin" /> : <Icon name="Mail" size={14} />}
-                  {pwLoading ? "Отправка..." : "Получить код на email"}
-                </button>
-              )}
-              {(pwStep === "sent" || pwStep === "confirm") && (
-                <div className="space-y-2">
-                  <p className="text-xs text-gray-400">Код отправлен на {client?.email}</p>
-                  <input type="text" value={pwCode} onChange={e => setPwCode(e.target.value)} placeholder="Код из письма"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
-                  <input type="password" value={pwNew} onChange={e => setPwNew(e.target.value)} placeholder="Новый пароль (мин. 6 символов)"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
-                  <input type="password" value={pwNew2} onChange={e => setPwNew2(e.target.value)} placeholder="Повторите новый пароль"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
-                  <div className="flex gap-2">
-                    <button onClick={() => { setPwStep("idle"); setPwCode(""); setPwNew(""); setPwNew2(""); setPwError(""); }}
-                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:border-gray-300 transition">Отмена</button>
-                    <button onClick={handlePasswordConfirm} disabled={pwLoading}
-                      className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center justify-center gap-1"
-                      style={{ backgroundColor: "#3ca615" }}>
-                      {pwLoading ? <Icon name="Loader2" size={13} className="animate-spin" /> : null}
-                      Сохранить
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Смена email */}
-            <div className="mt-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-              <h3 className="font-oswald text-base font-semibold text-gray-700 flex items-center gap-2">
-                <Icon name="Mail" size={15} />
-                Сменить email
-              </h3>
-              {emailSuccess && <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 text-green-700 text-sm"><Icon name="CheckCircle" size={14} />Email изменён!</div>}
-              {emailError && <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-red-600 text-sm"><Icon name="AlertCircle" size={14} />{emailError}</div>}
-              {emailStep === "idle" && (
-                <div className="flex gap-2">
-                  <input type="email" value={emailNew} onChange={e => setEmailNew(e.target.value)} placeholder="Новый email"
-                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
-                  <button onClick={handleEmailRequest} disabled={emailLoading}
-                    className="px-4 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center gap-1"
-                    style={{ backgroundColor: "#3ca615" }}>
-                    {emailLoading ? <Icon name="Loader2" size={13} className="animate-spin" /> : <Icon name="Send" size={13} />}
-                    Код
-                  </button>
-                </div>
-              )}
-              {emailStep === "sent" && (
-                <div className="space-y-2">
-                  <p className="text-xs text-gray-400">Код отправлен на {emailNew}</p>
-                  <input type="text" value={emailCode} onChange={e => setEmailCode(e.target.value)} placeholder="Код из письма"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
-                  <div className="flex gap-2">
-                    <button onClick={() => { setEmailStep("idle"); setEmailCode(""); setEmailError(""); }}
-                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:border-gray-300 transition">Отмена</button>
-                    <button onClick={handleEmailConfirm} disabled={emailLoading}
-                      className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center justify-center gap-1"
-                      style={{ backgroundColor: "#3ca615" }}>
-                      {emailLoading ? <Icon name="Loader2" size={13} className="animate-spin" /> : null}
-                      Подтвердить
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Смена телефона */}
-            <div className="mt-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-              <h3 className="font-oswald text-base font-semibold text-gray-700 flex items-center gap-2">
-                <Icon name="Phone" size={15} />
-                Сменить телефон
-              </h3>
-              {phoneSuccess && <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2 text-green-700 text-sm"><Icon name="CheckCircle" size={14} />Телефон изменён!</div>}
-              {phoneError && <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-red-600 text-sm"><Icon name="AlertCircle" size={14} />{phoneError}</div>}
-              {phoneStep === "idle" && (
-                <div className="flex gap-2">
-                  <input type="tel" value={phoneNew} onChange={e => setPhoneNew(e.target.value)} placeholder="Новый телефон"
-                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
-                  <button onClick={handlePhoneRequest} disabled={phoneLoading}
-                    className="px-4 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center gap-1"
-                    style={{ backgroundColor: "#3ca615" }}>
-                    {phoneLoading ? <Icon name="Loader2" size={13} className="animate-spin" /> : <Icon name="Send" size={13} />}
-                    Код
-                  </button>
-                </div>
-              )}
-              {phoneStep === "sent" && (
-                <div className="space-y-2">
-                  <p className="text-xs text-gray-400">Код отправлен на email. Новый номер: {phoneNew}</p>
-                  <input type="text" value={phoneCode} onChange={e => setPhoneCode(e.target.value)} placeholder="Код из письма"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
-                  <div className="flex gap-2">
-                    <button onClick={() => { setPhoneStep("idle"); setPhoneCode(""); setPhoneError(""); }}
-                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:border-gray-300 transition">Отмена</button>
-                    <button onClick={handlePhoneConfirm} disabled={phoneLoading}
-                      className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-60 transition flex items-center justify-center gap-1"
-                      style={{ backgroundColor: "#3ca615" }}>
-                      {phoneLoading ? <Icon name="Loader2" size={13} className="animate-spin" /> : null}
-                      Подтвердить
-                    </button>
-                  </div>
-                </div>
-              )}
-              <p className="text-xs text-gray-400">Код подтверждения придёт на привязанный email</p>
-            </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-900 text-sm">{client?.name || "Без имени"}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{client?.phone}{client?.email ? ` · ${client.email}` : ""}</p>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-[#3ca615] font-medium shrink-0">
+                <Icon name="Settings" size={14} />
+                <span className="hidden sm:inline">Профиль</span>
+              </div>
+            </button>
           </div>
+        )}
+
+        {/* ── Профиль ── */}
+        {view === "profile" && client && (
+          <CabinetProfile
+            client={client}
+            onBack={() => setView("list")}
+            onClientUpdate={c => setClient(c)}
+          />
         )}
 
         {/* ── Просмотр заявки ── */}
@@ -1174,7 +1030,7 @@ export default function Cabinet() {
               </div>
             </div>
 
-            {/* Соо��щения */}
+            {/* Сообщения */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-[#f7f9fc]">
               {chatMessages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}>
@@ -1235,6 +1091,7 @@ export default function Cabinet() {
             </div>
           </div>
         )}
+
       </main>
     </div>
   );

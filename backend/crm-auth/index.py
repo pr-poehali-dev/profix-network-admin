@@ -364,7 +364,9 @@ def handler(event: dict, context) -> dict:
 
         if role == "client":
             cur.execute(
-                f"""SELECT c.id, c.name, c.phone, c.email FROM {SC}.client_sessions cs
+                f"""SELECT c.id, c.name, c.phone, c.email,
+                          c.avatar_url, c.delivery_address, c.socials, c.telegram_id
+                   FROM {SC}.client_sessions cs
                    JOIN {SC}.clients c ON c.id = cs.client_id
                    WHERE cs.token=%s AND cs.expires_at > NOW()""",
                 (token,)
@@ -373,7 +375,12 @@ def handler(event: dict, context) -> dict:
             conn.close()
             if not row:
                 return err("Сессия истекла", 401)
-            return ok({"valid": True, "client": {"id": row[0], "name": row[1], "phone": row[2], "email": row[3]}})
+            return ok({"valid": True, "client": {
+                "id": row[0], "name": row[1], "phone": row[2], "email": row[3],
+                "avatar_url": row[4], "delivery_address": row[5],
+                "socials": json.loads(row[6]) if row[6] else {},
+                "telegram_id": row[7]
+            }})
         elif role == "technician":
             cur.execute(
                 f"""SELECT t.id, t.name, t.phone, t.specialization FROM {SC}.technician_sessions ts
@@ -419,14 +426,23 @@ def handler(event: dict, context) -> dict:
             return err("Сессия истекла", 401)
         client_id = row[0]
 
-        name = body.get("name", "").strip()
-        telegram_id = body.get("telegram_id")
+        name             = body.get("name", "").strip() if body.get("name") is not None else None
+        telegram_id      = body.get("telegram_id")
+        delivery_address = body.get("delivery_address")
+        socials          = body.get("socials")          # dict {"vk":"...", "tg":"..."}
+        avatar_url       = body.get("avatar_url")
 
         sets, vals = [], []
-        if name:
+        if name is not None and name != "":
             sets.append("name = %s"); vals.append(name)
         if telegram_id is not None:
             sets.append("telegram_id = %s"); vals.append(int(telegram_id) if telegram_id else None)
+        if delivery_address is not None:
+            sets.append("delivery_address = %s"); vals.append(delivery_address or None)
+        if socials is not None:
+            sets.append("socials = %s"); vals.append(json.dumps(socials, ensure_ascii=False))
+        if avatar_url is not None:
+            sets.append("avatar_url = %s"); vals.append(avatar_url or None)
         sets.append("updated_at = NOW()")
         vals.append(client_id)
 
@@ -434,10 +450,52 @@ def handler(event: dict, context) -> dict:
             cur.execute(f"UPDATE {SC}.clients SET {', '.join(sets)} WHERE id = %s", vals)
             conn.commit()
 
-        cur.execute(f"SELECT id, name, phone, email FROM {SC}.clients WHERE id = %s", (client_id,))
+        cur.execute(
+            f"SELECT id, name, phone, email, avatar_url, delivery_address, socials FROM {SC}.clients WHERE id = %s",
+            (client_id,)
+        )
         c = cur.fetchone()
         cur.close(); conn.close()
-        return ok({"client": {"id": c[0], "name": c[1], "phone": c[2], "email": c[3]}})
+        return ok({"client": {
+            "id": c[0], "name": c[1], "phone": c[2], "email": c[3],
+            "avatar_url": c[4], "delivery_address": c[5],
+            "socials": json.loads(c[6]) if c[6] else {}
+        }})
+
+    # ── КЛИЕНТ: загрузка аватара ─────────────────────────────────────────────
+    if action == "client_upload_avatar":
+        import base64 as b64mod
+        import boto3, uuid as uuidmod
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        if not token:
+            return err("Необходима авторизация", 401)
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"SELECT client_id FROM {SC}.client_sessions WHERE token=%s AND expires_at>NOW()", (token,))
+        row = cur.fetchone()
+        if not row:
+            conn.close(); return err("Сессия истекла", 401)
+        client_id = row[0]
+        image_b64  = body.get("image_b64", "")
+        image_type = body.get("image_type", "image/jpeg")
+        if not image_b64:
+            conn.close(); return err("Нет изображения")
+        try:
+            s3 = boto3.client(
+                "s3", endpoint_url="https://bucket.poehali.dev",
+                aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+                aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
+            )
+            ext = "jpg" if "jpeg" in image_type else image_type.split("/")[-1]
+            key = f"avatars/client_{client_id}_{uuidmod.uuid4().hex[:8]}.{ext}"
+            s3.put_object(Bucket="files", Key=key, Body=b64mod.b64decode(image_b64), ContentType=image_type)
+            avatar_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+            cur.execute(f"UPDATE {SC}.clients SET avatar_url=%s WHERE id=%s", (avatar_url, client_id))
+            conn.commit(); cur.close(); conn.close()
+            return ok({"avatar_url": avatar_url})
+        except Exception as e:
+            conn.close(); return err(f"Ошибка загрузки: {str(e)}")
 
     # ── МЕНЕДЖЕР: обновление профиля (имя, логин, email, пароль) ────────────
     if action == "manager_update_profile":
@@ -461,6 +519,8 @@ def handler(event: dict, context) -> dict:
         new_name     = body.get("name", "").strip()
         new_login    = body.get("login", "").strip()
         new_email    = body.get("email", "").strip()
+        new_phone    = body.get("phone", "").strip()
+        new_address  = body.get("address", "").strip()
         new_password = body.get("password", "").strip()
         cur_password = body.get("current_password", "").strip()
 
@@ -488,6 +548,10 @@ def handler(event: dict, context) -> dict:
             sets += ["login=%s", "username=%s"]; vals += [new_login, new_login]
         if new_email:
             sets += ["email=%s"]; vals += [new_email]
+        if new_phone:
+            sets += ["phone=%s"]; vals += [new_phone]
+        if new_address:
+            sets += ["address=%s"]; vals += [new_address]
         if new_password:
             sets += ["password_hash=%s"]; vals += [hash_password(new_password)]
 

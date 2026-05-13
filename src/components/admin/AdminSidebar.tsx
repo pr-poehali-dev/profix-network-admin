@@ -29,6 +29,8 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
   const [profileName, setProfileName] = useState(manager?.name || "");
   const [profileLogin, setProfileLogin] = useState("");
   const [profileEmail, setProfileEmail] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+  const [profileAddress, setProfileAddress] = useState("");
   const [profileCurPw, setProfileCurPw] = useState("");
   const [profileNewPw, setProfileNewPw] = useState("");
   const [profileNewPw2, setProfileNewPw2] = useState("");
@@ -70,6 +72,8 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
       if (profileName.trim() && profileName.trim() !== manager?.name) data.name = profileName.trim();
       if (profileLogin.trim()) data.login = profileLogin.trim();
       if (profileEmail.trim()) data.email = profileEmail.trim();
+      if (profilePhone.trim()) data.phone = profilePhone.trim();
+      if (profileAddress.trim()) data.address = profileAddress.trim();
       if (profileNewPw.trim()) { data.password = profileNewPw.trim(); data.current_password = profileCurPw.trim(); }
       if (!Object.keys(data).length) { setProfileError("Нечего сохранять"); setProfileLoading(false); return; }
       const res = await managerApi.updateProfile(data);
@@ -231,6 +235,18 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
                 <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Email</label>
                 <input value={profileEmail} onChange={e => setProfileEmail(e.target.value)}
                   placeholder="Для восстановления пароля" type="email"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3ca615]" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Телефон</label>
+                <input value={profilePhone} onChange={e => setProfilePhone(e.target.value)}
+                  placeholder="+7 (___) ___-__-__" type="tel"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3ca615]" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Адрес</label>
+                <input value={profileAddress} onChange={e => setProfileAddress(e.target.value)}
+                  placeholder="Рабочий или домашний адрес"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#3ca615]" />
               </div>
 

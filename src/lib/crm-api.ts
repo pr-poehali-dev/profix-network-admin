@@ -96,8 +96,16 @@ export const clientApi = {
   addComment: (ticket_id: number, text: string) =>
     postTickets({ action: "comment", ticket_id, text }, clientSession.get()!),
 
-  updateProfile: (data: { name?: string; telegram_id?: number | null }) =>
-    postAuthWithToken({ action: "client_update_profile", ...data }, clientSession.get()!),
+  updateProfile: (data: {
+    name?: string;
+    telegram_id?: number | null;
+    delivery_address?: string | null;
+    socials?: Record<string, string>;
+    avatar_url?: string | null;
+  }) => postAuthWithToken({ action: "client_update_profile", ...data }, clientSession.get()!),
+
+  uploadAvatar: (imageB64: string, imageType: string) =>
+    postAuthWithToken({ action: "client_upload_avatar", image_b64: imageB64, image_type: imageType }, clientSession.get()!),
 
   changePasswordRequest: () =>
     postAuthWithToken({ action: "client_change_password_request" }, clientSession.get()!),
