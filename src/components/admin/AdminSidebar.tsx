@@ -109,6 +109,7 @@ export default function AdminSidebar({ manager, activeSection, onSectionChange, 
     { key: "content", label: "Редактор сайта", icon: "PenLine" },
     { key: "pages", label: "Конструктор страниц", icon: "LayoutTemplate" },
     { key: "reviews", label: "Отзывы", icon: "Star" },
+    { key: "theme", label: "Тема сайта", icon: "Palette" },
     ...(manager?.role === "admin" ? [
       { key: "managers", label: "Менеджеры", icon: "UserCheck" },
       { key: "api", label: "API для партнёров", icon: "Code2" },

@@ -17,6 +17,7 @@ import AdminContentEditor from "@/components/admin/AdminContentEditor";
 import AdminPageBuilder from "@/components/admin/AdminPageBuilder";
 import AdminProfile from "@/components/admin/AdminProfile";
 import AdminBlog from "@/components/admin/AdminBlog";
+import AdminTheme from "@/components/admin/AdminTheme";
 import ApiDocs from "@/pages/ApiDocs";
 
 export default function Admin() {
@@ -642,6 +643,7 @@ export default function Admin() {
         {section === "content" && <AdminContentEditor />}
         {section === "pages" && <AdminPageBuilder />}
         {section === "blog" && <AdminBlog />}
+        {section === "theme" && <AdminTheme />}
         {section === "profile" && (
           <AdminProfile
             manager={manager}

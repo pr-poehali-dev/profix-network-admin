@@ -6,6 +6,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { RouteScrollToTop, ScrollToTopButton } from "@/components/ScrollToTop";
+import HolidayEffects from "@/components/HolidayEffects";
+import { applyTheme, loadTheme } from "@/hooks/useTheme";
+
+// Применяем тему сразу при загрузке
+applyTheme(loadTheme());
 import Index from "./pages/Index";
 import DataMobile from "./pages/DataMobile";
 import POSCenter from "./pages/POSCenter";
@@ -38,6 +43,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <HolidayEffects />
       <BrowserRouter>
         <RouteScrollToTop />
         <ScrollToTopButton />
