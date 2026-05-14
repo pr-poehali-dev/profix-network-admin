@@ -220,22 +220,18 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
                             <p className={`font-oswald font-bold text-white leading-tight transition-all duration-300 ${isActive ? (isMobile ? "text-sm" : "text-base") : "text-xs sm:text-sm"}`}>
                               {slide.title}
                             </p>
-                            {isActive && (
-                              <>
-                                {!isMobile && <p className="text-white/70 text-xs mt-1 leading-snug line-clamp-2">{slide.desc}</p>}
-                                <button
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    if (onQuickOrder) onQuickOrder(slide.title || "");
-                                    else onScrollTo("Контакты");
-                                  }}
-                                  className="mt-2 sm:mt-3 flex items-center gap-1.5 bg-[#3ca615] hover:bg-[#2d8a10] text-white text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all shadow-lg hover:shadow-green-500/30 hover:-translate-y-0.5 w-fit"
-                                >
-                                  <Icon name="Zap" size={12} />
-                                  Заказать в 1 клик
-                                </button>
-                              </>
-                            )}
+                            {isActive && !isMobile && <p className="text-white/70 text-xs mt-1 leading-snug line-clamp-2">{slide.desc}</p>}
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                if (onQuickOrder) onQuickOrder(slide.title || "");
+                                else onScrollTo("Контакты");
+                              }}
+                              className={`mt-1.5 sm:mt-2 flex items-center gap-1.5 bg-[#3ca615] hover:bg-[#2d8a10] text-white font-bold rounded-xl transition-all shadow-lg w-fit ${isActive ? "text-xs px-3 py-1.5 sm:px-4 sm:py-2" : "text-[10px] px-2 py-1"}`}
+                            >
+                              <Icon name="Zap" size={isActive ? 12 : 10} />
+                              Заказать в 1 клик
+                            </button>
                           </div>
                         )}
                         {/* Зелёная рамка у активной */}

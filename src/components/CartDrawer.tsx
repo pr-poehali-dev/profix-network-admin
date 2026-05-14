@@ -72,7 +72,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
         className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         onClick={onClose}
       />
-      <div className={`fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 shadow-2xl flex flex-col transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-50 shadow-2xl flex flex-col transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`} style={{ height: "100dvh" }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-bold text-lg text-gray-900">
             {step === "cart" ? "Корзина" : step === "form" ? "Оформление" : "Заказ принят"}
@@ -122,7 +122,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
               ))}
             </div>
             {items.length > 0 && (
-              <div className="px-5 py-4 border-t border-gray-100">
+              <div className="px-5 py-4 border-t border-gray-100 shrink-0" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
                 <div className="flex justify-between mb-4">
                   <span className="text-gray-500">Итого:</span>
                   <span className="text-xl font-bold text-gray-900">{total.toLocaleString("ru-RU")} ₽</span>

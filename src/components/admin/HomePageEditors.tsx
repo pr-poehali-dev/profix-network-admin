@@ -298,17 +298,30 @@ export function ServicesEditor({ content, onChange }: { content: ContentMap; onC
 // ── Секция: Услуги 1С ─────────────────────────────────────────────────────────
 
 export function OnecEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {
-  const items = parseJson<{icon:string;title:string;desc:string;img:string}[]>(content["onec.items"] || "", []);
+  type OnecItem = {icon:string;title:string;desc:string;img:string};
+  const initial = parseJson<OnecItem[]>(content["onec.items"] || "", []);
+  const [items, setItems] = useState<OnecItem[]>(initial);
   const [expanded, setExpanded] = useState<number | null>(null);
 
-  function set(arr: typeof items) { onChange("onec.items", JSON.stringify(arr)); }
+  function set(arr: OnecItem[]) {
+    setItems(arr);
+    onChange("onec.items", JSON.stringify(arr));
+  }
+
+  function updateItem(i: number, patch: Partial<OnecItem>) {
+    setItems(prev => {
+      const n = prev.map((it, idx) => idx === i ? {...it, ...patch} : it);
+      onChange("onec.items", JSON.stringify(n));
+      return n;
+    });
+  }
 
   return (
     <div className="space-y-4">
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="text-xs font-semibold text-gray-500">Услуги 1С ({items.length})</label>
-          <button onClick={() => { set([...items,{icon:"Star",title:"Новая услуга",desc:"",img:""}]); setExpanded(items.length); }}
+          <button onClick={() => { const n=[...items,{icon:"Star",title:"Новая услуга",desc:"",img:""}]; set(n); setExpanded(n.length-1); }}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{background:"#3ca615"}}>
             <Icon name="Plus" size={12} /> Добавить
           </button>
@@ -328,14 +341,14 @@ export function OnecEditor({ content, onChange }: { content: ContentMap; onChang
                 <div className="p-4 space-y-3 border-t border-gray-100">
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Иконка (lucide)" value={item.icon}
-                      onChange={v => { const n=[...items]; n[i]={...n[i],icon:v}; set(n); }} />
+                      onChange={v => updateItem(i, {icon:v})} />
                     <Field label="Заголовок" value={item.title}
-                      onChange={v => { const n=[...items]; n[i]={...n[i],title:v}; set(n); }} />
+                      onChange={v => updateItem(i, {title:v})} />
                   </div>
                   <Field label="Описание" value={item.desc} textarea
-                    onChange={v => { const n=[...items]; n[i]={...n[i],desc:v}; set(n); }} />
+                    onChange={v => updateItem(i, {desc:v})} />
                   <ImageUpload label="Изображение" value={item.img}
-                    onChange={url => { const n=[...items]; n[i]={...n[i],img:url}; set(n); }} />
+                    onChange={url => updateItem(i, {img:url})} />
                 </div>
               )}
             </div>

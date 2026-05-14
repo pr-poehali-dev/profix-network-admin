@@ -113,7 +113,6 @@ export default function ShopProduct() {
     if (!product) return;
     cart.add(product);
     setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
   }
 
   if (loading) return (
