@@ -550,7 +550,8 @@ export default function Login() {
                         placeholder="••••••" maxLength={6} autoFocus
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-[#3ca615] focus:ring-2 focus:ring-[#3ca615]/20" />
                     </div>
-                    <button onClick={handleTechLogin} disabled={loading || !pin.trim()}
+                    <TurnstileWidget onVerify={setCfToken} onExpire={() => {}} />
+                    <button onClick={handleTechLogin} disabled={loading || !pin.trim() || !cfToken}
                       className={`w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${cr.btn}`}>
                       {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
                       {loading ? "Вход..." : "Войти"}
@@ -579,7 +580,8 @@ export default function Login() {
                         </button>
                       </div>
                     </div>
-                    <button onClick={handleTechPasswordLogin} disabled={loading}
+                    <TurnstileWidget onVerify={setCfToken} onExpire={() => {}} />
+                    <button onClick={handleTechPasswordLogin} disabled={loading || !cfToken}
                       className={`w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${cr.btn}`}>
                       {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
                       {loading ? "Вход..." : "Войти"}
