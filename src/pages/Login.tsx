@@ -11,7 +11,7 @@ import {
 
 type Role = "manager" | "client" | "tech";
 type AuthMethod = "otp" | "password";
-type Screen = "roles" | "form" | "forgot" | "reset_sent" | "reset_confirm" | "reset_done";
+type Screen = "roles" | "form" | "register" | "register_done" | "forgot" | "reset_sent" | "reset_confirm" | "reset_done";
 
 const ROLES = [
   {
@@ -83,6 +83,14 @@ export default function Login() {
   const [techStep, setTechStep] = useState<"select" | "pin">("select");
   const [techEmail, setTechEmail] = useState("");
   const [techPassword, setTechPassword] = useState("");
+
+  // Регистрация клиента
+  const [regName, setRegName] = useState("");
+  const [regPhone, setRegPhone] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPdConsent, setRegPdConsent] = useState(false);
+  const [regLoading, setRegLoading] = useState(false);
+  const [regError, setRegError] = useState("");
 
   // Forgot / Reset
   const [forgotEmail, setForgotEmail] = useState("");
@@ -209,6 +217,30 @@ export default function Login() {
     finally { setLoading(false); }
   }
 
+  // ── Регистрация клиента ──────────────────────────────────────────────────
+  async function handleRegister() {
+    if (!regName.trim()) { setRegError("Введите имя"); return; }
+    if (!regPhone.trim()) { setRegError("Введите телефон"); return; }
+    if (!regPdConsent) { setRegError("Необходимо согласие на обработку персональных данных"); return; }
+    if (!cfToken) { setRegError("Пожалуйста, подождите проверку безопасности"); return; }
+    setRegError(""); setRegLoading(true);
+    try {
+      const res = await clientApi.register({
+        name: regName.trim(),
+        phone: regPhone.trim(),
+        email: regEmail.trim() || undefined,
+        cf_token: cfToken,
+      });
+      if (res.ok || res.token) {
+        if (res.token) { clientSession.set(res.token); navigate("/cabinet"); }
+        else setScreen("register_done");
+      } else {
+        setRegError(res.error || "Ошибка регистрации. Попробуйте позже.");
+      }
+    } catch { setRegError("Ошибка соединения"); }
+    finally { setRegLoading(false); }
+  }
+
   // ── Сброс пароля: запрос ─────────────────────────────────────────────────
   async function handleForgot() {
     if (!forgotEmail.trim()) { setError("Введите email"); return; }
@@ -271,9 +303,18 @@ export default function Login() {
                 <Icon name="ChevronRight" size={18} className="text-gray-300 group-hover:text-gray-500 shrink-0" />
               </button>
             ))}
-            <p className="text-center text-xs text-gray-400 mt-4">
-              <button onClick={() => navigate("/")} className="hover:text-[#3ca615] transition-colors">← Вернуться на сайт</button>
-            </p>
+            <div className="mt-5 pt-4 border-t border-gray-100 text-center space-y-2">
+              <p className="text-xs text-gray-400">Ещё нет личного кабинета?</p>
+              <button
+                onClick={() => { setScreen("register"); setRegError(""); setCfToken(""); }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 text-sm font-medium hover:bg-blue-100 transition-colors">
+                <Icon name="UserPlus" size={15} />
+                Зарегистрироваться
+              </button>
+              <p className="text-center text-xs text-gray-400 pt-1">
+                <button onClick={() => navigate("/")} className="hover:text-[#3ca615] transition-colors">← Вернуться на сайт</button>
+              </p>
+            </div>
           </div>
         )}
 
@@ -551,6 +592,102 @@ export default function Login() {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Регистрация клиента ── */}
+        {screen === "register" && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <button onClick={() => { setScreen("roles"); setRegError(""); }}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
+                <Icon name="ChevronLeft" size={18} />
+              </button>
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shrink-0">
+                <Icon name="UserPlus" size={17} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900 text-sm">Регистрация</p>
+                <p className="text-xs text-gray-400">Личный кабинет клиента</p>
+              </div>
+            </div>
+
+            {regError && (
+              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
+                <Icon name="AlertCircle" size={15} className="shrink-0" />
+                {regError}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Имя *</label>
+                <input type="text" value={regName} onChange={e => setRegName(e.target.value)}
+                  placeholder="Иван Иванов" autoFocus
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Телефон *</label>
+                <input type="tel" value={regPhone} onChange={e => setRegPhone(e.target.value)}
+                  placeholder="+7 (999) 000-00-00"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Email (необязательно)</label>
+                <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
+              </div>
+
+              {/* Согласие на обработку ПД */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative mt-0.5 shrink-0">
+                  <input type="checkbox" checked={regPdConsent} onChange={e => setRegPdConsent(e.target.checked)}
+                    className="sr-only" />
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${regPdConsent ? "bg-blue-600 border-blue-600" : "border-gray-300 group-hover:border-blue-400"}`}>
+                    {regPdConsent && <Icon name="Check" size={12} className="text-white" />}
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500 leading-relaxed">
+                  Я согласен(а) на{" "}
+                  <a href="/privacy" target="_blank" className="text-blue-600 underline hover:text-blue-800">
+                    обработку персональных данных
+                  </a>{" "}
+                  в соответствии с Федеральным законом №152-ФЗ
+                </span>
+              </label>
+
+              <TurnstileWidget onVerify={setCfToken} onExpire={() => setCfToken("")} />
+
+              <button onClick={handleRegister} disabled={regLoading || !cfToken || !regPdConsent}
+                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                {regLoading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="UserPlus" size={16} />}
+                {regLoading ? "Регистрация..." : "Создать аккаунт"}
+              </button>
+
+              <p className="text-center text-xs text-gray-400">
+                Уже есть аккаунт?{" "}
+                <button onClick={() => { setRole("client"); setScreen("form"); setRegError(""); }}
+                  className="text-blue-600 hover:underline">Войти</button>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Успешная регистрация ── */}
+        {screen === "register_done" && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-8 text-center">
+            <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Icon name="CheckCircle" size={28} className="text-blue-600" />
+            </div>
+            <h2 className="font-bold text-gray-900 text-lg mb-2">Заявка принята!</h2>
+            <p className="text-gray-500 text-sm mb-6">
+              Ваша заявка на регистрацию отправлена. Менеджер свяжется с вами для подтверждения доступа.
+            </p>
+            <button onClick={() => setScreen("roles")}
+              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2">
+              <Icon name="LogIn" size={16} /> Перейти ко входу
+            </button>
           </div>
         )}
 

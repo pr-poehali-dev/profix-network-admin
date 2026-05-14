@@ -217,6 +217,40 @@ def handler(event: dict, context) -> dict:
 
         return ok({"sent": True, "channel": channel})
 
+    # ── КЛИЕНТ: регистрация ──────────────────────────────────────────────────
+    if action == "client_register":
+        name = body.get("name", "").strip()
+        phone = body.get("phone", "").strip()
+        email = body.get("email", "").strip()
+        cf_token = body.get("cf_turnstile_token", "")
+
+        if not name:
+            return err("Укажите имя")
+        if not phone:
+            return err("Укажите номер телефона")
+        if not verify_turnstile(cf_token):
+            return err("Проверка безопасности не пройдена")
+
+        conn = get_conn()
+        cur = conn.cursor()
+
+        cur.execute(f"SELECT id FROM {SC}.clients WHERE phone = %s", (phone,))
+        existing = cur.fetchone()
+        if existing:
+            conn.close()
+            return err("Клиент с таким номером уже существует. Войдите через OTP-код.")
+
+        cur.execute(
+            f"INSERT INTO {SC}.clients (name, phone, email) VALUES (%s, %s, %s) RETURNING id",
+            (name, phone, email or None)
+        )
+        client_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return ok({"ok": True, "client_id": client_id, "message": "Заявка принята. Менеджер свяжется с вами."})
+
     # ── КЛИЕНТ: подтверждение OTP ───────────────────────────────────────────
     if action == "client_verify_otp":
         phone = body.get("phone", "").strip()

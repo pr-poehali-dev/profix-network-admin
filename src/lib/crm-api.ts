@@ -80,6 +80,9 @@ export const clientApi = {
   loginPassword: (phone: string, password: string) =>
     postAuth({ action: "client_login_password", phone, password }),
 
+  register: (data: { name: string; phone: string; email?: string; cf_token?: string }) =>
+    postAuth({ action: "client_register", ...data, cf_turnstile_token: data.cf_token || "" }),
+
   setPassword: (password: string) =>
     postAuthWithToken({ action: "client_set_password", password }, clientSession.get()!),
 
