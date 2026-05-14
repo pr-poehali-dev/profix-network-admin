@@ -1,4 +1,6 @@
+import { useState } from "react";
 import Icon from "@/components/ui/icon";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 interface TechListItem { id: number; name: string; specialization?: string }
 
@@ -23,6 +25,8 @@ export default function TechLogin({
   isInstalled, installPrompt,
   onSelectTech, onPinChange, onLogin, onBack, onInstall, onNavigateHome,
 }: Props) {
+  const [cfToken, setCfToken] = useState("");
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8] flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 w-full max-w-sm">
@@ -98,15 +102,16 @@ export default function TechLogin({
               type="password"
               value={pin}
               onChange={e => onPinChange(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && onLogin()}
+              onKeyDown={e => e.key === "Enter" && cfToken && onLogin()}
               placeholder="PIN-код"
               maxLength={6}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-[#3ca615] focus:ring-2 focus:ring-[#3ca615]/20 mb-4"
             />
+            <TurnstileWidget onVerify={setCfToken} onExpire={() => {}} />
             <button
               onClick={onLogin}
-              disabled={loading || !pin.trim()}
-              className="w-full bg-[#3ca615] text-white py-3 rounded-xl font-semibold shadow-lg shadow-green-200 hover:shadow-green-300 hover:-translate-y-0.5 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+              disabled={loading || !pin.trim() || !cfToken}
+              className="w-full bg-[#3ca615] text-white py-3 rounded-xl font-semibold shadow-lg shadow-green-200 hover:shadow-green-300 hover:-translate-y-0.5 transition-all disabled:opacity-60 flex items-center justify-center gap-2 mt-3"
             >
               {loading ? <Icon name="Loader2" size={18} className="animate-spin" /> : <Icon name="LogIn" size={18} />}
               Войти
