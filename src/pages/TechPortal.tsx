@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
-import { techApi, techSession, Ticket } from "@/lib/crm-api";
+import { techApi, techSession, Ticket, fixiesApi } from "@/lib/crm-api";
 import AdminNotificationPanel from "@/components/admin/AdminNotificationPanel";
 import TechLogin from "@/components/tech/TechLogin";
 import TechTicketList from "@/components/tech/TechTicketList";
@@ -41,6 +41,10 @@ export default function TechPortal() {
   const [filter, setFilter] = useState("active");
   const [saving, setSaving] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const [fixiesBalance, setFixiesBalance] = useState<number | null>(null);
+  const [tariffName, setTariffName] = useState<string | null>(null);
+  const [showFixies, setShowFixies] = useState(false);
+  const [fixiesHistory, setFixiesHistory] = useState<{amount:number;reason:string;created_at:string}[]>([]);
   const [isInstalled, setIsInstalled] = useState(false);
   const pollTicketRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const selectedTicketIdRef = useRef<number | null>(null);
@@ -107,9 +111,20 @@ export default function TechPortal() {
     }
   }, []);
 
+  const loadFixies = useCallback(async () => {
+    const token = techSession.get();
+    if (!token) return;
+    try {
+      const res = await fixiesApi.getMyFixies(token, "technician");
+      if (res.balance !== undefined) setFixiesBalance(res.balance);
+      if (res.tariff?.name) setTariffName(res.tariff.name);
+      if (res.history) setFixiesHistory(res.history);
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
-    if (step === "portal") loadTickets();
-  }, [step, loadTickets]);
+    if (step === "portal") { loadTickets(); loadFixies(); }
+  }, [step, loadTickets, loadFixies]);
 
   async function handleLogin() {
     if (!selectedTechId || !pin.trim()) {
@@ -263,6 +278,14 @@ export default function TechPortal() {
             <p className="font-semibold text-sm text-[#111827]">{tech?.name}</p>
             <p className="text-xs text-gray-400">{tech?.specialization || "Технический специалист"}</p>
           </div>
+          {/* Баланс фиксиков */}
+          {fixiesBalance !== null && (
+            <button onClick={() => setShowFixies(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#edf7e8] text-[#3ca615] text-sm font-bold hover:bg-green-100 transition-colors">
+              💰{fixiesBalance}
+              <span className="hidden sm:inline text-xs font-medium">фикс.</span>
+            </button>
+          )}
           {!isInstalled && installPrompt && (
             <button
               onClick={handleInstall}
@@ -290,6 +313,40 @@ export default function TechPortal() {
           </button>
         </div>
       </header>
+
+      {/* Панель фиксиков */}
+      {showFixies && (
+        <div className="bg-white border-b border-gray-100 shadow-sm">
+          <div className="max-w-3xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                💰 Мои фиксики
+                {tariffName && <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Тариф: {tariffName}</span>}
+              </h3>
+              <span className={`text-lg font-bold ${(fixiesBalance||0) >= 0 ? "text-[#3ca615]" : "text-red-500"}`}>
+                {(fixiesBalance||0) >= 0 ? "+" : ""}{fixiesBalance} 💰
+              </span>
+            </div>
+            {fixiesHistory.length > 0 ? (
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {fixiesHistory.slice(0, 10).map((tx, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs py-1.5 border-b border-gray-50 last:border-0">
+                    <span className={`font-bold w-8 shrink-0 text-right ${tx.amount>=0?"text-[#3ca615]":"text-red-500"}`}>
+                      {tx.amount>=0?"+":""}{tx.amount}
+                    </span>
+                    <span className="flex-1 text-gray-600 truncate">{tx.reason}</span>
+                    <span className="text-gray-400 shrink-0">
+                      {new Date(tx.created_at).toLocaleDateString("ru-RU", {day:"2-digit",month:"short"})}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-3">Начисления появятся после закрытия первой заявки</p>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="max-w-3xl mx-auto px-4 py-6">
         {error && (

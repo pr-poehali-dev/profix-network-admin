@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import Icon from "@/components/ui/icon";
-import { managerApi, managerSession, Ticket, STATUS_COLORS } from "@/lib/crm-api";
+import { managerApi, managerSession, Ticket, STATUS_COLORS, fixiesApi } from "@/lib/crm-api";
 import { shopApi } from "@/lib/shop-api";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -252,6 +252,10 @@ export default function ManagerApp() {
   const lastTicketIdRef = useRef(0);
   const lastCommentIdRef = useRef(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [fixiesBalance, setFixiesBalance] = useState<number | null>(null);
+  const [tariffInfo, setTariffInfo] = useState<{name:string;speed_tiers?:{hours:number;fixies:number}[]} | null>(null);
+  const [showFixies, setShowFixies] = useState(false);
+  const [fixiesHistory, setFixiesHistory] = useState<{amount:number;reason:string;created_at:string}[]>([]);
 
   // Polling уведомлений
   const poll = useCallback(async () => {
@@ -315,6 +319,17 @@ export default function ManagerApp() {
   }
 
   useEffect(() => { if (loggedIn) loadTickets(); }, [loggedIn, filter]);
+
+  useEffect(() => {
+    if (!loggedIn) return;
+    const token = managerSession.get();
+    if (!token) return;
+    fixiesApi.getMyFixies(token, "manager").then(res => {
+      if (res.balance !== undefined) setFixiesBalance(res.balance);
+      if (res.tariff?.name) setTariffInfo(res.tariff);
+      if (res.history) setFixiesHistory(res.history);
+    }).catch(() => {});
+  }, [loggedIn]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -394,11 +409,45 @@ export default function ManagerApp() {
             <p className="text-sm font-semibold text-gray-900 leading-none">{manager?.name}</p>
             <p className="text-[10px] text-gray-400 capitalize">{manager?.role}</p>
           </div>
+          {fixiesBalance !== null && (
+            <button onClick={() => setShowFixies(v => !v)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#edf7e8] text-[#3ca615] text-xs font-bold hover:bg-green-100 transition-colors">
+              💰{fixiesBalance}
+            </button>
+          )}
           <button onClick={() => { managerSession.clear(); setLoggedIn(false); setManager(null); }}
             className="p-2 text-gray-400 hover:text-red-500 transition-colors">
             <Icon name="LogOut" size={18} />
           </button>
         </div>
+        {/* Панель фиксиков */}
+        {showFixies && (
+          <div className="px-4 py-3 border-t border-gray-50 bg-gray-50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-gray-700">
+                💰 Мои фиксики
+                {tariffInfo?.name && <span className="ml-2 font-normal text-gray-400">({tariffInfo.name})</span>}
+              </span>
+              <span className={`text-sm font-bold ${(fixiesBalance||0)>=0?"text-[#3ca615]":"text-red-500"}`}>
+                {(fixiesBalance||0)>=0?"+":""}{fixiesBalance}
+              </span>
+            </div>
+            {tariffInfo?.speed_tiers && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {tariffInfo.speed_tiers.map((t,i) => (
+                  <span key={i} className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">⚡&lt;{t.hours}ч → +{t.fixies}💰</span>
+                ))}
+              </div>
+            )}
+            {fixiesHistory.slice(0,5).map((tx, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs py-1 border-b border-gray-100 last:border-0">
+                <span className={`font-bold w-8 text-right shrink-0 ${tx.amount>=0?"text-[#3ca615]":"text-red-500"}`}>{tx.amount>=0?"+":""}{tx.amount}</span>
+                <span className="flex-1 text-gray-500 truncate">{tx.reason}</span>
+                <span className="text-gray-400 shrink-0">{new Date(tx.created_at).toLocaleDateString("ru-RU",{day:"2-digit",month:"short"})}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Таббар */}

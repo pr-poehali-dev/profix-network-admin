@@ -34,6 +34,107 @@ def get_conn():
     return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
+def award_fixies_for_ticket(cur, ticket_id: int, new_status: str, old_status: str):
+    """Начисляет/списывает фиксики спецу и менеджеру при закрытии/отмене заявки."""
+    if new_status not in ("done", "cancelled") or old_status in ("done", "cancelled"):
+        return
+
+    # Получаем данные заявки
+    cur.execute(f"""
+        SELECT t.technician_id, t.manager_id, t.priority, t.created_at, t.updated_at,
+               t.scheduled_date, t.amount
+        FROM {SC}.tickets t WHERE t.id = %s
+    """, (ticket_id,))
+    ticket = cur.fetchone()
+    if not ticket:
+        return
+    tech_id, manager_id, priority, created_at, updated_at, sched_date, amount = ticket
+
+    # Множитель приоритета
+    PRIO_DEFAULT = {"low": 0.8, "normal": 1.0, "high": 1.3, "urgent": 1.5}
+
+    # ── СПЕЦИАЛИСТ ──────────────────────────────────────────────────────────
+    if tech_id and new_status == "done":
+        cur.execute(f"""
+            SELECT tp.base_fixies, tp.overdue_penalty, tp.priority_multiplier
+            FROM {SC}.technicians t
+            LEFT JOIN {SC}.tariff_plans tp ON tp.id = t.tariff_plan_id
+            WHERE t.id = %s
+        """, (tech_id,))
+        row = cur.fetchone()
+        if row:
+            base, overdue_penalty, prio_mult_json = row
+            base = base or 15
+            prio_mult = (prio_mult_json or PRIO_DEFAULT).get(priority, 1.0) if prio_mult_json else PRIO_DEFAULT.get(priority, 1.0)
+            fixies = round(base * float(prio_mult))
+
+            # Проверяем просрочку (scheduled_date)
+            penalty = 0
+            if sched_date and updated_at:
+                from datetime import date
+                if updated_at.date() > sched_date:
+                    penalty = overdue_penalty or 0
+
+            net = fixies - penalty
+            reason = f"Заявка #{ticket_id} закрыта (×{prio_mult:.1f} приоритет{', штраф -' + str(penalty) if penalty else ''})"
+            cur.execute(f"""
+                INSERT INTO {SC}.fixie_transactions (tech_id, amount, reason, task_id, created_by)
+                VALUES (%s, %s, %s, NULL, NULL)
+            """, (tech_id, net, reason))
+            cur.execute(f"UPDATE {SC}.technicians SET fixies_balance = fixies_balance + %s WHERE id = %s",
+                        (net, tech_id))
+            # TG уведомление спецу
+            cur.execute(f"SELECT tg_chat_id FROM {SC}.technicians WHERE id = %s", (tech_id,))
+            tg_row = cur.fetchone()
+            if tg_row and tg_row[0]:
+                sign = "+" if net >= 0 else ""
+                send_tg(tg_row[0], f"✅ Заявка #{ticket_id} закрыта\n💰 {sign}{net} фиксиков начислено")
+
+    # ── МЕНЕДЖЕР ────────────────────────────────────────────────────────────
+    if manager_id and new_status == "done":
+        cur.execute(f"""
+            SELECT tp.base_fixies, tp.overdue_penalty,
+                   tp.speed_bonus_hours, tp.speed_bonus_fixies, tp.speed_tiers,
+                   tp.slow_penalty_hours, tp.slow_penalty_fixies, tp.priority_multiplier
+            FROM {SC}.managers m
+            LEFT JOIN {SC}.tariff_plans tp ON tp.id = m.tariff_plan_id
+            WHERE m.id = %s
+        """, (manager_id,))
+        row = cur.fetchone()
+        if row:
+            base, overdue_p, spd_h, spd_f, speed_tiers_json, slow_h, slow_f, prio_mult_json = row
+            base = base or 10
+            prio_mult = (prio_mult_json or PRIO_DEFAULT).get(priority, 1.0) if prio_mult_json else PRIO_DEFAULT.get(priority, 1.0)
+            fixies = round(base * float(prio_mult))
+
+            # Бонус/штраф за скорость
+            speed_bonus = 0
+            if created_at and updated_at:
+                hours_elapsed = (updated_at - created_at).total_seconds() / 3600
+                # Тиры скорости (JSON array: [{hours, fixies}])
+                tiers = speed_tiers_json if speed_tiers_json else []
+                for tier in sorted(tiers, key=lambda x: x.get("hours", 9999)):
+                    if hours_elapsed <= tier.get("hours", 9999):
+                        speed_bonus = tier.get("fixies", 0)
+                        break
+                # Штраф за медленность
+                if slow_h and hours_elapsed > slow_h:
+                    speed_bonus -= (slow_f or 0)
+
+            net = fixies + speed_bonus
+            hours_txt = ""
+            if created_at and updated_at:
+                h = round((updated_at - created_at).total_seconds() / 3600, 1)
+                hours_txt = f" за {h}ч"
+            reason = f"Заявка #{ticket_id} закрыта{hours_txt} (скорость: {'+' if speed_bonus >= 0 else ''}{speed_bonus})"
+            cur.execute(f"""
+                INSERT INTO {SC}.manager_fixie_transactions (manager_id, amount, reason, ticket_id)
+                VALUES (%s, %s, %s, %s)
+            """, (manager_id, net, reason, ticket_id))
+            cur.execute(f"UPDATE {SC}.managers SET fixies_balance = fixies_balance + %s WHERE id = %s",
+                        (net, manager_id))
+
+
 def send_tg(chat_id: int, text: str) -> None:
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     if not token or not chat_id:
@@ -440,6 +541,11 @@ def handler(event: dict, context) -> dict:
             if body.get("tech_notes") is not None:
                 sets.append("tech_notes = %s"); vals.append(body["tech_notes"])
 
+        # Запоминаем старый статус до обновления
+        cur.execute(f"SELECT status FROM {SC}.tickets WHERE id = %s", (ticket_id,))
+        old_row = cur.fetchone()
+        old_status = old_row[0] if old_row else ""
+
         vals.append(ticket_id)
         cur.execute(f"UPDATE {SC}.tickets SET {', '.join(sets)} WHERE id = %s", vals)
         conn.commit()
@@ -447,6 +553,12 @@ def handler(event: dict, context) -> dict:
         new_status = body.get("status")
         if new_status:
             notify_client_status(conn, ticket_id, new_status)
+            # Начисляем фиксики спецу и менеджеру
+            try:
+                award_fixies_for_ticket(cur, ticket_id, new_status, old_status)
+                conn.commit()
+            except Exception:
+                pass  # не ломаем основной флоу
 
         cur.close(); conn.close()
         return ok({"updated": True})
@@ -592,6 +704,131 @@ def handler(event: dict, context) -> dict:
         ]
         cur.close(); conn.close()
         return ok({"schedule": schedule})
+
+    # ── ТАРИФНЫЕ ПЛАНЫ ───────────────────────────────────────────────────────
+    if method == "GET" and action == "tariffs":
+        cur.execute(f"SELECT * FROM {SC}.tariff_plans ORDER BY role, id")
+        cols = [d[0] for d in cur.description]
+        plans = [dict(zip(cols, r)) for r in cur.fetchall()]
+        cur.close(); conn.close()
+        return ok({"plans": plans})
+
+    if method == "POST" and action == "tariff_save":
+        if role != "manager":
+            cur.close(); conn.close()
+            return err("Доступ запрещён", 403)
+        tid = body.get("id")
+        fields = ["name","role","base_fixies","overdue_penalty","speed_bonus_hours",
+                  "speed_bonus_fixies","speed_tiers","slow_penalty_hours","slow_penalty_fixies",
+                  "priority_multiplier","is_active"]
+        if tid:
+            sets = [f"{f}=%s" for f in fields if f in body]
+            vals = [body[f] for f in fields if f in body]
+            if sets:
+                cur.execute(f"UPDATE {SC}.tariff_plans SET {','.join(sets)},updated_at=NOW() WHERE id=%s",
+                            vals + [tid])
+            conn.commit(); cur.close(); conn.close()
+            return ok({"updated": True})
+        else:
+            cols_ins = [f for f in fields if f in body]
+            vals_ins = [body[f] for f in cols_ins]
+            ph = ",".join(["%s"]*len(vals_ins))
+            cur.execute(f"INSERT INTO {SC}.tariff_plans ({','.join(cols_ins)}) VALUES ({ph}) RETURNING id",
+                        vals_ins)
+            new_id = cur.fetchone()[0]
+            conn.commit(); cur.close(); conn.close()
+            return ok({"id": new_id})
+
+    if method == "POST" and action == "tariff_assign":
+        if role != "manager":
+            cur.close(); conn.close()
+            return err("Доступ запрещён", 403)
+        target_role = body.get("target_role")  # tech|manager
+        target_id   = int(body.get("target_id", 0))
+        plan_id     = body.get("plan_id")  # None снимает тариф
+        if target_role == "tech":
+            cur.execute(f"UPDATE {SC}.technicians SET tariff_plan_id=%s WHERE id=%s", (plan_id, target_id))
+        else:
+            cur.execute(f"UPDATE {SC}.managers SET tariff_plan_id=%s WHERE id=%s", (plan_id, target_id))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"assigned": True})
+
+    # ── БАЛАНС И ИСТОРИЯ ФИКСИКОВ ────────────────────────────────────────────
+    if method == "GET" and action == "my_fixies":
+        if role == "technician":
+            cur.execute(f"""
+                SELECT t.fixies_balance, tp.name AS tariff_name, tp.base_fixies,
+                       tp.overdue_penalty, tp.priority_multiplier
+                FROM {SC}.technicians t
+                LEFT JOIN {SC}.tariff_plans tp ON tp.id=t.tariff_plan_id
+                WHERE t.id=%s
+            """, (user_id,))
+            row = cur.fetchone()
+            balance = row[0] if row else 0
+            tariff = {"name": row[1], "base_fixies": row[2], "overdue_penalty": row[3],
+                      "priority_multiplier": row[4]} if row and row[1] else None
+            cur.execute(f"""
+                SELECT ft.amount, ft.reason, ft.created_at, tk.id AS ticket_id, tk.title
+                FROM {SC}.fixie_transactions ft
+                LEFT JOIN {SC}.tickets tk ON tk.id=ft.task_id
+                WHERE ft.tech_id=%s ORDER BY ft.created_at DESC LIMIT 50
+            """, (user_id,))
+            history = [{"amount":r[0],"reason":r[1],"created_at":r[2].isoformat() if r[2] else None,
+                        "ticket_id":r[3],"ticket_title":r[4]} for r in cur.fetchall()]
+        elif role == "manager":
+            cur.execute(f"""
+                SELECT m.fixies_balance, tp.name AS tariff_name, tp.base_fixies,
+                       tp.speed_tiers, tp.slow_penalty_hours, tp.slow_penalty_fixies,
+                       tp.priority_multiplier
+                FROM {SC}.managers m
+                LEFT JOIN {SC}.tariff_plans tp ON tp.id=m.tariff_plan_id
+                WHERE m.id=%s
+            """, (user_id,))
+            row = cur.fetchone()
+            balance = row[0] if row else 0
+            tariff = {"name": row[1], "base_fixies": row[2], "speed_tiers": row[3],
+                      "slow_penalty_hours": row[4], "slow_penalty_fixies": row[5],
+                      "priority_multiplier": row[6]} if row and row[1] else None
+            cur.execute(f"""
+                SELECT mft.amount, mft.reason, mft.created_at, mft.ticket_id, tk.title
+                FROM {SC}.manager_fixie_transactions mft
+                LEFT JOIN {SC}.tickets tk ON tk.id=mft.ticket_id
+                WHERE mft.manager_id=%s ORDER BY mft.created_at DESC LIMIT 50
+            """, (user_id,))
+            history = [{"amount":r[0],"reason":r[1],"created_at":r[2].isoformat() if r[2] else None,
+                        "ticket_id":r[3],"ticket_title":r[4]} for r in cur.fetchall()]
+        else:
+            cur.close(); conn.close()
+            return err("Нет доступа", 403)
+        cur.close(); conn.close()
+        return ok({"balance": balance, "tariff": tariff, "history": history})
+
+    # ── СВОДКА ФИКСИКОВ ВСЕ СОТРУДНИКИ (только менеджер) ────────────────────
+    if method == "GET" and action == "fixies_summary":
+        if role != "manager":
+            cur.close(); conn.close()
+            return err("Доступ запрещён", 403)
+        cur.execute(f"""
+            SELECT t.id, t.name, t.fixies_balance, tp.name AS tariff,
+                   COUNT(tk.id) FILTER (WHERE tk.status='done') AS done_tickets
+            FROM {SC}.technicians t
+            LEFT JOIN {SC}.tariff_plans tp ON tp.id=t.tariff_plan_id
+            LEFT JOIN {SC}.tickets tk ON tk.technician_id=t.id
+            WHERE t.is_active=TRUE GROUP BY t.id,t.name,t.fixies_balance,tp.name
+            ORDER BY t.fixies_balance DESC
+        """)
+        techs = [{"id":r[0],"name":r[1],"balance":r[2],"tariff":r[3],"done":r[4]}
+                 for r in cur.fetchall()]
+        cur.execute(f"""
+            SELECT m.id, COALESCE(m.name,m.full_name), m.fixies_balance, tp.name AS tariff
+            FROM {SC}.managers m
+            LEFT JOIN {SC}.tariff_plans tp ON tp.id=m.tariff_plan_id
+            WHERE m.is_active=TRUE ORDER BY m.fixies_balance DESC
+        """)
+        managers_list = [{"id":r[0],"name":r[1],"balance":r[2],"tariff":r[3]}
+                         for r in cur.fetchall()]
+        cur.close(); conn.close()
+        return ok({"techs": techs, "managers": managers_list})
 
     cur.close(); conn.close()
     return err("Неизвестное действие")

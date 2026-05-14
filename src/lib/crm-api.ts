@@ -215,6 +215,21 @@ export const managerApi = {
 
   getSchedule: (technician_id: number, date?: string) =>
     getTickets({ action: "schedule", technician_id: String(technician_id), ...(date ? { date } : {}) }, managerSession.get()!),
+
+  // Тарифы
+  getTariffs: () => getTickets({ action: "tariffs" }, managerSession.get()!),
+  saveTariff: (data: object) => postTickets({ action: "tariff_save", ...data }, managerSession.get()!),
+  assignTariff: (target_role: string, target_id: number, plan_id: number | null) =>
+    postTickets({ action: "tariff_assign", target_role, target_id, plan_id }, managerSession.get()!),
+  getFixiesSummary: () => getTickets({ action: "fixies_summary" }, managerSession.get()!),
+};
+
+// Получить свои фиксики (и тариф) — для спеца и менеджера
+export const fixiesApi = {
+  getMyFixies: (token: string, role: "technician" | "manager") =>
+    fetch(`${TICKETS_URL}?action=my_fixies`, {
+      headers: { "Authorization": `Bearer ${token}` },
+    }).then(r => r.json()),
 };
 
 // ── API отзывов ───────────────────────────────────────────────────────────────
