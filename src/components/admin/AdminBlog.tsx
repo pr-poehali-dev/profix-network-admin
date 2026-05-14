@@ -15,18 +15,39 @@ const EMPTY: Partial<Post> = {
   cover_url: "", video_url: "", tags: "", is_published: false,
 };
 
+function getYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+}
+
+const TYPE_BADGE: Record<string, string> = {
+  news: "bg-blue-100 text-blue-700",
+  article: "bg-purple-100 text-purple-700",
+  video: "bg-red-100 text-red-700",
+  forum: "bg-amber-100 text-amber-700",
+};
+
 export default function AdminBlog() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [editing, setEditing] = useState<Partial<Post> | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
+  const [preview, setPreview] = useState(false);
+
   const [youtubeChannel, setYoutubeChannel] = useState("");
+  const [subscribersCount, setSubscribersCount] = useState("");
+  const [channelDesc, setChannelDesc] = useState("");
   const [ytSaving, setYtSaving] = useState(false);
 
   useEffect(() => {
     loadPosts();
-    fetchContent().then(c => setYoutubeChannel(c["blog.youtube_channel"] || ""));
+    fetchContent().then(c => {
+      setYoutubeChannel(c["blog.youtube_channel"] || "");
+      setSubscribersCount(c["blog.subscribers"] || "");
+      setChannelDesc(c["blog.channel_desc"] || "");
+    });
   }, []);
 
   async function loadPosts() {
@@ -50,6 +71,7 @@ export default function AdminBlog() {
         setSavedMsg("✅ Сохранено!");
         setTimeout(() => setSavedMsg(""), 2000);
         setEditing(null);
+        setPreview(false);
         loadPosts();
       } else {
         setSavedMsg("❌ " + (res.error || "Ошибка"));
@@ -58,13 +80,32 @@ export default function AdminBlog() {
     finally { setSaving(false); }
   }
 
-  async function handleSaveYoutube() {
+  async function handleSaveChannel() {
     setYtSaving(true);
-    await saveContent({ "blog.youtube_channel": youtubeChannel });
+    await saveContent({
+      "blog.youtube_channel": youtubeChannel,
+      "blog.subscribers": subscribersCount,
+      "blog.channel_desc": channelDesc,
+    });
     setYtSaving(false);
-    setSavedMsg("✅ Ссылка сохранена!");
+    setSavedMsg("✅ Настройки канала сохранены!");
     setTimeout(() => setSavedMsg(""), 2000);
   }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Снять пост с публикации?")) return;
+    await blogApi.deletePost(id);
+    loadPosts();
+  }
+
+  const ytId = editing?.video_url ? getYouTubeId(editing.video_url) : null;
+  const thumbPreview = ytId
+    ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`
+    : editing?.cover_url || null;
+
+  const published = posts.filter(p => p.is_published).length;
+  const drafts = posts.filter(p => !p.is_published).length;
+  const totalViews = posts.reduce((s, p) => s + (p.views || 0), 0);
 
   return (
     <div className="p-4 sm:p-6">
@@ -73,7 +114,7 @@ export default function AdminBlog() {
           <h2 className="text-xl font-bold text-gray-900">Блог</h2>
           <p className="text-sm text-gray-400 mt-0.5">Посты, видео, форум</p>
         </div>
-        <button onClick={() => setEditing({ ...EMPTY })}
+        <button onClick={() => { setEditing({ ...EMPTY }); setPreview(false); }}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold"
           style={{ backgroundColor: "#3ca615" }}>
           <Icon name="Plus" size={16} />Новый пост
@@ -86,137 +127,282 @@ export default function AdminBlog() {
         </div>
       )}
 
-      {/* YouTube канал */}
+      {/* Статистика */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        {[
+          { label: "Опубликовано", value: published, icon: "CheckCircle", color: "text-green-600 bg-green-50" },
+          { label: "Черновики", value: drafts, icon: "FileText", color: "text-amber-600 bg-amber-50" },
+          { label: "Просмотры", value: totalViews >= 1000 ? (totalViews / 1000).toFixed(1) + "К" : totalViews, icon: "Eye", color: "text-blue-600 bg-blue-50" },
+        ].map(s => (
+          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-3 text-center shadow-sm">
+            <div className={`w-8 h-8 rounded-xl ${s.color} flex items-center justify-center mx-auto mb-1.5`}>
+              <Icon name={s.icon as "Eye"} size={15} />
+            </div>
+            <p className="text-lg font-bold text-gray-900">{s.value}</p>
+            <p className="text-[10px] text-gray-400 leading-tight">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Настройки канала */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-5">
         <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-          <Icon name="Play" size={15} className="text-red-500" />
-          YouTube канал
+          <div className="w-6 h-6 bg-red-600 rounded-lg flex items-center justify-center">
+            <Icon name="Play" size={12} className="text-white" />
+          </div>
+          Настройки канала
         </h3>
-        <div className="flex gap-2">
-          <input value={youtubeChannel} onChange={e => setYoutubeChannel(e.target.value)}
-            placeholder="https://youtube.com/@ваш_канал"
-            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]" />
-          <button onClick={handleSaveYoutube} disabled={ytSaving}
-            className="px-4 py-2 rounded-xl text-white text-sm font-medium disabled:opacity-60"
+        <div className="space-y-2.5">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Ссылка на YouTube канал</label>
+            <input value={youtubeChannel} onChange={e => setYoutubeChannel(e.target.value)}
+              placeholder="https://youtube.com/@profix_yakutsk"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Подписчиков (текст)</label>
+              <input value={subscribersCount} onChange={e => setSubscribersCount(e.target.value)}
+                placeholder="1,2 тыс."
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Описание канала</label>
+              <input value={channelDesc} onChange={e => setChannelDesc(e.target.value)}
+                placeholder="Короткое описание..."
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]" />
+            </div>
+          </div>
+          <button onClick={handleSaveChannel} disabled={ytSaving}
+            className="w-full py-2 rounded-xl text-white text-sm font-medium disabled:opacity-60 flex items-center justify-center gap-2"
             style={{ backgroundColor: "#3ca615" }}>
-            {ytSaving ? <Icon name="Loader2" size={14} className="animate-spin" /> : "Сохранить"}
+            {ytSaving ? <Icon name="Loader2" size={14} className="animate-spin" /> : <Icon name="Save" size={14} />}
+            Сохранить настройки
           </button>
         </div>
       </div>
 
       {/* Редактор поста */}
       {editing && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5 space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-gray-900">{editing.id ? "Редактировать пост" : "Новый пост"}</h3>
-            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-gray-600">
-              <Icon name="X" size={18} />
-            </button>
-          </div>
-
-          {/* Тип */}
-          <div className="flex gap-2 flex-wrap">
-            {POST_TYPES.map(t => (
-              <button key={t.v} onClick={() => setEditing(e => ({ ...e, type: t.v as Post["type"] }))}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${editing.type === t.v ? "bg-[#3ca615] text-white border-[#3ca615]" : "border-gray-200 text-gray-600 hover:border-[#3ca615]"}`}>
-                <Icon name={t.icon as "Newspaper"} size={12} />
-                {t.l}
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPreview(v => !v)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${preview ? "bg-[#3ca615] text-white border-[#3ca615]" : "border-gray-200 text-gray-600 hover:border-[#3ca615]"}`}>
+                <Icon name="Eye" size={12} />Предпросмотр
               </button>
-            ))}
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Заголовок *</label>
-            <input value={editing.title || ""} onChange={e => setEditing(p => ({ ...p, title: e.target.value }))}
-              placeholder="Введите заголовок"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Краткое описание</label>
-            <textarea value={editing.excerpt || ""} onChange={e => setEditing(p => ({ ...p, excerpt: e.target.value }))}
-              rows={2} placeholder="Описание для карточки и SEO..."
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615] resize-none" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Текст статьи</label>
-            <textarea value={editing.content || ""} onChange={e => setEditing(p => ({ ...p, content: e.target.value }))}
-              rows={8} placeholder="Полный текст публикации..."
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615] resize-y" />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Обложка (URL картинки)</label>
-              <input value={editing.cover_url || ""} onChange={e => setEditing(p => ({ ...p, cover_url: e.target.value }))}
-                placeholder="https://..."
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Видео (YouTube ссылка)</label>
-              <input value={editing.video_url || ""} onChange={e => setEditing(p => ({ ...p, video_url: e.target.value }))}
-                placeholder="https://youtube.com/watch?v=..."
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+              <button onClick={() => { setEditing(null); setPreview(false); }} className="text-gray-400 hover:text-gray-600">
+                <Icon name="X" size={18} />
+              </button>
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Теги <span className="font-normal text-gray-400">(через запятую)</span></label>
-            <input value={editing.tags || ""} onChange={e => setEditing(p => ({ ...p, tags: e.target.value }))}
-              placeholder="1С, касса, ремонт, Якутск"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
-          </div>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <div className="relative shrink-0">
-              <input type="checkbox" checked={!!editing.is_published}
-                onChange={e => setEditing(p => ({ ...p, is_published: e.target.checked }))} className="sr-only" />
-              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition ${editing.is_published ? "bg-[#3ca615] border-[#3ca615]" : "border-gray-300"}`}>
-                {editing.is_published && <Icon name="Check" size={12} className="text-white" />}
+          {preview ? (
+            // ── Предпросмотр ────────────────────────────────────────────────
+            <div className="border border-gray-100 rounded-2xl overflow-hidden">
+              {/* Мини превью карточки */}
+              <div className="relative bg-gray-900 aspect-video">
+                {thumbPreview ? (
+                  <img src={thumbPreview} alt={editing.title} className="w-full h-full object-cover opacity-80" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Icon name="Image" size={40} className="text-gray-600" />
+                  </div>
+                )}
+                {(ytId || editing.type === "video") && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
+                      <Icon name="Play" size={22} className="text-white ml-1" />
+                    </div>
+                  </div>
+                )}
+                <span className="absolute top-3 left-3 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-black/60 text-white">
+                  {editing.type ? (POST_TYPES.find(t => t.v === editing.type)?.l || editing.type) : "Тип"}
+                </span>
+              </div>
+              <div className="p-4 bg-white">
+                <h4 className="font-bold text-gray-900 text-sm mb-1">{editing.title || "Заголовок поста"}</h4>
+                {editing.excerpt && <p className="text-xs text-gray-500 line-clamp-2">{editing.excerpt}</p>}
+                <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+                  <span>ProFiX</span>
+                  <span>· 0 просм.</span>
+                  <span>· {new Date().toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}</span>
+                </div>
+                {editing.content && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-xs text-gray-600 whitespace-pre-wrap line-clamp-6">{editing.content}</p>
+                  </div>
+                )}
+                {editing.tags && (
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {editing.tags.split(",").map(t => t.trim()).filter(Boolean).map(tag => (
+                      <span key={tag} className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">#{tag}</span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-            <span className="text-sm text-gray-700">Опубликовать</span>
-          </label>
+          ) : (
+            // ── Форма редактирования ─────────────────────────────────────────
+            <div className="space-y-4">
+              {/* Тип */}
+              <div className="flex gap-2 flex-wrap">
+                {POST_TYPES.map(t => (
+                  <button key={t.v} onClick={() => setEditing(e => ({ ...e, type: t.v as Post["type"] }))}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${editing.type === t.v ? "bg-[#3ca615] text-white border-[#3ca615]" : "border-gray-200 text-gray-600 hover:border-[#3ca615]"}`}>
+                    <Icon name={t.icon as "Newspaper"} size={12} />
+                    {t.l}
+                  </button>
+                ))}
+              </div>
 
-          <button onClick={handleSave} disabled={saving}
-            className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 flex items-center justify-center gap-2"
-            style={{ backgroundColor: "#3ca615" }}>
-            {saving ? <><Icon name="Loader2" size={15} className="animate-spin" />Сохранение...</>
-              : <><Icon name="Save" size={15} />{editing.id ? "Сохранить изменения" : "Опубликовать"}</>}
-          </button>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Заголовок *</label>
+                <input value={editing.title || ""} onChange={e => setEditing(p => ({ ...p, title: e.target.value }))}
+                  placeholder="Введите заголовок"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Краткое описание</label>
+                <textarea value={editing.excerpt || ""} onChange={e => setEditing(p => ({ ...p, excerpt: e.target.value }))}
+                  rows={2} placeholder="Описание для карточки и SEO..."
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615] resize-none" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Текст статьи</label>
+                <textarea value={editing.content || ""} onChange={e => setEditing(p => ({ ...p, content: e.target.value }))}
+                  rows={8} placeholder="Полный текст публикации..."
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615] resize-y" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Обложка (URL картинки)</label>
+                  <input value={editing.cover_url || ""} onChange={e => setEditing(p => ({ ...p, cover_url: e.target.value }))}
+                    placeholder="https://..."
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                  {editing.cover_url && !ytId && (
+                    <div className="mt-2 h-20 rounded-lg overflow-hidden border border-gray-100">
+                      <img src={editing.cover_url} alt="preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Видео (YouTube ссылка)</label>
+                  <input value={editing.video_url || ""} onChange={e => setEditing(p => ({ ...p, video_url: e.target.value }))}
+                    placeholder="https://youtube.com/watch?v=..."
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                  {ytId && (
+                    <div className="mt-2 h-20 rounded-lg overflow-hidden border border-gray-100 relative">
+                      <img src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`} alt="yt" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <Icon name="Play" size={20} className="text-white" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Теги <span className="font-normal text-gray-400">(через запятую)</span></label>
+                <input value={editing.tags || ""} onChange={e => setEditing(p => ({ ...p, tags: e.target.value }))}
+                  placeholder="1С, касса, ремонт, Якутск"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <div className="relative shrink-0">
+                  <input type="checkbox" checked={!!editing.is_published}
+                    onChange={e => setEditing(p => ({ ...p, is_published: e.target.checked }))} className="sr-only" />
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition ${editing.is_published ? "bg-[#3ca615] border-[#3ca615]" : "border-gray-300"}`}>
+                    {editing.is_published && <Icon name="Check" size={12} className="text-white" />}
+                  </div>
+                </div>
+                <span className="text-sm text-gray-700">Опубликовать</span>
+              </label>
+            </div>
+          )}
+
+          <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+            <button onClick={handleSave} disabled={saving}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60"
+              style={{ backgroundColor: "#3ca615" }}>
+              {saving ? <Icon name="Loader2" size={15} className="animate-spin" /> : <Icon name="Save" size={15} />}
+              {editing.id ? "Сохранить" : "Опубликовать"}
+            </button>
+            <button onClick={() => { setEditing(null); setPreview(false); }}
+              className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">
+              Отмена
+            </button>
+          </div>
         </div>
       )}
 
       {/* Список постов */}
-      {loading ? (
-        <div className="flex justify-center py-10">
-          <Icon name="Loader2" size={28} className="animate-spin text-[#3ca615]" />
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-50 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-gray-700">Все публикации</h3>
+          <span className="text-xs text-gray-400">{posts.length} шт.</span>
         </div>
-      ) : posts.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 bg-white rounded-2xl border border-gray-100">
-          <Icon name="FileText" size={40} className="mx-auto mb-3 opacity-30" />
-          <p>Постов пока нет. Создайте первый!</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {posts.map(p => (
-            <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${p.is_published ? "bg-green-500" : "bg-gray-300"}`} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">{p.title}</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {POST_TYPES.find(t => t.v === p.type)?.l} · {new Date(p.created_at).toLocaleDateString("ru-RU")} · {p.views} просмотров
-                </p>
-              </div>
-              <button onClick={() => setEditing({ ...p })}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-[#3ca615] hover:bg-[#edf7e8] transition-colors shrink-0">
-                <Icon name="Pencil" size={15} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Icon name="Loader2" size={24} className="animate-spin text-gray-300" />
+          </div>
+        ) : posts.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-10">Постов пока нет</p>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {posts.map(p => {
+              const ytId = p.video_url ? getYouTubeId(p.video_url) : null;
+              const thumb = ytId ? `https://img.youtube.com/vi/${ytId}/default.jpg` : p.cover_url;
+              return (
+                <div key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                  {/* Миниатюра */}
+                  <div className="w-14 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                    {thumb ? (
+                      <img src={thumb} alt={p.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Icon name="FileText" size={14} className="text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${TYPE_BADGE[p.type] || "bg-gray-100 text-gray-600"}`}>
+                        {POST_TYPES.find(t => t.v === p.type)?.l || p.type}
+                      </span>
+                      <span className={`text-[10px] font-semibold ${p.is_published ? "text-green-600" : "text-amber-500"}`}>
+                        {p.is_published ? "Опубликован" : "Черновик"}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 truncate">{p.title}</p>
+                    <div className="flex items-center gap-3 mt-0.5 text-[10px] text-gray-400">
+                      <span className="flex items-center gap-0.5"><Icon name="Eye" size={9} />{p.views || 0}</span>
+                      <span>{new Date(p.created_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => { setEditing(p); setPreview(false); }}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
+                      <Icon name="Pencil" size={14} />
+                    </button>
+                    <button onClick={() => handleDelete(p.id!)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
+                      <Icon name="Trash2" size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
