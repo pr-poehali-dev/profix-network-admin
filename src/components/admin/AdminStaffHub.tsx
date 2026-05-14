@@ -448,7 +448,7 @@ export default function AdminStaffHub() {
                           {linkLoading ? <Icon name="Loader2" size={12} className="animate-spin" /> : <Icon name="Link" size={12} />}Привязать TG
                         </button>
                       )}
-                      <span className="text-xs text-[#3ca615] font-bold bg-[#edf7e8] px-2 py-1.5 rounded-xl">💰{activeTech.fixies_balance}</span>
+                      <span className="text-xs text-[#3ca615] font-bold bg-[#edf7e8] px-2 py-1.5 rounded-xl">💰{activeTech?.fixies_balance ?? 0}</span>
                     </div>
                   </>
                 ) : null}
@@ -464,13 +464,13 @@ export default function AdminStaffHub() {
                 {loadingMsgs
                   ? <div className="flex items-center justify-center py-10"><Icon name="Loader2" size={22} className="animate-spin text-gray-300" /></div>
                   : messages.length === 0
-                  ? <div className="flex items-center justify-center h-full text-gray-400 text-sm flex-col gap-2"><Icon name="MessageCircle" size={36} className="opacity-20" />{activeTech.tg_chat_id ? "Нет сообщений" : "Привяжите Telegram"}</div>
+                  ? <div className="flex items-center justify-center h-full text-gray-400 text-sm flex-col gap-2"><Icon name="MessageCircle" size={36} className="opacity-20" />{chatMode === "group" ? "Нет сообщений в группе" : activeTech?.tg_chat_id ? "Нет сообщений" : "Привяжите Telegram"}</div>
                   : groupedMsgs.map(g => (
                       <div key={g.date}>
                         <div className="flex items-center gap-2 my-3"><div className="flex-1 h-px bg-gray-200"/><span className="text-[10px] text-gray-400">{g.date}</span><div className="flex-1 h-px bg-gray-200"/></div>
                         {g.msgs.map(m => (
                           <div key={m.id} className={`flex mb-2 ${m.from_role==="manager" ? "justify-end" : "justify-start"}`}>
-                            {m.from_role!=="manager" && <div className="w-6 h-6 rounded-full bg-[#3ca615] flex items-center justify-center text-white text-[10px] font-bold shrink-0 mr-1.5 mt-1">{activeTech.name[0]}</div>}
+                            {m.from_role!=="manager" && <div className="w-6 h-6 rounded-full bg-[#3ca615] flex items-center justify-center text-white text-[10px] font-bold shrink-0 mr-1.5 mt-1">{chatMode==="group" ? "👷" : activeTech?.name?.[0] ?? "?"}</div>}
                             <div className="max-w-[70%]" style={{ display:"flex", flexDirection:"column", alignItems: m.from_role==="manager" ? "flex-end" : "flex-start" }}>
                               {m.file_url && m.file_type==="image" && <img src={m.file_url} alt="" className="rounded-xl mb-1 max-w-[180px] cursor-pointer" onClick={() => window.open(m.file_url!, "_blank")} />}
                               {m.file_url && m.file_type==="file" && <a href={m.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-xl mb-1"><Icon name="FileText" size={12} />{m.file_name}</a>}
