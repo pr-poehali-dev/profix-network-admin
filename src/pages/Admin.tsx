@@ -20,6 +20,8 @@ import AdminBlog from "@/components/admin/AdminBlog";
 import AdminTheme from "@/components/admin/AdminTheme";
 import AdminStaffHub from "@/components/admin/AdminStaffHub";
 import AdminTariffs from "@/components/admin/AdminTariffs";
+import AdminUsers from "@/components/admin/AdminUsers";
+import AdminDashboardProfile from "@/components/admin/AdminDashboardProfile";
 import ApiDocs from "@/pages/ApiDocs";
 
 export default function Admin() {
@@ -590,12 +592,10 @@ export default function Admin() {
         )}
 
         {section === "dashboard" && (
-          <AdminDashboard
-            stats={stats}
-            tickets={tickets}
-            loading={loading}
-            onOpenTicket={handleOpenTicket}
-            onGoTickets={() => handleSectionChange("tickets")}
+          <AdminDashboardProfile
+            manager={manager}
+            onManagerUpdate={m => setManager(m)}
+            onSectionChange={handleSectionChange}
           />
         )}
 
@@ -660,6 +660,7 @@ export default function Admin() {
         {section === "theme" && <AdminTheme />}
         {section === "tg-chat" && <AdminStaffHub />}
         {section === "tariffs" && <AdminTariffs />}
+        {section === "users" && <AdminUsers currentManagerRole={manager?.role} />}
         {section === "profile" && (
           <AdminProfile
             manager={manager}

@@ -634,26 +634,33 @@ def handler(event: dict, context) -> dict:
         if role != "manager":
             cur.close(); conn.close()
             return err("Доступ запрещён", 403)
-        cur.execute(f"SELECT id, login, COALESCE(name, full_name), role, created_at FROM {SC}.managers ORDER BY id")
+        cur.execute(f"""SELECT id, login, COALESCE(name, full_name), role, created_at,
+                        email, phone, avatar_url, fixies_balance, is_active
+                        FROM {SC}.managers ORDER BY id""")
         managers = [{"id": r[0], "login": r[1], "name": r[2], "role": r[3],
-                     "created_at": r[4].isoformat() if r[4] else None}
+                     "created_at": r[4].isoformat() if r[4] else None,
+                     "email": r[5], "phone": r[6], "avatar_url": r[7],
+                     "fixies_balance": r[8] or 0, "is_active": r[9]}
                     for r in cur.fetchall()]
         cur.close(); conn.close()
         return ok({"managers": managers})
 
     # ── ТЕХ СПЕЦИАЛИСТЫ ──────────────────────────────────────────────────────
     if method == "GET" and action == "technicians":
+        show_all = params.get("all") == "1"
         cur.execute(
             f"""SELECT t.id, t.name, t.phone, t.email, t.specialization, t.is_active,
-                      COUNT(tk.id) FILTER (WHERE tk.status NOT IN ('done','cancelled')) as active_tickets
+                      COUNT(tk.id) FILTER (WHERE tk.status NOT IN ('done','cancelled')) as active_tickets,
+                      t.avatar_url, t.fixies_balance, t.tg_username
                FROM {SC}.technicians t
                LEFT JOIN {SC}.tickets tk ON tk.technician_id = t.id
-               WHERE t.is_active = TRUE
+               {'' if show_all else 'WHERE t.is_active = TRUE'}
                GROUP BY t.id ORDER BY t.name"""
         )
         technicians = [
             {"id": r[0], "name": r[1], "phone": r[2], "email": r[3],
-             "specialization": r[4], "is_active": r[5], "active_tickets": r[6]}
+             "specialization": r[4], "is_active": r[5], "active_tickets": r[6],
+             "avatar_url": r[7], "fixies_balance": r[8] or 0, "tg_username": r[9]}
             for r in cur.fetchall()
         ]
         cur.close(); conn.close()

@@ -208,13 +208,23 @@ export const managerApi = {
 
   getManagers: () => getTickets({ action: "managers" }, managerSession.get()!),
 
-  getTechnicians: () => getTickets({ action: "technicians" }, managerSession.get()!),
+  getTechnicians: (all = false) => getTickets({ action: "technicians", ...(all ? { all: "1" } : {}) }, managerSession.get()!),
 
   createTechnician: (data: object) =>
     postTickets({ action: "technician_create", ...data }, managerSession.get()!),
 
   getSchedule: (technician_id: number, date?: string) =>
     getTickets({ action: "schedule", technician_id: String(technician_id), ...(date ? { date } : {}) }, managerSession.get()!),
+
+  // Управление пользователями
+  deleteManager: (id: number) =>
+    postAuthWithToken({ action: "manager_delete", id }, managerSession.get()!),
+  updateTechnician: (data: object) =>
+    postAuthWithToken({ action: "technician_update", ...data }, managerSession.get()!),
+  deleteTechnician: (id: number) =>
+    postAuthWithToken({ action: "technician_delete", id }, managerSession.get()!),
+  getManagerProfile: () =>
+    postAuthWithToken({ action: "manager_profile" }, managerSession.get()!),
 
   // Тарифы
   getTariffs: () => getTickets({ action: "tariffs" }, managerSession.get()!),

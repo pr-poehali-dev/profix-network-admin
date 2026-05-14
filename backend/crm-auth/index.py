@@ -1204,4 +1204,181 @@ def handler(event: dict, context) -> dict:
         return ok({"ok": True})
 
 
+    # ── МЕНЕДЖЕР: создание ──────────────────────────────────────────────────
+    if action == "manager_create":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"""SELECT ms.manager_id, m.role FROM {SC}.manager_sessions ms
+                        JOIN {SC}.managers m ON m.id=ms.manager_id
+                        WHERE ms.token=%s AND ms.expires_at>NOW()""", (token,))
+        sess = cur.fetchone()
+        if not sess or sess[1] not in ("admin",):
+            conn.close(); return err("Только администратор может создавать менеджеров", 403)
+        login = body.get("login", "").strip()
+        password = body.get("password", "").strip()
+        name = body.get("name", "").strip()
+        role = body.get("role", "manager")
+        if not login or not password or not name:
+            conn.close(); return err("Укажите login, password и name")
+        cur.execute(f"SELECT id FROM {SC}.managers WHERE login=%s OR username=%s", (login, login))
+        if cur.fetchone():
+            conn.close(); return err("Логин уже занят")
+        ph = hash_password(password)
+        cur.execute(f"""INSERT INTO {SC}.managers (login, username, password_hash, full_name, name, role)
+                        VALUES (%s,%s,%s,%s,%s,%s) RETURNING id""",
+                    (login, login, ph, name, name, role))
+        new_id = cur.fetchone()[0]
+        conn.commit(); cur.close(); conn.close()
+        return ok({"id": new_id, "created": True})
+
+    # ── МЕНЕДЖЕР: удаление ──────────────────────────────────────────────────
+    if action == "manager_delete":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"""SELECT ms.manager_id, m.role FROM {SC}.manager_sessions ms
+                        JOIN {SC}.managers m ON m.id=ms.manager_id
+                        WHERE ms.token=%s AND ms.expires_at>NOW()""", (token,))
+        sess = cur.fetchone()
+        if not sess or sess[1] not in ("admin",):
+            conn.close(); return err("Только администратор может удалять менеджеров", 403)
+        target_id = body.get("id")
+        if not target_id:
+            conn.close(); return err("Укажите id")
+        if target_id == sess[0]:
+            conn.close(); return err("Нельзя удалить себя")
+        cur.execute(f"UPDATE {SC}.managers SET is_active=FALSE WHERE id=%s", (target_id,))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"deleted": True})
+
+    # ── ТЕХСПЕЦ: обновление ─────────────────────────────────────────────────
+    if action == "technician_update":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"""SELECT ms.manager_id FROM {SC}.manager_sessions ms
+                        WHERE ms.token=%s AND ms.expires_at>NOW()""", (token,))
+        if not cur.fetchone():
+            conn.close(); return err("Необходима авторизация менеджера", 401)
+        tech_id = body.get("id")
+        if not tech_id:
+            conn.close(); return err("Укажите id")
+        sets, vals = [], []
+        for f, col in [("name","name"),("phone","phone"),("email","email"),
+                       ("specialization","specialization"),("pin","pin"),("is_active","is_active")]:
+            if body.get(f) is not None:
+                if f == "pin":
+                    import hashlib as _h
+                    sets.append("pin_hash=%s"); vals.append(_h.sha256(str(body[f]).encode()).hexdigest())
+                else:
+                    sets.append(f"{col}=%s"); vals.append(body[f])
+        # Аватар
+        if body.get("avatar_b64") and body.get("avatar_mime"):
+            import base64 as _b64, uuid as _uuid, boto3
+            raw = _b64.b64decode(body["avatar_b64"])
+            ext = body["avatar_mime"].split("/")[-1]
+            key = f"avatars/tech_{tech_id}_{_uuid.uuid4()}.{ext}"
+            s3 = boto3.client("s3", endpoint_url="https://bucket.poehali.dev",
+                aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+                aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+            s3.put_object(Bucket="files", Key=key, Body=raw, ContentType=body["avatar_mime"])
+            avatar_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+            sets.append("avatar_url=%s"); vals.append(avatar_url)
+        if not sets:
+            conn.close(); return err("Нечего обновлять")
+        vals.append(tech_id)
+        cur.execute(f"UPDATE {SC}.technicians SET {', '.join(sets)} WHERE id=%s", vals)
+        conn.commit()
+        cur.execute(f"SELECT id,name,phone,email,specialization,is_active,avatar_url,fixies_balance FROM {SC}.technicians WHERE id=%s", (tech_id,))
+        r = cur.fetchone()
+        cur.close(); conn.close()
+        return ok({"updated": True, "technician": {"id":r[0],"name":r[1],"phone":r[2],"email":r[3],"specialization":r[4],"is_active":r[5],"avatar_url":r[6],"fixies_balance":r[7]}})
+
+    # ── ТЕХСПЕЦ: удаление (деактивация) ────────────────────────────────────
+    if action == "technician_delete":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"""SELECT ms.manager_id, m.role FROM {SC}.manager_sessions ms
+                        JOIN {SC}.managers m ON m.id=ms.manager_id
+                        WHERE ms.token=%s AND ms.expires_at>NOW()""", (token,))
+        sess = cur.fetchone()
+        if not sess or sess[1] not in ("admin", "manager"):
+            conn.close(); return err("Необходима авторизация", 401)
+        tech_id = body.get("id")
+        if not tech_id:
+            conn.close(); return err("Укажите id")
+        cur.execute(f"UPDATE {SC}.technicians SET is_active=FALSE WHERE id=%s", (tech_id,))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"deleted": True})
+
+    # ── МЕНЕДЖЕР: получить свой профиль (расширенный) ──────────────────────
+    if action == "manager_profile":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"""
+            SELECT ms.manager_id, m.role, COALESCE(m.name,m.full_name), m.login, m.email,
+                   m.phone, m.address, m.avatar_url, m.fixies_balance, tp.name AS tariff_name
+            FROM {SC}.manager_sessions ms
+            JOIN {SC}.managers m ON m.id=ms.manager_id
+            LEFT JOIN {SC}.tariff_plans tp ON tp.id=m.tariff_plan_id
+            WHERE ms.token=%s AND ms.expires_at>NOW()
+        """, (token,))
+        r = cur.fetchone()
+        if not r:
+            conn.close(); return err("Сессия истекла", 401)
+        mgr_id = r[0]
+        # Штрафы (отрицательные транзакции)
+        cur.execute(f"""SELECT COALESCE(SUM(ABS(amount)),0) FROM {SC}.manager_fixie_transactions
+                        WHERE manager_id=%s AND amount<0""", (mgr_id,))
+        penalties = cur.fetchone()[0]
+        # Закрытые заявки
+        cur.execute(f"SELECT COUNT(*) FROM {SC}.tickets WHERE manager_id=%s AND status='done'", (mgr_id,))
+        done_tickets = cur.fetchone()[0]
+        cur.close(); conn.close()
+        return ok({"profile": {
+            "id": r[0], "role": r[1], "name": r[2], "login": r[3], "email": r[4],
+            "phone": r[5], "address": r[6], "avatar_url": r[7],
+            "fixies_balance": r[8] or 0, "tariff_name": r[9],
+            "penalties": int(penalties), "done_tickets": int(done_tickets),
+        }})
+
+    # ── ТЕХСПЕЦ: получить профиль ──────────────────────────────────────────
+    if action == "technician_profile":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"""
+            SELECT ts.technician_id, t.name, t.phone, t.email, t.specialization,
+                   t.avatar_url, t.fixies_balance, tp.name AS tariff_name
+            FROM {SC}.technician_sessions ts
+            JOIN {SC}.technicians t ON t.id=ts.technician_id
+            LEFT JOIN {SC}.tariff_plans tp ON tp.id=t.tariff_plan_id
+            WHERE ts.token=%s AND ts.expires_at>NOW()
+        """, (token,))
+        r = cur.fetchone()
+        if not r:
+            conn.close(); return err("Сессия истекла", 401)
+        tech_id = r[0]
+        cur.execute(f"""SELECT COALESCE(SUM(ABS(amount)),0) FROM {SC}.fixie_transactions
+                        WHERE tech_id=%s AND amount<0""", (tech_id,))
+        penalties = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) FROM {SC}.tickets WHERE technician_id=%s AND status='done'", (tech_id,))
+        done_tickets = cur.fetchone()[0]
+        cur.close(); conn.close()
+        return ok({"profile": {
+            "id": r[0], "name": r[1], "phone": r[2], "email": r[3],
+            "specialization": r[4], "avatar_url": r[5],
+            "fixies_balance": r[6] or 0, "tariff_name": r[7],
+            "penalties": int(penalties), "done_tickets": int(done_tickets),
+        }})
+
     return err("Неизвестное действие")
