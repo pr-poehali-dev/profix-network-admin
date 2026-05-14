@@ -17,6 +17,7 @@ import AdminContentEditor from "@/components/admin/AdminContentEditor";
 import AdminPageBuilder from "@/components/admin/AdminPageBuilder";
 import AdminProfile from "@/components/admin/AdminProfile";
 import AdminBlog from "@/components/admin/AdminBlog";
+import ApiDocs from "@/pages/ApiDocs";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -634,6 +635,8 @@ export default function Admin() {
             onCreateManager={handleCreateManager}
           />
         )}
+
+        {section === "api" && manager?.role === "admin" && <ApiDocs />}
 
         {section === "shop" && <AdminShop />}
         {section === "content" && <AdminContentEditor />}

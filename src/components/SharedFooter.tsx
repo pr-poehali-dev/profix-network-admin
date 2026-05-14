@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { useSiteContent } from "@/hooks/useSiteContent";
 
@@ -31,15 +30,12 @@ const SharedFooter = () => {
             <p>{address}</p>
             <p className="mt-1">{copyright}</p>
             <div className="flex items-center justify-center gap-4 mt-3">
-              <Link to="/requisites" className="hover:text-[#3ca615] transition-colors flex items-center gap-1">
+              <a href="/requisites" className="hover:text-[#3ca615] transition-colors flex items-center gap-1">
                 <Icon name="Building2" size={12} /> Реквизиты
-              </Link>
-              <Link to="/privacy" className="hover:text-[#3ca615] transition-colors flex items-center gap-1">
+              </a>
+              <a href="/privacy" className="hover:text-[#3ca615] transition-colors flex items-center gap-1">
                 <Icon name="ShieldCheck" size={12} /> Политика
-              </Link>
-              <Link to="/api" className="hover:text-[#3ca615] transition-colors flex items-center gap-1">
-                <Icon name="Code2" size={12} /> API
-              </Link>
+              </a>
             </div>
           </div>
           <div className="flex flex-col items-center md:items-end gap-1.5 text-sm">
