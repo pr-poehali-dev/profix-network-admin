@@ -18,7 +18,7 @@ import AdminPageBuilder from "@/components/admin/AdminPageBuilder";
 import AdminProfile from "@/components/admin/AdminProfile";
 import AdminBlog from "@/components/admin/AdminBlog";
 import AdminTheme from "@/components/admin/AdminTheme";
-import AdminTgChat from "@/components/admin/AdminTgChat";
+import AdminStaffHub from "@/components/admin/AdminStaffHub";
 import ApiDocs from "@/pages/ApiDocs";
 
 export default function Admin() {
@@ -657,7 +657,7 @@ export default function Admin() {
         {section === "pages" && <AdminPageBuilder />}
         {section === "blog" && <AdminBlog />}
         {section === "theme" && <AdminTheme />}
-        {section === "tg-chat" && <AdminTgChat />}
+        {section === "tg-chat" && <AdminStaffHub />}
         {section === "profile" && (
           <AdminProfile
             manager={manager}
