@@ -1,30 +1,6 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
-import { useSiteTheme, PRESETS, HOLIDAYS, SiteTheme, DEFAULT_THEME } from "@/hooks/useTheme";
-
-// Конвертация HEX → HSL строка для отображения
-function hexToHsl(hex: string): string {
-  let r = 0, g = 0, b = 0;
-  if (hex.length === 7) {
-    r = parseInt(hex.slice(1, 3), 16);
-    g = parseInt(hex.slice(3, 5), 16);
-    b = parseInt(hex.slice(5, 7), 16);
-  }
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0;
-  const l = (max + min) / 2;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      case b: h = ((r - g) / d + 4) / 6; break;
-    }
-  }
-  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-}
+import { useSiteTheme, PRESETS, HOLIDAYS, DEFAULT_THEME, hexToHsl } from "@/hooks/useTheme";
 
 const RADIUS_OPTIONS = [
   { v: "0",    l: "Острые" },
@@ -42,11 +18,8 @@ const QUICK_COLORS = [
 ];
 
 export default function AdminTheme() {
-  const { theme, update } = useSiteTheme();
-  const [saved, setSaved] = useState(false);
+  const { theme, update, saving } = useSiteTheme();
   const [activeTab, setActiveTab] = useState<"presets" | "custom" | "holidays">("presets");
-
-  // Локальный preview цвета до применения
   const [draftHex, setDraftHex] = useState(theme.primaryHex);
 
   useEffect(() => { setDraftHex(theme.primaryHex); }, [theme.primaryHex]);
@@ -56,35 +29,25 @@ export default function AdminTheme() {
     if (!p) return;
     update({ ...p });
     setDraftHex(p.primaryHex);
-    flash();
   }
 
   function applyColor(hex: string) {
     setDraftHex(hex);
     const hsl = hexToHsl(hex);
     update({ primaryColor: hsl, primaryHex: hex, accentColor: hsl, preset: "custom" });
-    flash();
   }
 
   function applyRadius(v: string) {
     update({ radius: v });
-    flash();
   }
 
   function applyHoliday(key: string) {
     update({ holiday: key });
-    flash();
-  }
-
-  function flash() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
   }
 
   function resetTheme() {
     update(DEFAULT_THEME);
     setDraftHex(DEFAULT_THEME.primaryHex);
-    flash();
   }
 
   const activeHoliday = HOLIDAYS.find(h => h.key === theme.holiday) || HOLIDAYS[0];
@@ -97,9 +60,13 @@ export default function AdminTheme() {
           <p className="text-sm text-gray-400 mt-0.5">Цвет, стиль и праздничные эффекты</p>
         </div>
         <div className="flex items-center gap-2">
-          {saved && (
+          {saving ? (
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl">
+              <Icon name="Loader2" size={13} className="animate-spin" />Сохраняю...
+            </span>
+          ) : (
             <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600 bg-green-50 border border-green-100 px-3 py-1.5 rounded-xl">
-              <Icon name="Check" size={13} />Применено
+              <Icon name="Globe" size={13} />Применено для всех
             </span>
           )}
           <button onClick={resetTheme}

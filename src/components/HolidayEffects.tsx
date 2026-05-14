@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { loadTheme } from "@/hooks/useTheme";
+import { loadTheme, SiteTheme } from "@/hooks/useTheme";
 
 const PARTICLE_COUNT = 60;
 
@@ -9,27 +9,25 @@ interface Particle {
   speed: number;
   size: number;
   opacity: number;
-  swing: number;
-  swingSpeed: number;
   delay: number;
   char: string;
+  variantIdx: number;
 }
 
 function makeParticles(chars: string[]): Particle[] {
   return Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
-    speed: 1.5 + Math.random() * 3,
+    speed: 5 + Math.random() * 5,
     size: 10 + Math.random() * 18,
     opacity: 0.5 + Math.random() * 0.5,
-    swing: Math.random() * 60 - 30,
-    swingSpeed: 2 + Math.random() * 4,
-    delay: Math.random() * 10,
+    delay: Math.random() * 12,
     char: chars[Math.floor(Math.random() * chars.length)],
+    variantIdx: i % 5,
   }));
 }
 
-const EFFECTS: Record<string, { chars: string[]; bg?: string }> = {
+const EFFECTS: Record<string, { chars: string[] }> = {
   newyear:   { chars: ["❄️","⛄","🎄","✨","🌟","❅","❆","🎁","🔔"] },
   march8:    { chars: ["🌸","🌷","🌺","💐","🌹","🌼","💗","🦋"] },
   feb23:     { chars: ["⭐","🎖️","🎗️","🚀","✈️","🛡️","💪"] },
@@ -38,12 +36,30 @@ const EFFECTS: Record<string, { chars: string[]; bg?: string }> = {
   birthday:  { chars: ["🎂","🎈","🎉","🎊","🎁","✨","🥳","⭐"] },
 };
 
+const FALL_VARIANTS = [
+  "translateY(110vh) rotate(360deg) translateX(40px)",
+  "translateY(110vh) rotate(-280deg) translateX(-50px)",
+  "translateY(110vh) rotate(200deg) translateX(30px)",
+  "translateY(110vh) rotate(-180deg) translateX(-35px)",
+  "translateY(110vh) rotate(320deg) translateX(55px)",
+];
+
 export default function HolidayEffects() {
-  const [holiday, setHoliday] = useState(() => loadTheme().holiday);
+  const [holiday, setHoliday] = useState<string>(() => loadTheme().holiday);
   const [particles, setParticles] = useState<Particle[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // BroadcastChannel — мгновенная реакция внутри браузера (другие вкладки и та же вкладка)
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel("profix_theme");
+      bc.onmessage = (e: MessageEvent<SiteTheme>) => {
+        setHoliday(e.data.holiday ?? "none");
+      };
+    } catch { /* ignore */ }
+
+    // Storage event — реакция на изменение localStorage из другой вкладки
     function onStorage(e: StorageEvent) {
       if (e.key === "profix_site_theme") {
         try {
@@ -54,12 +70,10 @@ export default function HolidayEffects() {
     }
     window.addEventListener("storage", onStorage);
 
-    // Polling для обновления внутри вкладки
-    const iv = setInterval(() => {
-      const t = loadTheme();
-      setHoliday(t.holiday);
-    }, 1000);
-    return () => { window.removeEventListener("storage", onStorage); clearInterval(iv); };
+    return () => {
+      bc?.close();
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
 
   useEffect(() => {
@@ -76,6 +90,14 @@ export default function HolidayEffects() {
       className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden"
       aria-hidden="true"
     >
+      <style>{`
+        ${FALL_VARIANTS.map((to, i) => `
+          @keyframes pfall-${i} {
+            0%   { transform: translateY(-80px) rotate(0deg) translateX(0); }
+            100% { transform: ${to}; }
+          }
+        `).join("")}
+      `}</style>
       {particles.map(p => (
         <div
           key={p.id}
@@ -84,20 +106,13 @@ export default function HolidayEffects() {
             left: `${p.x}%`,
             fontSize: `${p.size}px`,
             opacity: p.opacity,
-            animation: `fall-${p.id % 5} ${p.speed + 6}s linear ${p.delay}s infinite`,
+            animation: `pfall-${p.variantIdx} ${p.speed}s linear ${p.delay}s infinite`,
             willChange: "transform",
           }}
         >
           {p.char}
         </div>
       ))}
-      <style>{`
-        @keyframes fall-0 { 0% { transform: translateY(-60px) rotate(0deg) translateX(0); } 100% { transform: translateY(110vh) rotate(360deg) translateX(40px); } }
-        @keyframes fall-1 { 0% { transform: translateY(-60px) rotate(0deg) translateX(0); } 100% { transform: translateY(110vh) rotate(-280deg) translateX(-50px); } }
-        @keyframes fall-2 { 0% { transform: translateY(-60px) rotate(0deg) translateX(0); } 100% { transform: translateY(110vh) rotate(200deg) translateX(30px); } }
-        @keyframes fall-3 { 0% { transform: translateY(-60px) rotate(0deg) translateX(0); } 100% { transform: translateY(110vh) rotate(-180deg) translateX(-35px); } }
-        @keyframes fall-4 { 0% { transform: translateY(-60px) rotate(0deg) translateX(0); } 100% { transform: translateY(110vh) rotate(320deg) translateX(55px); } }
-      `}</style>
     </div>
   );
 }

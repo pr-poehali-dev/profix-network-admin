@@ -7,9 +7,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { RouteScrollToTop, ScrollToTopButton } from "@/components/ScrollToTop";
 import HolidayEffects from "@/components/HolidayEffects";
-import { applyTheme, loadTheme } from "@/hooks/useTheme";
+import { applyTheme, loadTheme, useAppliedTheme } from "@/hooks/useTheme";
 
-// Применяем тему сразу при загрузке
+// Применяем кэшированную тему мгновенно, до рендера
 applyTheme(loadTheme());
 import Index from "./pages/Index";
 import DataMobile from "./pages/DataMobile";
@@ -37,10 +37,17 @@ import ApiDocs from "./pages/ApiDocs";
 
 const queryClient = new QueryClient();
 
+// Синхронизирует тему с сервером и между вкладками
+function ThemeSync() {
+  useAppliedTheme();
+  return null;
+}
+
 const App = () => (
   <HelmetProvider>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <ThemeSync />
       <Toaster />
       <Sonner />
       <HolidayEffects />

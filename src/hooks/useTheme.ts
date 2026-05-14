@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { fetchContent, saveContent } from "@/lib/content-api";
 
 export interface SiteTheme {
   primaryColor: string;
@@ -90,18 +91,20 @@ export const PRESETS: Record<string, SiteTheme & { name: string; desc: string }>
 };
 
 export const HOLIDAYS = [
-  { key: "none",       label: "Без праздника",      icon: "🌐" },
-  { key: "newyear",   label: "Новый год",            icon: "🎄" },
-  { key: "march8",    label: "8 марта",              icon: "🌸" },
-  { key: "feb23",     label: "23 февраля",           icon: "🎖️" },
-  { key: "may9",      label: "День Победы",          icon: "🎗️" },
-  { key: "halloween", label: "Хэллоуин",             icon: "🎃" },
-  { key: "birthday",  label: "День рождения",        icon: "🎂" },
+  { key: "none",       label: "Без праздника",  icon: "🌐" },
+  { key: "newyear",   label: "Новый год",        icon: "🎄" },
+  { key: "march8",    label: "8 марта",          icon: "🌸" },
+  { key: "feb23",     label: "23 февраля",       icon: "🎖️" },
+  { key: "may9",      label: "День Победы",      icon: "🎗️" },
+  { key: "halloween", label: "Хэллоуин",         icon: "🎃" },
+  { key: "birthday",  label: "День рождения",    icon: "🎂" },
 ];
 
 const STORAGE_KEY = "profix_site_theme";
+const CONTENT_THEME_KEY = "site.theme";
 
-function hexToHsl(hex: string): string {
+// ── Hex → HSL ────────────────────────────────────────────────────────────────
+export function hexToHsl(hex: string): string {
   let r = 0, g = 0, b = 0;
   if (hex.length === 7) {
     r = parseInt(hex.slice(1, 3), 16);
@@ -124,6 +127,7 @@ function hexToHsl(hex: string): string {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+// ── Применить тему к DOM ──────────────────────────────────────────────────────
 export function applyTheme(theme: SiteTheme) {
   const root = document.documentElement;
   const hsl = hexToHsl(theme.primaryHex);
@@ -132,10 +136,10 @@ export function applyTheme(theme: SiteTheme) {
   root.style.setProperty("--accent", hsl);
   root.style.setProperty("--radius", `${theme.radius}rem`);
   root.style.setProperty("--profix-color", theme.primaryHex);
-  // Сохраняем hex для использования в компонентах через style=
   (window as Record<string, unknown>).__PROFIX_PRIMARY = theme.primaryHex;
 }
 
+// ── Локальный кэш ─────────────────────────────────────────────────────────────
 export function loadTheme(): SiteTheme {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -144,28 +148,89 @@ export function loadTheme(): SiteTheme {
   return DEFAULT_THEME;
 }
 
-export function saveTheme(theme: SiteTheme) {
+function cacheTheme(theme: SiteTheme) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(theme));
-  applyTheme(theme);
 }
 
+// ── Загрузить из content API (для всех посетителей) ──────────────────────────
+export async function loadThemeFromServer(): Promise<SiteTheme> {
+  try {
+    const content = await fetchContent();
+    const raw = content[CONTENT_THEME_KEY];
+    if (raw) {
+      const t: SiteTheme = { ...DEFAULT_THEME, ...JSON.parse(raw) };
+      cacheTheme(t);
+      return t;
+    }
+  } catch { /* ignore */ }
+  return loadTheme();
+}
+
+// ── Сохранить в content API (только из админки) ───────────────────────────────
+export async function saveThemeToServer(theme: SiteTheme): Promise<void> {
+  cacheTheme(theme);
+  applyTheme(theme);
+  // Отправляем на сервер — применится у всех при следующей загрузке
+  await saveContent({ [CONTENT_THEME_KEY]: JSON.stringify(theme) });
+  // BroadcastChannel — применить мгновенно в других вкладках
+  try {
+    const bc = new BroadcastChannel("profix_theme");
+    bc.postMessage(theme);
+    bc.close();
+  } catch { /* ignore */ }
+}
+
+// ── Хук для AdminTheme (с сохранением на сервер) ─────────────────────────────
 export function useSiteTheme() {
   const [theme, setTheme] = useState<SiteTheme>(() => {
     const t = loadTheme();
+    applyTheme(t);
     return t;
   });
+  const [saving, setSaving] = useState(false);
 
+  // Слушаем BroadcastChannel — мгновенная синхронизация вкладок
   useEffect(() => {
-    applyTheme(theme);
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel("profix_theme");
+      bc.onmessage = (e: MessageEvent<SiteTheme>) => {
+        setTheme(e.data);
+        applyTheme(e.data);
+      };
+    } catch { /* ignore */ }
+    return () => bc?.close();
   }, []);
 
-  function update(partial: Partial<SiteTheme>) {
-    setTheme(prev => {
-      const next = { ...prev, ...partial };
-      saveTheme(next);
-      return next;
-    });
+  async function update(partial: Partial<SiteTheme>) {
+    const next = { ...theme, ...partial };
+    setTheme(next);
+    applyTheme(next); // мгновенно в DOM
+    setSaving(true);
+    await saveThemeToServer(next);
+    setSaving(false);
   }
 
-  return { theme, update };
+  return { theme, update, saving };
+}
+
+// ── Хук для обычных страниц (только чтение) ──────────────────────────────────
+export function useAppliedTheme() {
+  useEffect(() => {
+    // Загружаем с сервера при маунте, применяем к DOM
+    loadThemeFromServer().then(t => {
+      applyTheme(t);
+    });
+
+    // Слушаем BroadcastChannel — если в другой вкладке открыта админка
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel("profix_theme");
+      bc.onmessage = (e: MessageEvent<SiteTheme>) => {
+        applyTheme(e.data);
+        cacheTheme(e.data);
+      };
+    } catch { /* ignore */ }
+    return () => bc?.close();
+  }, []);
 }

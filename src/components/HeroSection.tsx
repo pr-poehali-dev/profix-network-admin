@@ -186,11 +186,13 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
               <Icon name="ChevronRight" size={20} />
             </button>
 
-            {/* Трек — 3 карточки на десктопе, 2 на мобильном */}
+            {/* Трек — 3 карточки на десктопе, 2 на мобильном; активный всегда по центру */}
             <div className="overflow-hidden mx-6">
               <div
                 className="flex gap-4 transition-transform duration-700 ease-in-out"
-                style={{ transform: `translateX(-${carouselIdx * (100 / perView)}%)` }}
+                style={{
+                  transform: `translateX(calc(-${carouselIdx * (100 / perView)}% - ${carouselIdx * 16}px + ${(perView - 1) / 2 * (100 / perView)}% + ${(perView - 1) / 2 * 16}px))`,
+                }}
               >
                 {slides.map((slide, i) => {
                   const isActive = i === carouselIdx;
