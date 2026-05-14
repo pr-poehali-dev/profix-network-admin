@@ -11,7 +11,7 @@ import {
 
 type Role = "manager" | "client" | "tech";
 type AuthMethod = "otp" | "password";
-type Screen = "roles" | "form" | "register" | "register_done" | "forgot" | "reset_sent" | "reset_confirm" | "reset_done";
+type Screen = "roles" | "form" | "mfa" | "register" | "register_done" | "forgot" | "reset_sent" | "reset_confirm" | "reset_done";
 
 const ROLES = [
   {
@@ -84,6 +84,13 @@ export default function Login() {
   const [techEmail, setTechEmail] = useState("");
   const [techPassword, setTechPassword] = useState("");
 
+  // 2FA менеджер
+  const [mfaManagerId, setMfaManagerId] = useState<number | null>(null);
+  const [mfaEmailMasked, setMfaEmailMasked] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaLoading, setMfaLoading] = useState(false);
+  const [mfaError, setMfaError] = useState("");
+
   // Регистрация клиента
   const [regName, setRegName] = useState("");
   const [regPhone, setRegPhone] = useState("");
@@ -131,30 +138,48 @@ export default function Login() {
     setClientPasswordPhone(""); setClientPassword(""); setTechEmail(""); setTechPassword("");
   }
 
-  // ── Менеджер — логин/пароль ─────────────────────────────────────────────
+  // ── Менеджер — логин/пароль → шаг 1 ────────────────────────────────────
   async function handleManagerLogin() {
     if (!login.trim() || !password.trim()) { setError("Заполните логин и пароль"); return; }
     if (!cfToken) { setError("Пожалуйста, подождите проверку безопасности"); return; }
     setError(""); setLoading(true);
     try {
       const res = await managerApi.login(login.trim(), password.trim(), cfToken);
-      if (res.token) { managerSession.set(res.token); navigate("/admin"); }
+      if (res.mfa) {
+        setMfaManagerId(res.manager_id); setMfaEmailMasked(res.email_masked); setMfaCode(""); setMfaError("");
+        setScreen("mfa");
+      } else if (res.token) { managerSession.set(res.token); navigate("/admin"); }
       else setError(res.error || "Неверный логин или пароль");
     } catch { setError("Ошибка соединения"); }
     finally { setLoading(false); }
   }
 
-  // ── Менеджер — email/пароль ─────────────────────────────────────────────
+  // ── Менеджер — email/пароль → шаг 1 ─────────────────────────────────────
   async function handleManagerEmailLogin() {
     if (!login.trim() || !password.trim()) { setError("Заполните email и пароль"); return; }
     if (!cfToken) { setError("Пожалуйста, подождите проверку безопасности"); return; }
     setError(""); setLoading(true);
     try {
       const res = await managerApi.loginEmail(login.trim(), password.trim(), cfToken);
-      if (res.token) { managerSession.set(res.token); navigate("/admin"); }
+      if (res.mfa) {
+        setMfaManagerId(res.manager_id); setMfaEmailMasked(res.email_masked); setMfaCode(""); setMfaError("");
+        setScreen("mfa");
+      } else if (res.token) { managerSession.set(res.token); navigate("/admin"); }
       else setError(res.error || "Неверный email или пароль");
     } catch { setError("Ошибка соединения"); }
     finally { setLoading(false); }
+  }
+
+  // ── Менеджер — шаг 2: проверка 2FA кода ─────────────────────────────────
+  async function handleMfaVerify() {
+    if (!mfaCode.trim() || mfaCode.length < 6) { setMfaError("Введите 6-значный код"); return; }
+    setMfaError(""); setMfaLoading(true);
+    try {
+      const res = await managerApi.verify2fa(mfaManagerId!, mfaCode.trim());
+      if (res.token) { managerSession.set(res.token); navigate("/admin"); }
+      else setMfaError(res.error || "Неверный код");
+    } catch { setMfaError("Ошибка соединения"); }
+    finally { setMfaLoading(false); }
   }
 
   // ── Клиент OTP ──────────────────────────────────────────────────────────
@@ -594,6 +619,62 @@ export default function Login() {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── 2FA менеджер ── */}
+        {screen === "mfa" && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <button onClick={() => { setScreen("form"); setMfaCode(""); setMfaError(""); }}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
+                <Icon name="ChevronLeft" size={18} />
+              </button>
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center shrink-0">
+                <Icon name="ShieldCheck" size={17} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900 text-sm">Подтверждение входа</p>
+                <p className="text-xs text-gray-400">Двухфакторная аутентификация</p>
+              </div>
+            </div>
+
+            <div className="mb-5 p-4 bg-gray-50 rounded-xl flex items-start gap-3">
+              <Icon name="Mail" size={18} className="text-gray-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-gray-700">Код подтверждения отправлен на</p>
+                <p className="text-sm font-semibold text-gray-900">{mfaEmailMasked}</p>
+                <p className="text-xs text-gray-400 mt-1">Код действует 10 минут</p>
+              </div>
+            </div>
+
+            {mfaError && (
+              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
+                <Icon name="AlertCircle" size={15} className="shrink-0" />
+                {mfaError}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Код из письма</label>
+                <input
+                  type="text" value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/\D/g, ""))}
+                  onKeyDown={e => e.key === "Enter" && handleMfaVerify()}
+                  placeholder="000000" maxLength={6} autoFocus
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400"
+                />
+              </div>
+              <button onClick={handleMfaVerify} disabled={mfaLoading || mfaCode.length < 6}
+                className="w-full py-3 rounded-xl bg-gray-800 hover:bg-gray-900 text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                {mfaLoading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
+                {mfaLoading ? "Проверка..." : "Подтвердить и войти"}
+              </button>
+              <button onClick={() => { setScreen("form"); setMfaCode(""); setMfaError(""); }}
+                className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                ← Вернуться к вводу пароля
+              </button>
+            </div>
           </div>
         )}
 

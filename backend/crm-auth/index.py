@@ -92,6 +92,30 @@ def send_email_otp(to_email: str, code: str, phone: str):
             s.sendmail(user, to_email, msg.as_string())
 
 
+def send_email_2fa(to_email: str, code: str, name: str):
+    host = os.environ["SMTP_HOST"]
+    port = int(os.environ["SMTP_PORT"])
+    user = os.environ["SMTP_USER"]
+    pwd  = os.environ["SMTP_PASSWORD"]
+    msg  = MIMEText(
+        f"<h2>Подтверждение входа в панель ProFiX</h2>"
+        f"<p>Здравствуйте, <b>{name}</b>!</p>"
+        f"<p>Кто-то входит в панель управления. Если это вы — введите код:</p>"
+        f"<p style='font-size:36px;font-weight:bold;letter-spacing:8px;color:#3ca615'>{code}</p>"
+        f"<p>Код действует <b>10 минут</b>. Если вы не входили — немедленно смените пароль.</p>",
+        "html", "utf-8"
+    )
+    msg["Subject"] = f"Код 2FA ProFiX: {code}"
+    msg["From"] = user
+    msg["To"] = to_email
+    if port == 465:
+        with smtplib.SMTP_SSL(host, port) as s:
+            s.login(user, pwd); s.sendmail(user, to_email, msg.as_string())
+    else:
+        with smtplib.SMTP(host, port) as s:
+            s.starttls(); s.login(user, pwd); s.sendmail(user, to_email, msg.as_string())
+
+
 def send_email_reset(to_email: str, token: str, role: str):
     host = os.environ["SMTP_HOST"]
     port = int(os.environ["SMTP_PORT"])
@@ -293,7 +317,7 @@ def handler(event: dict, context) -> dict:
             "client": {"id": client[0], "name": client[1], "phone": client[2], "email": client[3]}
         })
 
-    # ── МЕНЕДЖЕР: вход ──────────────────────────────────────────────────────
+    # ── МЕНЕДЖЕР: вход шаг 1 — проверка пароля, отправка 2FA ────────────────
     if action == "manager_login":
         login    = body.get("login", "").strip()
         password = body.get("password", "").strip()
@@ -309,7 +333,7 @@ def handler(event: dict, context) -> dict:
 
         pw_hash = hash_password(password)
         cur.execute(
-            f"SELECT id, COALESCE(name, full_name), role FROM {SC}.managers WHERE (login=%s OR username=%s) AND password_hash=%s",
+            f"SELECT id, COALESCE(name, full_name), role, email FROM {SC}.managers WHERE (login=%s OR username=%s) AND password_hash=%s",
             (login, login, pw_hash)
         )
         mgr = cur.fetchone()
@@ -317,20 +341,73 @@ def handler(event: dict, context) -> dict:
             conn.close()
             return err("Неверный логин или пароль", 401)
 
-        token = make_token()
-        expires = datetime.now() + timedelta(days=7)
+        mgr_id, mgr_name, mgr_role, mgr_email = mgr
+
+        if not mgr_email:
+            conn.close()
+            return err("У аккаунта не указан email для 2FA. Обратитесь к администратору.")
+
+        code = str(secrets.randbelow(900000) + 100000)
+        expires = datetime.now() + timedelta(minutes=10)
         cur.execute(
-            f"INSERT INTO {SC}.manager_sessions (manager_id, token, expires_at) VALUES (%s, %s, %s)",
-            (mgr[0], token, expires)
+            f"UPDATE {SC}.managers SET tfa_code=%s, tfa_expires_at=%s WHERE id=%s",
+            (code, expires, mgr_id)
         )
         conn.commit()
         cur.close()
         conn.close()
 
-        return ok({
-            "token": token,
-            "manager": {"id": mgr[0], "name": mgr[1], "role": mgr[2]}
-        })
+        try:
+            send_email_2fa(mgr_email, code, mgr_name or login)
+        except Exception as e:
+            return err(f"Ошибка отправки кода на email: {str(e)}")
+
+        masked = mgr_email[:2] + "***@" + mgr_email.split("@")[-1] if "@" in mgr_email else "***"
+        return ok({"mfa": True, "manager_id": mgr_id, "email_masked": masked})
+
+    # ── МЕНЕДЖЕР: вход шаг 2 — проверка 2FA кода ────────────────────────────
+    if action == "manager_login_2fa":
+        mgr_id = body.get("manager_id")
+        code   = body.get("code", "").strip()
+
+        if not mgr_id or not code:
+            return err("Укажите код подтверждения")
+
+        conn = get_conn()
+        cur = conn.cursor()
+
+        cur.execute(
+            f"SELECT id, COALESCE(name, full_name), role, tfa_code, tfa_expires_at FROM {SC}.managers WHERE id=%s",
+            (mgr_id,)
+        )
+        mgr = cur.fetchone()
+        if not mgr:
+            conn.close()
+            return err("Менеджер не найден", 401)
+
+        mgr_id2, mgr_name, mgr_role, tfa_code, tfa_expires = mgr
+
+        if not tfa_code or tfa_code != code:
+            conn.close()
+            return err("Неверный код подтверждения", 401)
+
+        if not tfa_expires or datetime.now() > tfa_expires:
+            conn.close()
+            return err("Код истёк. Войдите заново.")
+
+        cur.execute(f"UPDATE {SC}.managers SET tfa_code=NULL, tfa_expires_at=NULL WHERE id=%s", (mgr_id2,))
+
+        token = make_token()
+        expires = datetime.now() + timedelta(days=7)
+        cur.execute(
+            f"INSERT INTO {SC}.manager_sessions (manager_id, token, expires_at) VALUES (%s, %s, %s)",
+            (mgr_id2, token, expires)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return ok({"token": token, "manager": {"id": mgr_id2, "name": mgr_name, "role": mgr_role}})
 
     # ── МЕНЕДЖЕР: создание (только admin) ───────────────────────────────────
     if action == "manager_create":
@@ -930,7 +1007,7 @@ def handler(event: dict, context) -> dict:
         conn.commit(); cur.close(); conn.close()
         return ok({"token": token, "technician": {"id": tech[0], "name": tech[1], "phone": tech[2], "specialization": tech[3]}})
 
-    # ── МЕНЕДЖЕР: вход по email + паролю (дополнительно к login/password) ───
+    # ── МЕНЕДЖЕР: вход по email + паролю — шаг 1, отправка 2FA ─────────────
     if action == "manager_login_email":
         email    = body.get("email", "").strip()
         password = body.get("password", "").strip()
@@ -945,13 +1022,20 @@ def handler(event: dict, context) -> dict:
         mgr = cur.fetchone()
         if not mgr:
             conn.close(); return err("Неверный email или пароль", 401)
-        token = make_token()
-        cur.execute(
-            f"INSERT INTO {SC}.manager_sessions (manager_id, token, expires_at) VALUES (%s,%s,%s)",
-            (mgr[0], token, datetime.now() + timedelta(days=7))
-        )
+
+        mgr_id, mgr_name, mgr_role = mgr
+        code = str(secrets.randbelow(900000) + 100000)
+        expires = datetime.now() + timedelta(minutes=10)
+        cur.execute(f"UPDATE {SC}.managers SET tfa_code=%s, tfa_expires_at=%s WHERE id=%s", (code, expires, mgr_id))
         conn.commit(); cur.close(); conn.close()
-        return ok({"token": token, "manager": {"id": mgr[0], "name": mgr[1], "role": mgr[2]}})
+
+        try:
+            send_email_2fa(email, code, mgr_name or email)
+        except Exception as e:
+            return err(f"Ошибка отправки кода: {str(e)}")
+
+        masked = email[:2] + "***@" + email.split("@")[-1]
+        return ok({"mfa": True, "manager_id": mgr_id, "email_masked": masked})
 
     # ── СБРОС ПАРОЛЯ: запрос ────────────────────────────────────────────────
     if action == "reset_password_request":
@@ -1052,5 +1136,72 @@ def handler(event: dict, context) -> dict:
             )
         conn.commit(); cur.close(); conn.close()
         return ok({"reset": True})
+
+    # ── API КЛЮЧИ: список (только admin/manager) ─────────────────────────────
+    if action == "api_keys.list":
+        auth = (event.get("headers") or {}).get("X-Authorization", "")
+        token_str = auth.replace("Bearer ", "").strip()
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(
+            f"""SELECT m.role FROM {SC}.manager_sessions ms
+               JOIN {SC}.managers m ON m.id=ms.manager_id
+               WHERE ms.token=%s AND ms.expires_at>NOW()""", (token_str,)
+        )
+        sess = cur.fetchone()
+        if not sess:
+            conn.close(); return err("Требуется авторизация", 401)
+        cur.execute(
+            f"SELECT id, name, key, permissions, active, created_at, last_used_at FROM {SC}.api_keys ORDER BY created_at DESC"
+        )
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+        return ok({"keys": [{"id": r[0], "name": r[1], "key": r[2], "permissions": r[3], "active": r[4], "created_at": str(r[5]), "last_used_at": str(r[6]) if r[6] else None} for r in rows]})
+
+    # ── API КЛЮЧИ: создать ───────────────────────────────────────────────────
+    if action == "api_keys.create":
+        auth = (event.get("headers") or {}).get("X-Authorization", "")
+        token_str = auth.replace("Bearer ", "").strip()
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(
+            f"""SELECT m.role FROM {SC}.manager_sessions ms
+               JOIN {SC}.managers m ON m.id=ms.manager_id
+               WHERE ms.token=%s AND ms.expires_at>NOW()""", (token_str,)
+        )
+        sess = cur.fetchone()
+        if not sess or sess[0] not in ("admin", "manager"):
+            conn.close(); return err("Доступ запрещён", 403)
+        name = body.get("name", "").strip()
+        permissions = body.get("permissions", ["tickets:read", "tickets:create"])
+        if not name:
+            conn.close(); return err("Укажите название ключа")
+        new_key = "pfx_" + secrets.token_hex(24)
+        cur.execute(
+            f"INSERT INTO {SC}.api_keys (name, key, permissions) VALUES (%s, %s, %s) RETURNING id, created_at",
+            (name, new_key, json.dumps(permissions))
+        )
+        row = cur.fetchone()
+        conn.commit(); cur.close(); conn.close()
+        return ok({"ok": True, "id": row[0], "key": new_key, "name": name, "created_at": str(row[1])})
+
+    # ── API КЛЮЧИ: отозвать ──────────────────────────────────────────────────
+    if action == "api_keys.revoke":
+        auth = (event.get("headers") or {}).get("X-Authorization", "")
+        token_str = auth.replace("Bearer ", "").strip()
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(
+            f"""SELECT m.role FROM {SC}.manager_sessions ms
+               JOIN {SC}.managers m ON m.id=ms.manager_id
+               WHERE ms.token=%s AND ms.expires_at>NOW()""", (token_str,)
+        )
+        sess = cur.fetchone()
+        if not sess or sess[0] not in ("admin", "manager"):
+            conn.close(); return err("Доступ запрещён", 403)
+        key_id = body.get("id")
+        if not key_id:
+            conn.close(); return err("Укажите id ключа")
+        cur.execute(f"UPDATE {SC}.api_keys SET active=FALSE WHERE id=%s", (key_id,))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"ok": True})
+
 
     return err("Неизвестное действие")

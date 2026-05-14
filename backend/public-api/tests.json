@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET docs (no key)",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": { "name": "string" },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Ping",
+      "method": "GET",
+      "path": "/?action=ping",
+      "expectedStatus": 200
+    },
+    {
+      "name": "No API key → 401",
+      "method": "GET",
+      "path": "/?action=tickets.list",
+      "expectedStatus": 401
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 const AUTH_URL = "https://functions.poehali.dev/1f14f246-0908-4c88-86de-62840b1d4e1c";
 const TICKETS_URL = "https://functions.poehali.dev/80771697-657a-4565-8f5f-b8553431f806";
 const REVIEWS_URL = "https://functions.poehali.dev/f1f45bf4-6a46-4561-abf6-fedd584fbeec";
+export const PUBLIC_API_URL = "https://functions.poehali.dev/77d76195-5da9-4671-9276-b37153bfe6af";
 
 // ── Хранилище токенов ────────────────────────────────────────────────────────
 
@@ -173,6 +174,9 @@ export const managerApi = {
 
   loginEmail: (email: string, password: string, cfToken?: string) =>
     postAuth({ action: "manager_login_email", email, password, cf_turnstile_token: cfToken || "" }),
+
+  verify2fa: (manager_id: number, code: string) =>
+    postAuth({ action: "manager_login_2fa", manager_id, code }),
 
   verifyToken: (token: string) =>
     postAuthWithToken({ action: "verify_token", role: "manager" }, token),

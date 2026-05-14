@@ -28,6 +28,7 @@ import Privacy from "./pages/Privacy";
 import Requisites from "./pages/Requisites";
 import Invoice from "./pages/Invoice";
 import Blog from "./pages/Blog";
+import ApiDocs from "./pages/ApiDocs";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const App = () => (
           <Route path="/invoice/:id" element={<Invoice />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:id" element={<Blog />} />
+          <Route path="/api" element={<ApiDocs />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
