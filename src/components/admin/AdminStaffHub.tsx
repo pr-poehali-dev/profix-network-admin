@@ -58,6 +58,7 @@ export default function AdminStaffHub() {
 
   // ── Чат ──────────────────────────────────────────────────────────────────
   const [activeTech, setActiveTech]   = useState<TechContact | null>(null);
+  const [chatMode, setChatMode]       = useState<"tech" | "group">("tech"); // tech=личный, group=общая группа
   const [messages, setMessages]       = useState<TgMessage[]>([]);
   const [chatText, setChatText]       = useState("");
   const [sending, setSending]         = useState(false);
@@ -120,9 +121,11 @@ export default function AdminStaffHub() {
 
   useEffect(() => { loadTechs(); }, [loadTechs]);
 
-  const loadHistory = useCallback(async (techId: number, afterId = 0) => {
+  const loadHistory = useCallback(async (techId: number | null, afterId = 0) => {
     if (afterId === 0) setLM(true);
-    const res = await tgStaffApi.history(token, techId, afterId);
+    const res = techId === null
+      ? await tgStaffApi.groupHistory(token, afterId)
+      : await tgStaffApi.history(token, techId, afterId);
     if (res.messages?.length) {
       if (afterId === 0) {
         setMessages(res.messages);
@@ -134,7 +137,7 @@ export default function AdminStaffHub() {
           if (nm.length) lastMsgIdRef.current = nm[nm.length - 1].id;
           return [...prev, ...nm];
         });
-        setTechs(prev => prev.map(t => t.id === techId ? { ...t, unread: 0 } : t));
+        if (techId !== null) setTechs(prev => prev.map(t => t.id === techId ? { ...t, unread: 0 } : t));
       }
     }
     setLM(false);
@@ -143,24 +146,40 @@ export default function AdminStaffHub() {
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   useEffect(() => {
-    if (!activeTech || activeTab !== "chat") { if (pollRef.current) clearInterval(pollRef.current); return; }
+    const active = chatMode === "group" || activeTech;
+    if (!active || activeTab !== "chat") { if (pollRef.current) clearInterval(pollRef.current); return; }
     if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(() => { loadHistory(activeTech.id, lastMsgIdRef.current); loadTechs(); }, 4000);
+    pollRef.current = setInterval(() => {
+      const techId = chatMode === "group" ? null : activeTech?.id ?? null;
+      if (techId !== null || chatMode === "group") loadHistory(techId, lastMsgIdRef.current);
+      loadTechs();
+    }, 4000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [activeTech, activeTab, loadHistory, loadTechs]);
+  }, [activeTech, chatMode, activeTab, loadHistory, loadTechs]);
 
   function selectTech(tech: TechContact) {
-    setActiveTech(tech); setMessages([]); lastMsgIdRef.current = 0; setChatText(""); setPendingFile(null);
+    setChatMode("tech"); setActiveTech(tech); setMessages([]); lastMsgIdRef.current = 0; setChatText(""); setPendingFile(null);
     loadHistory(tech.id, 0);
     setTechs(prev => prev.map(t => t.id === tech.id ? { ...t, unread: 0 } : t));
   }
 
+  function selectGroup() {
+    setChatMode("group"); setActiveTech(null); setMessages([]); lastMsgIdRef.current = 0; setChatText(""); setPendingFile(null);
+    loadHistory(null, 0);
+  }
+
   async function handleSend() {
-    if (!activeTech || (!chatText.trim() && !pendingFile) || sending) return;
+    if ((!chatText.trim() && !pendingFile) || sending) return;
+    if (chatMode === "tech" && !activeTech) return;
     setSending(true);
-    await tgStaffApi.send(token, activeTech.id, chatText.trim(), pendingFile || undefined);
+    if (chatMode === "group") {
+      await tgStaffApi.groupSend(token, chatText.trim(), pendingFile || undefined);
+      await loadHistory(null, lastMsgIdRef.current);
+    } else {
+      await tgStaffApi.send(token, activeTech!.id, chatText.trim(), pendingFile || undefined);
+      await loadHistory(activeTech!.id, lastMsgIdRef.current);
+    }
     setChatText(""); setPendingFile(null);
-    await loadHistory(activeTech.id, lastMsgIdRef.current);
     setSending(false);
   }
 
@@ -331,16 +350,41 @@ export default function AdminStaffHub() {
       {/* ── ЧАТ ────────────────────────────────────────────────────────────── */}
       {activeTab==="chat" && (
         <div className="flex flex-1 min-h-0">
+          {/* ── Левая панель ── */}
           <div className="w-64 shrink-0 border-r border-gray-100 flex flex-col bg-white">
-            <div className="p-3 border-b border-gray-50">
-              <input value={chatSearch} onChange={e => setChatSearch(e.target.value)} placeholder="Поиск..."
+            {/* Шапка с поиском */}
+            <div className="p-3 border-b border-gray-100">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Написать кому</p>
+              <input value={chatSearch} onChange={e => setChatSearch(e.target.value)} placeholder="Поиск специалиста..."
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]" />
             </div>
+
+            {/* Общая группа */}
+            <button onClick={selectGroup}
+              className={`flex items-center gap-2.5 px-3 py-3 border-b-2 transition-colors ${chatMode==="group" ? "bg-blue-50 border-b-blue-500" : "border-b-gray-100 hover:bg-gray-50"}`}>
+              <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                <Icon name="Users" size={16} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-gray-900">Общая группа</p>
+                <p className="text-xs text-gray-400">Сообщение всем в Telegram</p>
+              </div>
+              <div className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
+            </button>
+
+            {/* Разделитель */}
+            <div className="px-3 py-1.5">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Личные сообщения</p>
+            </div>
+
+            {/* Список спецов */}
             <div className="flex-1 overflow-y-auto">
               {loadingTechs
                 ? <div className="flex items-center justify-center py-10"><Icon name="Loader2" size={22} className="animate-spin text-gray-300" /></div>
+                : chatFiltered.length === 0
+                ? <p className="text-xs text-gray-400 text-center py-6">Не найдено</p>
                 : chatFiltered.map(tech => {
-                    const isAct = activeTech?.id === tech.id;
+                    const isAct = chatMode==="tech" && activeTech?.id === tech.id;
                     return (
                       <button key={tech.id} onClick={() => selectTech(tech)}
                         className={`w-full flex items-center gap-2.5 px-3 py-3 text-left border-b border-gray-50 transition-colors ${isAct ? "bg-[#edf7e8] border-l-2 border-l-[#3ca615]" : "hover:bg-gray-50"}`}>
@@ -368,28 +412,46 @@ export default function AdminStaffHub() {
             </div>
           </div>
 
-          {activeTech ? (
+          {(activeTech || chatMode === "group") ? (
             <div className="flex-1 flex flex-col min-w-0 bg-[#F7F9FC]">
+              {/* Шапка чата */}
               <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-100 shrink-0">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${activeTech.tg_chat_id ? "bg-[#3ca615]" : "bg-gray-300"}`}>{activeTech.name[0].toUpperCase()}</div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-gray-900">{activeTech.name}</p>
-                  <p className="text-xs text-gray-400">{activeTech.tg_chat_id ? <><span className="text-blue-400">●</span> TG: @{activeTech.tg_username||"привязан"}</> : "TG не привязан"}</p>
-                </div>
-                <div className="flex gap-1.5">
-                  {activeTech.tg_chat_id && activeTech.tg_username && (
-                    <a href={`https://t.me/${activeTech.tg_username}`} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100">
-                      <Icon name="Send" size={12} />Открыть TG
-                    </a>
-                  )}
-                  {!activeTech.tg_chat_id && (
-                    <button onClick={() => getLink(activeTech)} disabled={linkLoading} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100">
-                      {linkLoading ? <Icon name="Loader2" size={12} className="animate-spin" /> : <Icon name="Link" size={12} />}Привязать TG
-                    </button>
-                  )}
-                  <span className="text-xs text-[#3ca615] font-bold bg-[#edf7e8] px-2 py-1.5 rounded-xl">💰{activeTech.fixies_balance}</span>
-                </div>
+                {chatMode === "group" ? (
+                  <>
+                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                      <Icon name="Users" size={15} className="text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-gray-900">Общая группа</p>
+                      <p className="text-xs text-gray-400">Telegram-группа всех специалистов</p>
+                    </div>
+                    <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-1.5 rounded-xl flex items-center gap-1">
+                      <Icon name="Send" size={11} />Рассылка в TG
+                    </span>
+                  </>
+                ) : activeTech ? (
+                  <>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${activeTech.tg_chat_id ? "bg-[#3ca615]" : "bg-gray-300"}`}>{activeTech.name[0].toUpperCase()}</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-gray-900">{activeTech.name}</p>
+                      <p className="text-xs text-gray-400">{activeTech.tg_chat_id ? <><span className="text-blue-400">●</span> TG: @{activeTech.tg_username||"привязан"}</> : "TG не привязан"}</p>
+                    </div>
+                    <div className="flex gap-1.5">
+                      {activeTech.tg_chat_id && activeTech.tg_username && (
+                        <a href={`https://t.me/${activeTech.tg_username}`} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100">
+                          <Icon name="Send" size={12} />Открыть TG
+                        </a>
+                      )}
+                      {!activeTech.tg_chat_id && (
+                        <button onClick={() => getLink(activeTech)} disabled={linkLoading} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100">
+                          {linkLoading ? <Icon name="Loader2" size={12} className="animate-spin" /> : <Icon name="Link" size={12} />}Привязать TG
+                        </button>
+                      )}
+                      <span className="text-xs text-[#3ca615] font-bold bg-[#edf7e8] px-2 py-1.5 rounded-xl">💰{activeTech.fixies_balance}</span>
+                    </div>
+                  </>
+                ) : null}
               </div>
               {linkPopup && (
                 <div className="mx-3 mt-2 p-3 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-2">
@@ -430,17 +492,18 @@ export default function AdminStaffHub() {
                 </div>
               )}
               <div className="px-3 py-2.5 bg-white border-t border-gray-100 shrink-0">
-                {!activeTech.tg_chat_id
-                  ? <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-700"><Icon name="AlertCircle" size={14} className="shrink-0" />Telegram не привязан</div>
+                {chatMode === "tech" && !activeTech?.tg_chat_id
+                  ? <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-700"><Icon name="AlertCircle" size={14} className="shrink-0" />Telegram не привязан — нажмите «Привязать TG» выше</div>
                   : <div className="flex items-end gap-2">
                       <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
                       <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-400 hover:text-[#3ca615] transition-colors shrink-0"><Icon name="Paperclip" size={18} /></button>
                       <textarea value={chatText} onChange={e => setChatText(e.target.value)}
                         onKeyDown={e => { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                        placeholder={`Написать ${activeTech.name}...`} rows={1}
+                        placeholder={chatMode === "group" ? "Написать всем в группу..." : `Написать ${activeTech?.name}...`}
+                        rows={1}
                         className="flex-1 border border-gray-200 rounded-2xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615] resize-none" style={{ maxHeight: 100, overflowY: "auto" }} />
                       <button onClick={handleSend} disabled={(!chatText.trim() && !pendingFile) || sending}
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-white disabled:opacity-50 shrink-0" style={{ background: "#3ca615" }}>
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white disabled:opacity-50 shrink-0" style={{ background: chatMode==="group" ? "#3b82f6" : "#3ca615" }}>
                         {sending ? <Icon name="Loader2" size={15} className="animate-spin" /> : <Icon name="Send" size={15} />}
                       </button>
                     </div>
@@ -448,9 +511,25 @@ export default function AdminStaffHub() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-[#F7F9FC] flex-col gap-3 text-gray-400">
-              <Icon name="MessageCircle" size={40} className="opacity-20" />
-              <p className="text-sm">Выберите специалиста слева</p>
+            <div className="flex-1 flex items-center justify-center bg-[#F7F9FC]">
+              <div className="text-center max-w-xs">
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-500 flex items-center justify-center shadow-lg">
+                    <Icon name="Users" size={26} className="text-white" />
+                  </div>
+                  <div className="text-2xl text-gray-200 font-light">или</div>
+                  <div className="w-14 h-14 rounded-2xl bg-[#3ca615] flex items-center justify-center shadow-lg">
+                    <Icon name="MessageCircle" size={26} className="text-white" />
+                  </div>
+                </div>
+                <p className="text-base font-bold text-gray-700 mb-1">Выберите, кому написать</p>
+                <p className="text-sm text-gray-400 mb-4">Нажмите «Общая группа» для рассылки всем, или выберите специалиста для личного сообщения</p>
+                <button onClick={selectGroup}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition-colors mb-2">
+                  <Icon name="Users" size={15} />Написать в общую группу
+                </button>
+                <p className="text-xs text-gray-400">или выберите специалиста из списка слева</p>
+              </div>
             </div>
           )}
         </div>

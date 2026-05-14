@@ -243,6 +243,51 @@ def handler(event: dict, context) -> dict:
         bot_name = os.environ.get("TELEGRAM_BOT_NAME", "ProFixBot")
         return ok({"link": f"https://t.me/{bot_name}?start={row[0]}"})
 
+    # ─── ГРУППОВОЙ ЧАТ ───────────────────────────────────────────────────────
+    if method == "POST" and action == "group_send":
+        text       = body.get("text", "").strip()
+        file_b64   = body.get("file_b64")
+        file_name  = body.get("file_name", "file")
+        file_type_mime = body.get("file_mime", "application/octet-stream")
+        group_id   = os.environ.get("TELEGRAM_CHAT_ID", "")
+        if not group_id:
+            cur.close(); conn.close(); return err("TELEGRAM_CHAT_ID не задан")
+        group_id_int = int(group_id)
+        file_url = None; file_kind = None
+        if file_b64:
+            file_url = upload_file(file_b64, file_name, file_type_mime)
+            file_kind = "image" if file_type_mime.startswith("image/") else "file"
+            if file_kind == "image":
+                send_tg_photo(group_id_int, file_url, f"📢 {mgr_name}: {text or ''}")
+            else:
+                send_tg(group_id_int, f"📢 <b>{mgr_name}</b>: 📎 {file_name}\n{file_url}\n{text or ''}")
+        else:
+            send_tg(group_id_int, f"📢 <b>{mgr_name}</b>: {text}")
+        # Сохраняем как tech_id=NULL (групповое)
+        cur.execute(f"""
+            INSERT INTO {SC}.tg_staff_messages
+            (tech_id, tg_chat_id, from_role, text, read_at, file_url, file_type, file_name)
+            VALUES (NULL, %s, 'manager', %s, NOW(), %s, %s, %s)
+        """, (group_id_int, text, file_url, file_kind, file_name if file_b64 else None))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"sent": True})
+
+    if method == "GET" and action == "group_history":
+        group_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+        if not group_id:
+            cur.close(); conn.close(); return ok({"messages": []})
+        after_id = int(params.get("after_id", 0))
+        cur.execute(f"""
+            SELECT id, from_role, text, created_at, file_url, file_type, file_name
+            FROM {SC}.tg_staff_messages
+            WHERE tg_chat_id = %s AND tech_id IS NULL AND id > %s
+            ORDER BY created_at ASC LIMIT 100
+        """, (int(group_id), after_id))
+        msgs = [{"id":r[0],"from_role":r[1],"text":r[2],"created_at":r[3].isoformat(),
+                 "file_url":r[4],"file_type":r[5],"file_name":r[6]} for r in cur.fetchall()]
+        cur.close(); conn.close()
+        return ok({"messages": msgs})
+
     # ─── ЗАДАЧИ ───────────────────────────────────────────────────────────────
     if method == "GET" and action == "tasks":
         tech_id  = params.get("tech_id")

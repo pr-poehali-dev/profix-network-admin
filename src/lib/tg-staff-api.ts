@@ -69,4 +69,8 @@ export const tgStaffApi = {
 
   contacts:       (t: string) => get(t, "contacts"),
   contactSave:    (t: string, body: object) => post(t, "contact_save", body),
+
+  groupHistory:   (t: string, afterId = 0) => get(t, "group_history", { after_id: afterId }),
+  groupSend:      (t: string, text: string, file?: { b64: string; name: string; mime: string }) =>
+                    post(t, "group_send", { text, ...(file ? { file_b64: file.b64, file_name: file.name, file_mime: file.mime } : {}) }),
 };
