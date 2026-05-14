@@ -712,6 +712,51 @@ def handler(event: dict, context) -> dict:
         cur.close(); conn.close()
         return ok({"schedule": schedule})
 
+    # ── СВОДКА ФИКСИКОВ ЗА ПЕРИОД ────────────────────────────────────────────
+    if method == "GET" and action == "fixies_summary_period":
+        if role != "manager":
+            cur.close(); conn.close(); return err("Доступ запрещён", 403)
+        date_from = params.get("from", "")
+        date_to   = params.get("to", "")
+        if not date_from or not date_to:
+            cur.close(); conn.close(); return err("Нужны параметры from и to")
+        # Спецы
+        cur.execute(f"""
+            SELECT t.name, 'tech' AS role,
+                   t.fixies_balance AS balance,
+                   COALESCE(SUM(CASE WHEN ft.amount > 0 THEN ft.amount ELSE 0 END), 0) AS earned,
+                   COALESCE(SUM(CASE WHEN ft.amount < 0 THEN ABS(ft.amount) ELSE 0 END), 0) AS penalties,
+                   COUNT(DISTINCT tk.id) FILTER (WHERE tk.status='done') AS done
+            FROM {SC}.technicians t
+            LEFT JOIN {SC}.fixie_transactions ft ON ft.tech_id=t.id
+                AND ft.created_at::date BETWEEN %s AND %s
+            LEFT JOIN {SC}.tickets tk ON tk.technician_id=t.id
+                AND tk.updated_at::date BETWEEN %s AND %s AND tk.status='done'
+            WHERE t.is_active=TRUE
+            GROUP BY t.id, t.name, t.fixies_balance
+        """, (date_from, date_to, date_from, date_to))
+        rows = cur.fetchall()
+        summary = [{"name":r[0],"role":r[1],"balance":r[2],"earned":int(r[3]),"penalties":int(r[4]),"done":int(r[5])} for r in rows]
+        # Менеджеры
+        cur.execute(f"""
+            SELECT COALESCE(m.name,m.full_name), 'manager' AS role,
+                   m.fixies_balance AS balance,
+                   COALESCE(SUM(CASE WHEN mft.amount > 0 THEN mft.amount ELSE 0 END), 0) AS earned,
+                   COALESCE(SUM(CASE WHEN mft.amount < 0 THEN ABS(mft.amount) ELSE 0 END), 0) AS penalties,
+                   COUNT(DISTINCT tk.id) FILTER (WHERE tk.status='done') AS done
+            FROM {SC}.managers m
+            LEFT JOIN {SC}.manager_fixie_transactions mft ON mft.manager_id=m.id
+                AND mft.created_at::date BETWEEN %s AND %s
+            LEFT JOIN {SC}.tickets tk ON tk.manager_id=m.id
+                AND tk.updated_at::date BETWEEN %s AND %s AND tk.status='done'
+            WHERE m.is_active=TRUE
+            GROUP BY m.id, m.name, m.full_name, m.fixies_balance
+        """, (date_from, date_to, date_from, date_to))
+        rows = cur.fetchall()
+        summary += [{"name":r[0],"role":r[1],"balance":r[2],"earned":int(r[3]),"penalties":int(r[4]),"done":int(r[5])} for r in rows]
+        cur.close(); conn.close()
+        return ok({"summary": summary})
+
     # ── ТАРИФНЫЕ ПЛАНЫ ───────────────────────────────────────────────────────
     if method == "GET" and action == "tariffs":
         cur.execute(f"SELECT * FROM {SC}.tariff_plans ORDER BY role, id")

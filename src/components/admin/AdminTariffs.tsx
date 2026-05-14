@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession } from "@/lib/crm-api";
 
@@ -39,9 +39,33 @@ export default function AdminTariffs() {
   const [editing, setEditing]     = useState<Partial<TariffPlan> | null>(null);
   const [saving, setSaving]       = useState(false);
   const [savedMsg, setSavedMsg]   = useState("");
-  const [activeTab, setActiveTab] = useState<"plans" | "assign" | "leaderboard">("plans");
+  const [activeTab, setActiveTab] = useState<"plans" | "assign" | "leaderboard" | "summary">("plans");
+
+  // Сводка по датам
+  const [summaryFrom, setSummaryFrom] = useState(() => {
+    const d = new Date(); d.setDate(1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [summaryTo, setSummaryTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [summaryData, setSummaryData] = useState<{name:string;role:string;balance:number;earned:number;penalties:number;done:number}[]>([]);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => { load(); }, []);
+
+  const loadSummary = useCallback(async () => {
+    setSummaryLoading(true);
+    // Загружаем транзакции за период из двух источников
+    const token_ = managerSession.get()!;
+    const TICKETS_URL = "https://functions.poehali.dev/80771697-657a-4565-8f5f-b8553431f806";
+    try {
+      const r = await fetch(`${TICKETS_URL}?action=fixies_summary_period&from=${summaryFrom}&to=${summaryTo}`, {
+        headers: { "Authorization": `Bearer ${token_}` },
+      });
+      const data = await r.json();
+      if (data.summary) setSummaryData(data.summary);
+    } catch { /* ignore */ }
+    setSummaryLoading(false);
+  }, [summaryFrom, summaryTo]);
 
   async function load() {
     setLoading(true);
@@ -93,8 +117,8 @@ export default function AdminTariffs() {
       {/* Шапка */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Тарификация и Фиксики</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Премии за заявки для специалистов и менеджеров</p>
+          <h2 className="text-xl font-bold text-gray-900">Тарификация мотивации</h2>
+          <p className="text-sm text-gray-400 mt-0.5">Фиксики, премии и тарифные планы сотрудников</p>
         </div>
         {activeTab === "plans" && (
           <button onClick={() => setEditing({ ...EMPTY_PLAN })}
@@ -110,10 +134,10 @@ export default function AdminTariffs() {
       )}
 
       {/* Табы */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5">
-        {[["plans","Тарифные планы","Layers"],["assign","Привязка сотрудников","Link"],["leaderboard","Рейтинг фиксиков","Star"]].map(([k,l,icon]) => (
-          <button key={k} onClick={() => setActiveTab(k as typeof activeTab)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors ${activeTab===k ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5 flex-wrap">
+        {[["plans","Тарифные планы","Layers"],["assign","Привязка сотрудников","Link"],["leaderboard","Рейтинг фиксиков","Star"],["summary","Сводка по датам","BarChart2"]].map(([k,l,icon]) => (
+          <button key={k} onClick={() => { setActiveTab(k as typeof activeTab); if (k === "summary") loadSummary(); }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors min-w-[100px] ${activeTab===k ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
             <Icon name={icon as "Layers"} size={13} />{l}
           </button>
         ))}
@@ -421,6 +445,70 @@ export default function AdminTariffs() {
                   <li>• Можно вручную добавить/списать через раздел «Сотрудники» → Фиксики</li>
                 </ul>
               </div>
+            </div>
+          )}
+          {/* ── СВОДКА ПО ДАТАМ ─────────────────────────────────────────────── */}
+          {activeTab === "summary" && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-end gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">С даты</label>
+                  <input type="date" value={summaryFrom} onChange={e => setSummaryFrom(e.target.value)}
+                    className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">По дату</label>
+                  <input type="date" value={summaryTo} onChange={e => setSummaryTo(e.target.value)}
+                    className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none" />
+                </div>
+                <button onClick={loadSummary} disabled={summaryLoading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-50"
+                  style={{ background: "#3ca615" }}>
+                  {summaryLoading ? <Icon name="Loader2" size={15} className="animate-spin" /> : <Icon name="Search" size={15} />}
+                  Показать
+                </button>
+              </div>
+
+              {summaryData.length > 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wide">
+                        <th className="text-left px-4 py-3">Сотрудник</th>
+                        <th className="text-left px-4 py-3">Роль</th>
+                        <th className="text-right px-4 py-3">Заработано 💰</th>
+                        <th className="text-right px-4 py-3">Штрафы ⚠️</th>
+                        <th className="text-right px-4 py-3">Итого</th>
+                        <th className="text-right px-4 py-3">Закрыто</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {summaryData.map((row, i) => (
+                        <tr key={i} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 font-semibold text-gray-900">{row.name}</td>
+                          <td className="px-4 py-3">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${row.role === "tech" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
+                              {row.role === "tech" ? "Специалист" : "Менеджер"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-[#3ca615]">+{row.earned}</td>
+                          <td className="px-4 py-3 text-right font-bold text-red-500">−{row.penalties}</td>
+                          <td className={`px-4 py-3 text-right font-bold ${(row.earned - row.penalties) >= 0 ? "text-[#3ca615]" : "text-red-500"}`}>
+                            {fmtSign(row.earned - row.penalties)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-gray-600">{row.done}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : summaryLoading ? (
+                <div className="flex justify-center py-10"><Icon name="Loader2" size={24} className="animate-spin text-gray-300" /></div>
+              ) : (
+                <div className="text-center py-10 text-gray-400 bg-white rounded-2xl border border-gray-100">
+                  Нажмите «Показать» чтобы загрузить данные за период
+                </div>
+              )}
             </div>
           )}
         </>

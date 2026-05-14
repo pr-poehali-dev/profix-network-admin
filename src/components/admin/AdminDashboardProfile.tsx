@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession } from "@/lib/crm-api";
+import { tgStaffApi } from "@/lib/tg-staff-api";
 
 interface Profile {
   id: number; role: string; name: string; login: string;
@@ -44,6 +45,21 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
   const [avatarUploading, setAU]  = useState(false);
   const [msg, setMsg]             = useState<{ text: string; ok: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Быстрое создание заявки
+  const [showQuickTicket, setShowQuickTicket] = useState(false);
+  const [quickTicket, setQuickTicket] = useState({ title: "", description: "", client_name: "", client_phone: "", priority: "normal" });
+  const [creatingTicket, setCreatingTicket] = useState(false);
+
+  // Быстрое создание клиента
+  const [showQuickClient, setShowQuickClient] = useState(false);
+  const [quickClient, setQuickClient] = useState({ name: "", phone: "", email: "" });
+  const [creatingClient, setCreatingClient] = useState(false);
+
+  // Сообщение в групповой чат
+  const [showGroupMsg, setShowGroupMsg] = useState(false);
+  const [groupMsgText, setGroupMsgText] = useState("");
+  const [sendingGroupMsg, setSendingGroupMsg] = useState(false);
 
   // Форма редактирования
   const [name, setName]       = useState("");
@@ -115,6 +131,58 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
       load();
     } else flash(res.error || "Ошибка", false);
     setSaving(false);
+  }
+
+  async function createQuickTicket() {
+    if (!quickTicket.title || !quickTicket.client_phone) return;
+    setCreatingTicket(true);
+    const res = await managerApi.createTicket({
+      title: quickTicket.title,
+      description: quickTicket.description,
+      priority: quickTicket.priority,
+      client_name: quickTicket.client_name,
+      client_phone: quickTicket.client_phone,
+    });
+    setCreatingTicket(false);
+    if (res.id || res.ticket_id) {
+      flash(`Заявка создана #${res.id || res.ticket_id}`);
+      setShowQuickTicket(false);
+      setQuickTicket({ title: "", description: "", client_name: "", client_phone: "", priority: "normal" });
+      load();
+    } else flash(res.error || "Ошибка", false);
+  }
+
+  async function createQuickClient() {
+    if (!quickClient.name || !quickClient.phone) return;
+    setCreatingClient(true);
+    // Создаём клиента через создание заявки с пустым заголовком — или используем существующий API
+    const res = await managerApi.createTicket({
+      title: "Регистрация клиента",
+      description: "Клиент добавлен из дашборда",
+      client_name: quickClient.name,
+      client_phone: quickClient.phone,
+      client_email: quickClient.email,
+      priority: "low",
+    });
+    setCreatingClient(false);
+    if (res.id || res.ticket_id) {
+      flash(`Клиент ${quickClient.name} добавлен`);
+      setShowQuickClient(false);
+      setQuickClient({ name: "", phone: "", email: "" });
+    } else flash(res.error || "Ошибка", false);
+  }
+
+  async function sendGroupMessage() {
+    if (!groupMsgText.trim()) return;
+    setSendingGroupMsg(true);
+    const token = managerSession.get()!;
+    const res = await tgStaffApi.groupSend(token, groupMsgText.trim());
+    setSendingGroupMsg(false);
+    if (res.sent) {
+      flash("Сообщение отправлено в групповой чат");
+      setGroupMsgText("");
+      setShowGroupMsg(false);
+    } else flash(res.error || "Ошибка отправки", false);
   }
 
   if (loading) return (
@@ -246,8 +314,8 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
           </div>
 
           {/* Быстрые ссылки */}
-          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Быстрые действия</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Перейти в раздел</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
             {[
               { label: "Заявки", icon: "Ticket", section: "tickets", color: "bg-blue-500" },
               { label: "Клиенты", icon: "Users", section: "clients", color: "bg-purple-500" },
@@ -263,6 +331,125 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
               </button>
             ))}
           </div>
+
+          {/* Быстрые действия */}
+          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Быстрые действия</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <button onClick={() => { setShowQuickTicket(v => !v); setShowQuickClient(false); setShowGroupMsg(false); }}
+              className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl border text-sm font-semibold transition-all ${showQuickTicket ? "border-[#3ca615] bg-[#edf7e8] text-[#3ca615]" : "border-gray-200 bg-white text-gray-700 hover:border-[#3ca615] hover:text-[#3ca615]"}`}>
+              <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center shrink-0"><Icon name="FilePlus" size={16} className="text-white" /></div>
+              Создать заявку
+            </button>
+            <button onClick={() => { setShowQuickClient(v => !v); setShowQuickTicket(false); setShowGroupMsg(false); }}
+              className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl border text-sm font-semibold transition-all ${showQuickClient ? "border-[#3ca615] bg-[#edf7e8] text-[#3ca615]" : "border-gray-200 bg-white text-gray-700 hover:border-[#3ca615] hover:text-[#3ca615]"}`}>
+              <div className="w-8 h-8 rounded-xl bg-purple-500 flex items-center justify-center shrink-0"><Icon name="UserPlus" size={16} className="text-white" /></div>
+              Добавить клиента
+            </button>
+            <button onClick={() => { setShowGroupMsg(v => !v); setShowQuickTicket(false); setShowQuickClient(false); }}
+              className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl border text-sm font-semibold transition-all ${showGroupMsg ? "border-blue-500 bg-blue-50 text-blue-600" : "border-gray-200 bg-white text-gray-700 hover:border-blue-400 hover:text-blue-600"}`}>
+              <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center shrink-0"><Icon name="Send" size={16} className="text-white" /></div>
+              Написать в группу
+            </button>
+          </div>
+
+          {/* Форма заявки */}
+          {showQuickTicket && (
+            <div className="bg-white rounded-2xl border border-[#3ca615]/30 shadow-sm p-5 mb-4 space-y-3">
+              <h4 className="font-bold text-gray-900 flex items-center gap-2"><Icon name="FilePlus" size={15} className="text-blue-500" />Новая заявка</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Тема заявки *</label>
+                  <input value={quickTicket.title} onChange={e => setQuickTicket(p => ({...p, title: e.target.value}))}
+                    placeholder="Краткое описание проблемы"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Приоритет</label>
+                  <select value={quickTicket.priority} onChange={e => setQuickTicket(p => ({...p, priority: e.target.value}))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+                    <option value="low">Низкий</option><option value="normal">Обычный</option>
+                    <option value="high">Высокий</option><option value="urgent">Срочный</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Имя клиента</label>
+                  <input value={quickTicket.client_name} onChange={e => setQuickTicket(p => ({...p, client_name: e.target.value}))}
+                    placeholder="Иван Иванов"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Телефон *</label>
+                  <input value={quickTicket.client_phone} onChange={e => setQuickTicket(p => ({...p, client_phone: e.target.value}))}
+                    placeholder="+7 999 000-00-00"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                </div>
+              </div>
+              <textarea value={quickTicket.description} onChange={e => setQuickTicket(p => ({...p, description: e.target.value}))}
+                placeholder="Подробное описание (необязательно)" rows={2}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615] resize-none" />
+              <div className="flex gap-2">
+                <button onClick={createQuickTicket} disabled={creatingTicket || !quickTicket.title || !quickTicket.client_phone}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold disabled:opacity-50"
+                  style={{ background: "#3ca615" }}>
+                  {creatingTicket ? <Icon name="Loader2" size={14} className="animate-spin" /> : <Icon name="Plus" size={14} />}Создать заявку
+                </button>
+                <button onClick={() => setShowQuickTicket(false)} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm">Отмена</button>
+              </div>
+            </div>
+          )}
+
+          {/* Форма клиента */}
+          {showQuickClient && (
+            <div className="bg-white rounded-2xl border border-purple-200 shadow-sm p-5 mb-4 space-y-3">
+              <h4 className="font-bold text-gray-900 flex items-center gap-2"><Icon name="UserPlus" size={15} className="text-purple-500" />Добавить клиента</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Имя *</label>
+                  <input value={quickClient.name} onChange={e => setQuickClient(p => ({...p, name: e.target.value}))}
+                    placeholder="Иван Иванов"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Телефон *</label>
+                  <input value={quickClient.phone} onChange={e => setQuickClient(p => ({...p, phone: e.target.value}))}
+                    placeholder="+7 999 000-00-00"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Email</label>
+                  <input value={quickClient.email} onChange={e => setQuickClient(p => ({...p, email: e.target.value}))}
+                    placeholder="ivan@mail.ru"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={createQuickClient} disabled={creatingClient || !quickClient.name || !quickClient.phone}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold disabled:opacity-50"
+                  style={{ background: "#7c3aed" }}>
+                  {creatingClient ? <Icon name="Loader2" size={14} className="animate-spin" /> : <Icon name="UserPlus" size={14} />}Добавить клиента
+                </button>
+                <button onClick={() => setShowQuickClient(false)} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm">Отмена</button>
+              </div>
+            </div>
+          )}
+
+          {/* Форма группового сообщения */}
+          {showGroupMsg && (
+            <div className="bg-blue-50 rounded-2xl border border-blue-200 shadow-sm p-5 mb-4 space-y-3">
+              <h4 className="font-bold text-gray-900 flex items-center gap-2"><Icon name="Send" size={15} className="text-blue-500" />Сообщение в Telegram-группу</h4>
+              <textarea value={groupMsgText} onChange={e => setGroupMsgText(e.target.value)}
+                placeholder="Напишите сообщение всем сотрудникам..."
+                rows={3}
+                className="w-full border border-blue-200 bg-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 resize-none" />
+              <div className="flex gap-2">
+                <button onClick={sendGroupMessage} disabled={sendingGroupMsg || !groupMsgText.trim()}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold disabled:opacity-50 bg-blue-500 hover:bg-blue-600 transition-colors">
+                  {sendingGroupMsg ? <Icon name="Loader2" size={14} className="animate-spin" /> : <Icon name="Send" size={14} />}Отправить всем
+                </button>
+                <button onClick={() => setShowGroupMsg(false)} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm">Отмена</button>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { fetchContent } from "@/lib/content-api";
+import { clientSession, clientApi, fixiesApi } from "@/lib/crm-api";
 
 const PARTNER_LINKS = [
   { name: "DataMobile", path: "/datamobile" },
@@ -48,6 +49,9 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
   const [mobilePartnersOpen, setMobilePartnersOpen] = useState(false);
   const [items, setItems] = useState<NavItem[]>(DEFAULT_ITEMS);
   const [phone, setPhone] = useState("+7 (914) 272-71-87");
+  const [clientName, setClientName] = useState<string | null>(null);
+  const [clientFixies, setClientFixies] = useState<number | null>(null);
+  const [clientAvatar, setClientAvatar] = useState<string | null>(null);
   const [phoneHref, setPhoneHref] = useState("tel:+79142727187");
 
   const navigate = useNavigate();
@@ -55,6 +59,24 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
   const isOnMain = location.pathname === "/";
   const dropdownRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Проверяем авторизацию клиента
+  useEffect(() => {
+    const token = clientSession.get();
+    if (!token) return;
+    clientApi.verifyToken(token).then(r => {
+      if (r.valid && r.client) {
+        setClientName(r.client.name || r.client.phone || "Кабинет");
+        setClientAvatar(r.client.avatar_url || null);
+        // Загружаем фиксики
+        fixiesApi.getMyFixies(token, "technician").then(fr => {
+          if (fr.balance !== undefined) setClientFixies(fr.balance);
+        }).catch(() => {});
+      } else {
+        clientSession.clear();
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchContent().then(c => {
@@ -164,13 +186,35 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         {it.label}
       </button>
     );
-    if (it.type === "cabinet") return (
-      <button key={it.id} onClick={() => navigate("/login")}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
-        <Icon name={it.icon as "Star" || "User"} size={15} fallback="User" />
-        {it.label}
-      </button>
-    );
+    if (it.type === "cabinet") {
+      if (clientName) {
+        // Вошедший клиент
+        return (
+          <button key={it.id} onClick={() => navigate("/cabinet")}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-[#3ca615]/30 hover:border-[#3ca615] transition-colors bg-[#edf7e8]">
+            {clientAvatar
+              ? <img src={clientAvatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+              : <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold" style={{ background: "#3ca615" }}>
+                  {clientName.charAt(0).toUpperCase()}
+                </div>
+            }
+            <span className="text-[#3ca615] font-semibold max-w-[90px] truncate">{clientName.split(" ")[0]}</span>
+            {clientFixies !== null && (
+              <span className="flex items-center gap-0.5 text-[11px] font-bold text-[#3ca615] bg-white px-1.5 py-0.5 rounded-full border border-[#3ca615]/20">
+                💰{clientFixies}
+              </span>
+            )}
+          </button>
+        );
+      }
+      return (
+        <button key={it.id} onClick={() => navigate("/login")}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
+          <Icon name={it.icon as "Star" || "User"} size={15} fallback="User" />
+          {it.label}
+        </button>
+      );
+    }
     if (it.type === "link") return (
       <a key={it.id} href={it.href}
         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
@@ -298,13 +342,28 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
                 {it.label}
               </button>
             );
-            if (it.type === "cabinet") return (
-              <button key={it.id} onClick={() => { navigate("/login"); onMenuToggle(); }}
-                className="flex items-center gap-2 border border-gray-200 text-[#374151] px-4 py-3 rounded-lg text-sm font-medium justify-center hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
-                <Icon name={it.icon as "Star" || "User"} size={15} fallback="User" />
-                {it.label}
-              </button>
-            );
+            if (it.type === "cabinet") {
+              if (clientName) return (
+                <button key={it.id} onClick={() => { navigate("/cabinet"); onMenuToggle(); }}
+                  className="flex items-center gap-2 border border-[#3ca615]/30 bg-[#edf7e8] px-4 py-3 rounded-lg text-sm font-medium justify-center">
+                  {clientAvatar
+                    ? <img src={clientAvatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                    : <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0" style={{ background: "#3ca615" }}>
+                        {clientName.charAt(0).toUpperCase()}
+                      </div>
+                  }
+                  <span className="text-[#3ca615] font-semibold">{clientName.split(" ")[0]}</span>
+                  {clientFixies !== null && <span className="text-[11px] font-bold text-[#3ca615]">💰{clientFixies}</span>}
+                </button>
+              );
+              return (
+                <button key={it.id} onClick={() => { navigate("/login"); onMenuToggle(); }}
+                  className="flex items-center gap-2 border border-gray-200 text-[#374151] px-4 py-3 rounded-lg text-sm font-medium justify-center hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
+                  <Icon name={it.icon as "Star" || "User"} size={15} fallback="User" />
+                  {it.label}
+                </button>
+              );
+            }
             if (it.type === "link") return (
               <a key={it.id} href={it.href} onClick={onMenuToggle}
                 className="flex items-center gap-2 border border-gray-200 text-[#374151] px-4 py-3 rounded-lg text-sm font-medium justify-center hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
