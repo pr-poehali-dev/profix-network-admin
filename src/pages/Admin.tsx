@@ -18,6 +18,7 @@ import AdminPageBuilder from "@/components/admin/AdminPageBuilder";
 import AdminProfile from "@/components/admin/AdminProfile";
 import AdminBlog from "@/components/admin/AdminBlog";
 import AdminTheme from "@/components/admin/AdminTheme";
+import AdminTgChat from "@/components/admin/AdminTgChat";
 import ApiDocs from "@/pages/ApiDocs";
 
 export default function Admin() {
@@ -51,6 +52,7 @@ export default function Admin() {
   const [newCommentCount, setNewCommentCount] = useState(0);
   const [newTicketCount, setNewTicketCount] = useState(0);
   const [newReviewCount, setNewReviewCount] = useState(0);
+  const [newTgChatCount, setNewTgChatCount] = useState(0);
   const lastCommentIdRef = useRef<number>(0);
   const lastTicketIdRef = useRef<number>(0);
   const lastReviewIdRef = useRef<number>(0);
@@ -294,6 +296,16 @@ export default function Admin() {
             }
           }
           setNewReviewCount(unpublished.length);
+        }
+      } catch { /* ignore */ }
+
+      // ── Новые сообщения от спецов в Telegram ──────────────────────────────
+      try {
+        const token = managerSession.get();
+        if (token) {
+          const { tgStaffApi } = await import("@/lib/tg-staff-api");
+          const tgRes = await tgStaffApi.unreadCount(token);
+          if (tgRes.unread !== undefined) setNewTgChatCount(tgRes.unread);
         }
       } catch { /* ignore */ }
     } catch {
@@ -564,6 +576,7 @@ export default function Admin() {
         newCommentCount={newCommentCount}
         newTicketCount={newTicketCount}
         newReviewCount={newReviewCount}
+        newTgChatCount={newTgChatCount}
       />
 
       <main className="flex-1 overflow-auto">
@@ -644,6 +657,7 @@ export default function Admin() {
         {section === "pages" && <AdminPageBuilder />}
         {section === "blog" && <AdminBlog />}
         {section === "theme" && <AdminTheme />}
+        {section === "tg-chat" && <AdminTgChat />}
         {section === "profile" && (
           <AdminProfile
             manager={manager}

@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Webhook empty body",
+      "method": "POST",
+      "path": "/?action=webhook",
+      "body": {},
+      "expectedStatus": 200,
+      "expectedBody": {"ok": true},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "List without auth",
+      "method": "GET",
+      "path": "/?action=list",
+      "expectedStatus": 401
+    }
+  ]
+}
