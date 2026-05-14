@@ -35,7 +35,6 @@ export default function AdminTheme() {
   const [saving, setSaving]       = useState(false);
   const [saveOk, setSaveOk]       = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [iframeKey, setIframeKey] = useState(0);
 
   // Следим за hex в draft
   useEffect(() => { setDraftHex(draft.primaryHex); }, [draft.primaryHex]);
@@ -62,8 +61,6 @@ export default function AdminTheme() {
     setSaving(false);
     setSaveOk(true);
     setTimeout(() => setSaveOk(false), 2500);
-    // Обновляем iframe если открыт
-    setIframeKey(k => k + 1);
   }
 
   function handleReset() {
@@ -284,10 +281,10 @@ export default function AdminTheme() {
           )}
         </div>
 
-        {/* ── iframe предпросмотр ─────────────────────────────────────────────── */}
+        {/* ── Live-превью сайта ──────────────────────────────────────────────── */}
         {showPreview && (
-          <div className="flex-1 flex flex-col min-w-0 rounded-2xl overflow-hidden border border-gray-200 shadow-lg bg-gray-50">
-            {/* Адресная строка-заглушка */}
+          <div className="flex-1 min-w-0 rounded-2xl overflow-hidden border border-gray-200 shadow-lg bg-[#F7F9FC] flex flex-col" style={{ minHeight: 500 }}>
+            {/* Адресная строка */}
             <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 border-b border-gray-200 shrink-0">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-400" />
@@ -297,18 +294,65 @@ export default function AdminTheme() {
               <div className="flex-1 bg-white rounded-lg px-3 py-1 text-[11px] text-gray-400 font-mono border border-gray-200">
                 it-profix.ru
               </div>
-              <button onClick={() => setIframeKey(k => k + 1)}
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors" title="Обновить">
-                <Icon name="RefreshCw" size={13} />
-              </button>
             </div>
-            <iframe
-              key={iframeKey}
-              src="/"
-              className="flex-1 w-full"
-              style={{ minHeight: 500 }}
-              title="Предпросмотр сайта"
-            />
+            {/* Превью контента */}
+            <div className="flex-1 overflow-y-auto text-[10px]" style={{ zoom: 0.65 }}>
+              {/* Navbar */}
+              <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-100 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs" style={{ background: draft.primaryHex }}>P</div>
+                  <span className="font-bold text-gray-900 text-sm">ProFiX</span>
+                </div>
+                <div className="flex gap-4 text-gray-600 text-xs">
+                  {["Услуги","Магазин","О нас","Контакты"].map(l => <span key={l}>{l}</span>)}
+                </div>
+                <button className="px-4 py-1.5 text-white text-xs font-bold rounded-lg" style={{ background: draft.primaryHex, borderRadius: `${draft.radius}rem` }}>Заявка</button>
+              </div>
+              {/* Hero */}
+              <div className="px-6 py-10 flex gap-8 items-center" style={{ background: `linear-gradient(135deg, ${draft.primaryHex}18, #F7F9FC)` }}>
+                <div className="flex-1">
+                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium mb-4" style={{ background: draft.primaryHex + "20", color: draft.primaryHex }}>
+                    📍 г. Якутск
+                  </div>
+                  <div className="text-3xl font-bold text-gray-900 leading-tight mb-3">IT-ПОДДЕРЖКА<br/><span style={{ color: draft.primaryHex }}>ДЛЯ БИЗНЕСА</span><br/>И ЧАСТНЫХ ЛИЦ</div>
+                  <p className="text-gray-500 text-sm mb-5">Ремонт компьютеров, видеонаблюдение, сети, 1С и заправка картриджей.</p>
+                  <div className="flex gap-3">
+                    <button className="px-5 py-2 text-white text-xs font-bold" style={{ background: draft.primaryHex, borderRadius: `${draft.radius}rem` }}>Оставить заявку</button>
+                    <button className="px-5 py-2 text-xs font-bold border-2" style={{ borderColor: draft.primaryHex, color: draft.primaryHex, borderRadius: `${draft.radius}rem` }}>Услуги</button>
+                  </div>
+                </div>
+                <div className="w-48 h-40 rounded-2xl bg-gray-200 overflow-hidden shrink-0">
+                  <img src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/ad49d25f-c346-44dc-a332-4aa4552ce177.jpg" className="w-full h-full object-cover" alt="" />
+                </div>
+              </div>
+              {/* Stats */}
+              <div className="grid grid-cols-3 text-center py-4 bg-white border-y border-gray-100">
+                {[["1000+","клиентов"],["15+","лет опыта"],["100%","гарантия"]].map(([v,l]) => (
+                  <div key={l}><div className="text-xl font-bold" style={{ color: draft.primaryHex }}>{v}</div><div className="text-gray-500">{l}</div></div>
+                ))}
+              </div>
+              {/* Services */}
+              <div className="px-6 py-8">
+                <div className="text-xl font-bold text-gray-900 mb-5">Наши услуги</div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[["💻","Ремонт ПК","Быстро и с гарантией"],["📷","Видеонаблюдение","Монтаж и обслуживание"],["🖨️","Заправка картриджей","Лазерные и струйные"]].map(([ico,t,d]) => (
+                    <div key={t} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg mb-2" style={{ background: draft.primaryHex + "20" }}>{ico}</div>
+                      <div className="font-bold text-gray-900 text-xs">{t}</div>
+                      <div className="text-gray-400 mt-1">{d}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Кнопка CTA */}
+              <div className="px-6 pb-8 text-center">
+                <div className="rounded-2xl py-8 px-6" style={{ background: draft.primaryHex }}>
+                  <div className="text-white font-bold text-lg mb-2">Нужна помощь?</div>
+                  <p className="text-white/80 text-sm mb-4">Оставьте заявку — перезвоним в течение 15 минут</p>
+                  <button className="bg-white font-bold px-6 py-2 text-sm" style={{ color: draft.primaryHex, borderRadius: `${draft.radius}rem` }}>Оставить заявку</button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
