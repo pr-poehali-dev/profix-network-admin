@@ -71,13 +71,16 @@ def handler(event: dict, context) -> dict:
     if method == "GET" and not action:
         return ok({
             "name": "ProFiX Public API",
-            "version": "1.0",
+            "version": "1.1",
             "description": "API для интеграции партнёров с CRM ProFiX",
             "endpoints": [
-                {"method": "GET", "path": "?action=ping", "description": "Проверка доступности API"},
-                {"method": "POST", "path": "?action=ticket.create", "description": "Создать заявку", "auth": True},
-                {"method": "GET", "path": "?action=ticket.status&id=<id>", "description": "Статус заявки", "auth": True},
-                {"method": "GET", "path": "?action=tickets.list", "description": "Список заявок партнёра", "auth": True},
+                {"method": "GET",  "path": "?action=ping",                         "description": "Проверка доступности API"},
+                {"method": "GET",  "path": "?action=shop.categories",               "description": "Список категорий товаров", "auth": True},
+                {"method": "GET",  "path": "?action=shop.products",                 "description": "Список товаров (с фильтрами)", "auth": True},
+                {"method": "GET",  "path": "?action=shop.product&id=<id>",          "description": "Товар с изображениями", "auth": True},
+                {"method": "POST", "path": "?action=ticket.create",                 "description": "Создать заявку", "auth": True},
+                {"method": "GET",  "path": "?action=ticket.status&id=<id>",         "description": "Статус заявки", "auth": True},
+                {"method": "GET",  "path": "?action=tickets.list",                  "description": "Список заявок партнёра", "auth": True},
             ],
             "auth": "Передайте ключ в заголовке X-API-Key или параметре ?api_key=",
             "contact": "727187@it-profix.ru",
@@ -196,5 +199,111 @@ def handler(event: dict, context) -> dict:
             "limit": limit,
             "offset": offset,
         })
+
+    # ── Каталог: категории ────────────────────────────────────────────────────
+    if action == "shop.categories" and method == "GET":
+        if "shop:read" not in perms:
+            return err("Недостаточно прав: shop:read", 403)
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"""
+            SELECT c.id, c.name, c.slug, c.description, c.sort_order,
+                   COUNT(p.id) FILTER (WHERE p.is_active) AS product_count
+            FROM {SC}.shop_categories c
+            LEFT JOIN {SC}.shop_products p ON p.category_id = c.id
+            GROUP BY c.id ORDER BY c.sort_order, c.name
+        """)
+        cols = [d[0] for d in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        cur.close(); conn.close()
+        return ok({"categories": rows, "total": len(rows)})
+
+    # ── Каталог: список товаров ───────────────────────────────────────────────
+    if action == "shop.products" and method == "GET":
+        if "shop:read" not in perms:
+            return err("Недостаточно прав: shop:read", 403)
+
+        category = qs.get("category")       # slug категории
+        search   = qs.get("search", "")
+        in_stock = qs.get("in_stock")       # "1" — только в наличии
+        limit    = min(int(qs.get("limit", 100)), 500)
+        offset   = int(qs.get("offset", 0))
+
+        conn = get_conn(); cur = conn.cursor()
+        where = ["p.is_active = TRUE"]
+        args = []
+        if category:
+            where.append("c.slug = %s"); args.append(category)
+        if search:
+            where.append("(p.name ILIKE %s OR p.description ILIKE %s OR p.sku ILIKE %s)")
+            args += [f"%{search}%", f"%{search}%", f"%{search}%"]
+        if in_stock == "1":
+            where.append("p.in_stock = TRUE")
+
+        where_sql = "WHERE " + " AND ".join(where)
+        cur.execute(f"""
+            SELECT p.id, p.name, p.description, p.price, p.price_old, p.sku,
+                   p.in_stock, p.image_url, p.sort_order, p.created_at, p.updated_at,
+                   c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+            FROM {SC}.shop_products p
+            LEFT JOIN {SC}.shop_categories c ON c.id = p.category_id
+            {where_sql}
+            ORDER BY p.sort_order, p.name
+            LIMIT %s OFFSET %s
+        """, args + [limit, offset])
+        cols = [d[0] for d in cur.description]
+        products = [dict(zip(cols, r)) for r in cur.fetchall()]
+
+        cur.execute(f"""
+            SELECT COUNT(*) FROM {SC}.shop_products p
+            LEFT JOIN {SC}.shop_categories c ON c.id = p.category_id
+            {where_sql}
+        """, args)
+        total = cur.fetchone()[0]
+        cur.close(); conn.close()
+
+        return ok({"products": products, "total": total, "limit": limit, "offset": offset})
+
+    # ── Каталог: один товар с изображениями ──────────────────────────────────
+    if action == "shop.product" and method == "GET":
+        if "shop:read" not in perms:
+            return err("Недостаточно прав: shop:read", 403)
+
+        pid = qs.get("id")
+        if not pid:
+            return err("Укажите ?id=<product_id>")
+
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"""
+            SELECT p.id, p.name, p.description, p.price, p.price_old, p.sku,
+                   p.in_stock, p.image_url, p.sort_order, p.created_at, p.updated_at,
+                   c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+            FROM {SC}.shop_products p
+            LEFT JOIN {SC}.shop_categories c ON c.id = p.category_id
+            WHERE p.id = %s AND p.is_active = TRUE
+        """, (pid,))
+        row = cur.fetchone()
+        if not row:
+            cur.close(); conn.close()
+            return err("Товар не найден", 404)
+
+        cols = [d[0] for d in cur.description]
+        product = dict(zip(cols, row))
+
+        cur.execute(f"""
+            SELECT image_url, sort_order FROM {SC}.shop_product_images
+            WHERE product_id = %s ORDER BY sort_order
+        """, (pid,))
+        product["images"] = [{"image_url": r[0], "sort_order": r[1]} for r in cur.fetchall()]
+
+        cur.execute(f"""
+            SELECT AVG(rating)::numeric(3,1), COUNT(*)
+            FROM {SC}.shop_product_reviews WHERE product_id = %s AND is_published = TRUE
+        """, (pid,))
+        avg = cur.fetchone()
+        product["rating_avg"]   = float(avg[0]) if avg[0] else None
+        product["rating_count"] = avg[1]
+        cur.close(); conn.close()
+
+        return ok({"product": product})
 
     return err(f"Неизвестное действие: {action}. Смотрите документацию по URL без параметров.", 404)

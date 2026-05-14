@@ -15,6 +15,12 @@ interface ApiKey {
   last_used_at: string | null;
 }
 
+const PERM_OPTIONS = [
+  { value: "shop:read",      label: "Каталог товаров",   desc: "Категории, товары, цены, фото" },
+  { value: "tickets:create", label: "Создание заявок",   desc: "Отправлять заявки в CRM" },
+  { value: "tickets:read",   label: "Просмотр заявок",   desc: "Статус и список заявок" },
+];
+
 const ENDPOINTS = [
   {
     method: "GET",
@@ -25,10 +31,76 @@ const ENDPOINTS = [
     response: `{ "pong": true, "ts": "2024-01-15T10:00:00" }`,
   },
   {
+    method: "GET",
+    path: "?action=shop.categories",
+    title: "Категории товаров",
+    auth: true,
+    perm: "shop:read",
+    desc: "Возвращает все категории каталога с количеством активных товаров в каждой.",
+    response: `{
+  "categories": [
+    { "id": 1, "name": "Кассовое оборудование", "slug": "kassy", "description": "...", "product_count": 12 }
+  ],
+  "total": 5
+}`,
+  },
+  {
+    method: "GET",
+    path: "?action=shop.products&category=kassy&in_stock=1&limit=50",
+    title: "Список товаров",
+    auth: true,
+    perm: "shop:read",
+    desc: "Список активных товаров. Фильтры: ?category=<slug>, ?search=<текст>, ?in_stock=1, ?limit=, ?offset=",
+    response: `{
+  "products": [
+    {
+      "id": 7,
+      "name": "Атол 91Ф",
+      "price": 14900.00,
+      "price_old": 17000.00,
+      "sku": "ATOL-91F",
+      "in_stock": true,
+      "image_url": "https://cdn.../photo.jpg",
+      "category_name": "Кассовое оборудование",
+      "category_slug": "kassy"
+    }
+  ],
+  "total": 48, "limit": 50, "offset": 0
+}`,
+  },
+  {
+    method: "GET",
+    path: "?action=shop.product&id=7",
+    title: "Товар с фото",
+    auth: true,
+    perm: "shop:read",
+    desc: "Полная информация о товаре: описание, цена, все изображения, рейтинг.",
+    response: `{
+  "product": {
+    "id": 7,
+    "name": "Атол 91Ф",
+    "description": "Онлайн-касса...",
+    "price": 14900.00,
+    "price_old": 17000.00,
+    "sku": "ATOL-91F",
+    "in_stock": true,
+    "image_url": "https://cdn.../main.jpg",
+    "images": [
+      { "image_url": "https://cdn.../1.jpg", "sort_order": 0 },
+      { "image_url": "https://cdn.../2.jpg", "sort_order": 1 }
+    ],
+    "rating_avg": 4.8,
+    "rating_count": 12,
+    "category_name": "Кассовое оборудование"
+  }
+}`,
+  },
+  {
     method: "POST",
     path: "?action=ticket.create",
     title: "Создать заявку",
     auth: true,
+    perm: "tickets:create",
     desc: "Создать новую заявку в CRM. Если клиент с указанным телефоном не найден — будет создан автоматически.",
     body: `{
   "title": "Нужна помощь с кассой",
@@ -97,6 +169,7 @@ export default function ApiDocs() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loadingKeys, setLoadingKeys] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
+  const [newKeyPerms, setNewKeyPerms] = useState<string[]>(["shop:read", "tickets:create", "tickets:read"]);
   const [createdKey, setCreatedKey] = useState("");
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState("");
@@ -129,7 +202,7 @@ export default function ApiDocs() {
       const res = await fetch(AUTH_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ action: "api_keys.create", name: newKeyName.trim() }),
+        body: JSON.stringify({ action: "api_keys.create", name: newKeyName.trim(), permissions: newKeyPerms }),
       });
       const data = await res.json();
       if (data.key) {
@@ -311,19 +384,39 @@ export default function ApiDocs() {
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Управление API-ключами</p>
 
             {/* Создание нового ключа */}
-            <div className="flex gap-2 mb-4">
+            <div className="border border-dashed border-gray-200 rounded-xl p-4 mb-4 space-y-3">
+              <p className="text-xs font-semibold text-gray-500">Новый ключ</p>
               <input
                 value={newKeyName}
                 onChange={e => setNewKeyName(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && createKey()}
-                placeholder="Название ключа (например: 1С-интеграция)"
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]"
+                placeholder="Название (например: 1С-интеграция, сайт партнёра)"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]"
               />
-              <button onClick={createKey} disabled={creating || !newKeyName.trim()}
-                className="px-4 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-2 shrink-0"
+              <div>
+                <p className="text-xs text-gray-400 mb-2">Права доступа:</p>
+                <div className="space-y-1.5">
+                  {PERM_OPTIONS.map(p => (
+                    <label key={p.value} className="flex items-center gap-2.5 cursor-pointer group">
+                      <div className="relative shrink-0">
+                        <input type="checkbox"
+                          checked={newKeyPerms.includes(p.value)}
+                          onChange={e => setNewKeyPerms(prev => e.target.checked ? [...prev, p.value] : prev.filter(x => x !== p.value))}
+                          className="sr-only" />
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${newKeyPerms.includes(p.value) ? "bg-[#3ca615] border-[#3ca615]" : "border-gray-300"}`}>
+                          {newKeyPerms.includes(p.value) && <Icon name="Check" size={10} className="text-white" />}
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-800">{p.label}</span>
+                      <span className="text-xs text-gray-400">{p.desc}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <button onClick={createKey} disabled={creating || !newKeyName.trim() || newKeyPerms.length === 0}
+                className="w-full py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
                 style={{ background: "#3ca615" }}>
-                {creating ? <Icon name="Loader2" size={15} className="animate-spin" /> : <Icon name="Plus" size={15} />}
-                Создать
+                {creating ? <Icon name="Loader2" size={15} className="animate-spin" /> : <Icon name="Key" size={15} />}
+                Сгенерировать ключ
               </button>
             </div>
 
@@ -356,8 +449,13 @@ export default function ApiDocs() {
                     <div className={`w-2 h-2 rounded-full shrink-0 ${k.active ? "bg-green-500" : "bg-gray-400"}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">{k.name}</p>
-                      <p className="text-xs text-gray-400 font-mono truncate">{k.key.slice(0, 20)}…</p>
-                      {k.last_used_at && <p className="text-xs text-gray-400">Последнее использование: {new Date(k.last_used_at).toLocaleDateString("ru-RU")}</p>}
+                      <p className="text-xs text-gray-400 font-mono truncate">{k.key.slice(0, 24)}…</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {(Array.isArray(k.permissions) ? k.permissions : []).map(p => (
+                          <span key={p} className="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-700 rounded font-mono">{p}</span>
+                        ))}
+                      </div>
+                      {k.last_used_at && <p className="text-xs text-gray-400 mt-0.5">Использован: {new Date(k.last_used_at).toLocaleDateString("ru-RU")}</p>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button onClick={() => copy(k.key, `key-${k.id}`)} className="p-1.5 rounded-lg hover:bg-white text-gray-400 hover:text-gray-700 transition-colors">
