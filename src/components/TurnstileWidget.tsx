@@ -3,7 +3,7 @@ import { Turnstile } from "@marsidev/react-turnstile";
 import Icon from "@/components/ui/icon";
 
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADOkb3vHlBsjRfj6";
-const DELAY = 4;
+const DELAY = 6;
 
 interface Props {
   onVerify: (token: string) => void;
@@ -59,22 +59,25 @@ export default function TurnstileWidget({ onVerify, onError, onExpire }: Props) 
         onExpire={handleExpire}
         options={{ theme: "light", language: "ru", size: "normal" }}
       />
-      {!verified ? (
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <Icon name="ShieldCheck" size={13} className="shrink-0 text-gray-300" />
-          <span>
-            Проверка безопасности…{" "}
-            <span className="font-medium text-gray-500">
-              кнопка будет доступна через {countdown} сек.
-            </span>
+      <div className={`rounded-xl border px-3 py-2.5 transition-colors ${verified ? "border-green-200 bg-green-50" : "border-gray-200 bg-gray-50"}`}>
+        <div className="flex items-center gap-2 mb-2">
+          <Icon
+            name="ShieldCheck"
+            size={14}
+            className={`shrink-0 ${verified ? "text-green-500" : "text-gray-400"}`}
+          />
+          <span className={`text-xs font-medium ${verified ? "text-green-600" : "text-gray-500"}`}>
+            {verified ? "Проверка безопасности пройдена" : `Проверка безопасности… ${countdown} сек.`}
           </span>
         </div>
-      ) : (
-        <div className="flex items-center gap-2 text-xs text-green-600">
-          <Icon name="ShieldCheck" size={13} className="shrink-0" />
-          <span>Проверка пройдена</span>
+        {/* Прогресс-бар */}
+        <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-1000 ease-linear ${verified ? "bg-green-500" : "bg-blue-400"}`}
+            style={{ width: verified ? "100%" : `${((DELAY - countdown) / DELAY) * 100}%` }}
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 }
