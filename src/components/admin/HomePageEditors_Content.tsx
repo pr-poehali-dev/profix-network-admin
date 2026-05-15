@@ -104,9 +104,17 @@ export function HeroEditor({ content, onChange }: { content: ContentMap; onChang
       </div>
 
       <div className="border-t border-gray-100 pt-4 space-y-3">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Фон главного экрана</p>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-8 h-8 rounded-xl bg-[#edf7e8] flex items-center justify-center">
+            <Icon name="Image" size={16} className="text-[#3ca615]" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-800">Фоновое изображение Hero-блока</p>
+            <p className="text-xs text-gray-400">Загрузите картинку — она заменит стандартный зелёный фон на главной странице</p>
+          </div>
+        </div>
         <ImageUpload
-          label="Фоновая картинка (заменяет стандартный фон)"
+          label="Картинка фона Hero (рекомендуется 1920×900px)"
           value={content["hero.bg_image"] || ""}
           onChange={v => onChange("hero.bg_image", v)}
           maxW={1920} maxH={900}
