@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession } from "@/lib/crm-api";
+import { saveContent, fetchContent } from "@/lib/content-api";
 
 interface Manager {
   id: number; login: string; name: string; role: string;
@@ -20,6 +21,24 @@ const ROLE_COLOR: Record<string, string> = {
   admin: "bg-red-50 text-red-700 border border-red-100",
   manager: "bg-blue-50 text-blue-700 border border-blue-100",
 };
+
+const SECTIONS = [
+  { key: "dashboard",  label: "Дашборд" },
+  { key: "tickets",    label: "Заявки" },
+  { key: "clients",    label: "Клиенты" },
+  { key: "users",      label: "Пользователи" },
+  { key: "shop",       label: "Магазин" },
+  { key: "tg-chat",   label: "Сотрудники" },
+  { key: "tariffs",    label: "Тарификация" },
+  { key: "blog",       label: "Блог" },
+  { key: "content",    label: "Редактор сайта" },
+  { key: "pages",      label: "Конструктор страниц" },
+  { key: "reviews",    label: "Отзывы" },
+  { key: "theme",      label: "Тема сайта" },
+];
+
+// Права хранятся в content-api как JSON по ключу `manager_perms_{id}`
+const PERMS_KEY = (id: number) => `manager_perms_${id}`;
 
 function Avatar({ name, url, size = 10 }: { name: string; url?: string | null; size?: number }) {
   const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
@@ -50,6 +69,33 @@ export default function AdminUsers({ currentManagerRole }: { currentManagerRole?
   const [newMgr, setNewMgr] = useState({ login: "", password: "", name: "", role: "manager" });
   const [newTech, setNewTech] = useState({ name: "", phone: "", email: "", specialization: "", pin: "" });
   const [creating, setCreating] = useState(false);
+
+  // Права доступа
+  const [permsId, setPermsId] = useState<number | null>(null);
+  const [perms, setPerms] = useState<Record<string, boolean>>({});
+  const [permsSaving, setPermsSaving] = useState(false);
+
+  async function openPerms(m: Manager) {
+    setPermsId(m.id);
+    const c = await fetchContent();
+    const stored = c[PERMS_KEY(m.id)];
+    if (stored) {
+      try { setPerms(JSON.parse(stored)); return; } catch { /* fallback */ }
+    }
+    // По умолчанию — всё кроме admin-разделов
+    const def: Record<string, boolean> = {};
+    SECTIONS.forEach(s => { def[s.key] = true; });
+    setPerms(def);
+  }
+
+  async function savePerms() {
+    if (permsId === null) return;
+    setPermsSaving(true);
+    await saveContent({ [PERMS_KEY(permsId)]: JSON.stringify(perms) });
+    setPermsSaving(false);
+    setPermsId(null);
+    flash("Права сохранены");
+  }
 
   // Редактирование
   const [editUser, setEditUser] = useState<Manager | Tech | null>(null);
@@ -296,9 +342,15 @@ export default function AdminUsers({ currentManagerRole }: { currentManagerRole?
                   <span className="text-xs font-bold text-[#3ca615]">💰 {m.fixies_balance} фикс.</span>
                 </div>
               )}
+              {isAdmin && m.role !== "admin" && m.is_active !== false && (
+                <button onClick={() => openPerms(m)}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-blue-100 text-blue-600 text-xs font-medium hover:bg-blue-50 transition-colors">
+                  <Icon name="ShieldCheck" size={13} />Права доступа
+                </button>
+              )}
               {isAdmin && m.is_active !== false && (
                 <button onClick={() => deleteManager(m.id, m.name)}
-                  className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-red-100 text-red-500 text-xs font-medium hover:bg-red-50 transition-colors">
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-red-100 text-red-500 text-xs font-medium hover:bg-red-50 transition-colors">
                   <Icon name="UserX" size={13} />Деактивировать
                 </button>
               )}
@@ -399,6 +451,46 @@ export default function AdminUsers({ currentManagerRole }: { currentManagerRole?
                 {editSaving ? <Icon name="Loader2" size={15} className="animate-spin" /> : <Icon name="Save" size={15} />}Сохранить
               </button>
               <button onClick={() => { setEditUser(null); setPendingAvatar(null); }}
+                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm">Отмена</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Модал прав доступа ── */}
+      {permsId !== null && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-sm space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                <Icon name="ShieldCheck" size={16} className="text-blue-500" />Права доступа
+              </h3>
+              <button onClick={() => setPermsId(null)}><Icon name="X" size={18} className="text-gray-400" /></button>
+            </div>
+            <p className="text-xs text-gray-400">Выберите разделы, доступные этому менеджеру</p>
+            <div className="space-y-1.5">
+              {SECTIONS.map(s => (
+                <label key={s.key} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 cursor-pointer">
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0 ${perms[s.key] ? "border-blue-500 bg-blue-500" : "border-gray-300"}`}
+                    onClick={() => setPerms(p => ({ ...p, [s.key]: !p[s.key] }))}>
+                    {perms[s.key] && <Icon name="Check" size={12} className="text-white" />}
+                  </div>
+                  <span className="text-sm text-gray-700">{s.label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setPerms(Object.fromEntries(SECTIONS.map(s => [s.key, true])))}
+                className="text-xs text-blue-600 hover:underline">Выбрать все</button>
+              <button onClick={() => setPerms(Object.fromEntries(SECTIONS.map(s => [s.key, false])))}
+                className="text-xs text-gray-400 hover:underline ml-2">Снять все</button>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={savePerms} disabled={permsSaving}
+                className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 transition-colors">
+                {permsSaving ? <Icon name="Loader2" size={15} className="animate-spin" /> : <Icon name="Save" size={15} />}Сохранить права
+              </button>
+              <button onClick={() => setPermsId(null)}
                 className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm">Отмена</button>
             </div>
           </div>

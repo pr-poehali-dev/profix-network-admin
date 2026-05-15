@@ -329,8 +329,9 @@ export default function Blog() {
   const youtubeChannel = str("blog.youtube_channel", "");
   const subscribersCount = str("blog.subscribers", "");
   const channelDesc = str("blog.channel_desc", "IT-советы, разборы техники и жизнь сервисного центра в Якутске");
-  const blogHeaderBg = str("blog.header_bg", "#ffffff");
-  const blogDarkHeader = blogHeaderBg === "#0F0F0F" || blogHeaderBg.toLowerCase() === "#0f0f0f";
+  const blogHeaderBg    = str("blog.header_bg", "#ffffff");
+  const blogHeaderBgImg = str("blog.header_bg_img", "");
+  const blogDarkHeader  = ["#0F0F0F","#0f0f0f","#1a1a2e","#1e3a5f"].includes(blogHeaderBg.toLowerCase());
 
   useEffect(() => {
     const token = clientSession.get();
@@ -374,7 +375,7 @@ export default function Blog() {
   if (id && post) {
     const ytId = post.video_url ? getYouTubeId(post.video_url) : null;
     return (
-      <div className="min-h-screen font-golos" style={{ backgroundColor: blogHeaderBg }}>
+      <div className="min-h-screen font-golos" style={{ backgroundColor: blogHeaderBg, ...(blogHeaderBgImg ? { backgroundImage: `url(${blogHeaderBgImg})`, backgroundSize: "cover", backgroundPosition: "center" } : {}) }}>
         <SEO
           title={`${post.title} — ProFiX`}
           description={post.excerpt || post.title}
@@ -529,7 +530,7 @@ export default function Blog() {
 
   // ── Список постов ─────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F7F9FC] font-golos">
+    <div className="min-h-screen font-golos" style={{ backgroundColor: blogHeaderBg || "#F7F9FC", ...(blogHeaderBgImg ? { backgroundImage: `url(${blogHeaderBgImg})`, backgroundSize: "cover", backgroundPosition: "center" } : {}) }}>
       <SEO
         title="Блог ProFiX — IT-советы, новости и видео из Якутска"
         description="Полезные статьи, новости IT-рынка Якутска, видео о ремонте оборудования и автоматизации бизнеса от компании ProFiX. Советы по 1С, кассам, сетям."
@@ -538,13 +539,16 @@ export default function Blog() {
       />
 
       {/* Шапка */}
-      <header className="bg-[#0F0F0F] sticky top-0 z-10">
+      <header className="sticky top-0 z-10 border-b"
+        style={{ backgroundColor: blogHeaderBg || "#0F0F0F", borderColor: blogDarkHeader ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)" }}>
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+          <button onClick={() => navigate("/")} className="p-1.5 rounded-lg transition-colors"
+            style={{ color: blogDarkHeader ? "#9ca3af" : "#6b7280" }}>
             <Icon name="ChevronLeft" size={20} />
           </button>
           <span className="font-oswald text-lg font-bold">
-            <span className="text-[#3ca615]">ПРО</span><span className="text-white">ФИКС</span>
+            <span className="text-[#3ca615]">ПРО</span>
+            <span style={{ color: blogDarkHeader ? "white" : "#0D1B2A" }}>ФИКС</span>
           </span>
 
           {/* Фильтры в шапке */}

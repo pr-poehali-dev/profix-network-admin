@@ -94,20 +94,26 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
     fullscreen: "text-5xl sm:text-6xl",
   };
   const titleClass = titleSize[heroSize] ?? titleSize.medium;
+  const heroBgImg   = str("hero.bg_image", "");
+  const heroBgColor = str("hero.bg_color", "");
 
   return (
     <>
       {/* HERO */}
       <section id="hero" className="pt-16 flex flex-col relative overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-10"
-          style={{ backgroundImage: `url(${HERO_IMAGE})` }}
-        />
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/d7a247af-9874-4bc9-8052-5c087495fdb7.png)`, opacity: 1 }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8]" style={{ opacity: 0.50 }} />
+        {heroBgImg ? (
+          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${heroBgImg})` }} />
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-cover bg-center opacity-10" style={{ backgroundImage: `url(${HERO_IMAGE})` }} />
+            <div className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+              style={{ backgroundImage: `url(https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/d7a247af-9874-4bc9-8052-5c087495fdb7.png)`, opacity: 1 }} />
+          </>
+        )}
+        {heroBgColor
+          ? <div className="absolute inset-0" style={{ backgroundColor: heroBgColor, opacity: 0.85 }} />
+          : <div className="absolute inset-0 bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8]" style={{ opacity: 0.50 }} />
+        }
 
         <div className={`relative max-w-6xl mx-auto px-4 sm:px-6 ${paddingClass} grid md:grid-cols-2 gap-8 items-center`}>
           <div className="animate-fade-in-up">

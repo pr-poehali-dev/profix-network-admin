@@ -102,6 +102,38 @@ export function HeroEditor({ content, onChange }: { content: ContentMap; onChang
           ))}
         </div>
       </div>
+
+      <div className="border-t border-gray-100 pt-4 space-y-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Фон главного экрана</p>
+        <ImageUpload
+          label="Фоновая картинка (заменяет стандартный фон)"
+          value={content["hero.bg_image"] || ""}
+          onChange={v => onChange("hero.bg_image", v)}
+          maxW={1920} maxH={900}
+        />
+        {content["hero.bg_image"] && (
+          <button onClick={() => onChange("hero.bg_image", "")}
+            className="text-xs text-red-500 hover:underline flex items-center gap-1">
+            <Icon name="Trash2" size={11} />Убрать фоновую картинку
+          </button>
+        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Цвет фона / оверлея</label>
+            <div className="flex items-center gap-2">
+              {["","#edf7e8","#F7F9FC","#0D1B2A","#1a1a2e","#ffffff"].map(c => (
+                <button key={c} onClick={() => onChange("hero.bg_color", c)}
+                  className={`w-8 h-8 rounded-lg border-2 transition-all ${(content["hero.bg_color"]||"")===c ? "border-green-500 scale-110" : "border-gray-200"}`}
+                  style={{ background: c || "linear-gradient(135deg,#edf7e8,#d4f0c8)" }}
+                  title={c || "По умолчанию"} />
+              ))}
+              <input type="color" value={content["hero.bg_color"] || "#edf7e8"}
+                onChange={e => onChange("hero.bg_color", e.target.value)}
+                className="w-8 h-8 rounded-lg border border-gray-200 cursor-pointer p-0.5" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
