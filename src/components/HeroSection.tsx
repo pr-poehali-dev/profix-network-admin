@@ -40,6 +40,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
   }, []);
 
   const perView = isMobile ? 2 : 3;
+  const slideWidth = isMobile ? "calc(50% - 8px)" : "calc(33.333% - 11px)";
   const slides = json<{img:string;title:string;desc:string}[]>("carousel.slides", DEFAULT_SLIDES);
   const stats = json<{val:string;label:string}[]>("hero.stats", [{val:"1000+",label:"клиентов"},{val:"15+",label:"лет опыта"},{val:"100%",label:"гарантия"}]);
   const titleLines = str("hero.title", "IT-ПОДДЕРЖКА\nДЛЯ БИЗНЕСА\nИ ЧАСТНЫХ ЛИЦ").split("\n");
@@ -219,12 +220,10 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
               >
                 {looped.map((slide, i) => {
                   const isActive = i === loopedIdx;
-                  const slideWidth = isMobile ? "calc(50% - 8px)" : "calc(33.333% - 11px)";
                   return (
                     <div
                       key={i}
                       onClick={() => {
-                        // Клик по клонам — сдвигаем realIdx
                         const delta = i - loopedIdx;
                         setRealIdx(prev => (prev + delta + n) % n);
                       }}

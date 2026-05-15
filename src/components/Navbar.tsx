@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { fetchContent } from "@/lib/content-api";
-import { clientSession, clientApi, fixiesApi } from "@/lib/crm-api";
+import { clientSession, clientApi, managerSession, managerApi } from "@/lib/crm-api";
 
 const PARTNER_LINKS = [
   { name: "DataMobile", path: "/datamobile" },
@@ -52,6 +52,9 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
   const [clientName, setClientName] = useState<string | null>(null);
   const [clientFixies, setClientFixies] = useState<number | null>(null);
   const [clientAvatar, setClientAvatar] = useState<string | null>(null);
+  const [managerName, setManagerName] = useState<string | null>(null);
+  const [managerAvatar, setManagerAvatar] = useState<string | null>(null);
+  const [managerRole, setManagerRole] = useState<string | null>(null);
   const [phoneHref, setPhoneHref] = useState("tel:+79142727187");
 
   const navigate = useNavigate();
@@ -59,6 +62,21 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
   const isOnMain = location.pathname === "/";
   const dropdownRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Проверяем авторизацию менеджера/админа
+  useEffect(() => {
+    const mgrToken = managerSession.get();
+    if (!mgrToken) return;
+    managerApi.getManagerProfile().then(r => {
+      if (r.profile) {
+        setManagerName(r.profile.name);
+        setManagerAvatar(r.profile.avatar_url || null);
+        setManagerRole(r.profile.role);
+      } else {
+        managerSession.clear();
+      }
+    }).catch(() => {});
+  }, []);
 
   // Проверяем авторизацию клиента
   useEffect(() => {
@@ -68,10 +86,6 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
       if (r.valid && r.client) {
         setClientName(r.client.name || r.client.phone || "Кабинет");
         setClientAvatar(r.client.avatar_url || null);
-        // Загружаем фиксики
-        fixiesApi.getMyFixies(token, "technician").then(fr => {
-          if (fr.balance !== undefined) setClientFixies(fr.balance);
-        }).catch(() => {});
       } else {
         clientSession.clear();
       }
@@ -187,8 +201,27 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
       </button>
     );
     if (it.type === "cabinet") {
+      // Менеджер/админ — показываем с роль-бейджем
+      if (managerName) {
+        const roleLabel = managerRole === "admin" ? "Админ" : "Менеджер";
+        const roleColor = managerRole === "admin" ? "#e53e3e" : "#3ca615";
+        return (
+          <button key={it.id} onClick={() => navigate("/admin")}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors bg-[#edf7e8]"
+            style={{ borderColor: `${roleColor}40` }}>
+            {managerAvatar
+              ? <img src={managerAvatar} alt="" className="w-6 h-6 rounded-full object-cover border border-white" />
+              : <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0" style={{ background: roleColor }}>
+                  {managerName.charAt(0).toUpperCase()}
+                </div>
+            }
+            <span className="font-semibold max-w-[80px] truncate" style={{ color: roleColor }}>{managerName.split(" ")[0]}</span>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shrink-0" style={{ background: roleColor }}>{roleLabel}</span>
+          </button>
+        );
+      }
+      // Клиент
       if (clientName) {
-        // Вошедший клиент
         return (
           <button key={it.id} onClick={() => navigate("/cabinet")}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-[#3ca615]/30 hover:border-[#3ca615] transition-colors bg-[#edf7e8]">
@@ -343,6 +376,23 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
               </button>
             );
             if (it.type === "cabinet") {
+              if (managerName) {
+                const rc = managerRole === "admin" ? "#e53e3e" : "#3ca615";
+                return (
+                  <button key={it.id} onClick={() => { navigate("/admin"); onMenuToggle(); }}
+                    className="flex items-center gap-2 bg-[#edf7e8] px-4 py-3 rounded-lg text-sm font-medium justify-center border"
+                    style={{ borderColor: `${rc}40` }}>
+                    {managerAvatar
+                      ? <img src={managerAvatar} alt="" className="w-6 h-6 rounded-full object-cover" />
+                      : <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0" style={{ background: rc }}>
+                          {managerName.charAt(0).toUpperCase()}
+                        </div>
+                    }
+                    <span className="font-semibold" style={{ color: rc }}>{managerName.split(" ")[0]}</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: rc }}>{managerRole === "admin" ? "Админ" : "Менеджер"}</span>
+                  </button>
+                );
+              }
               if (clientName) return (
                 <button key={it.id} onClick={() => { navigate("/cabinet"); onMenuToggle(); }}
                   className="flex items-center gap-2 border border-[#3ca615]/30 bg-[#edf7e8] px-4 py-3 rounded-lg text-sm font-medium justify-center">

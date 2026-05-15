@@ -533,7 +533,8 @@ def handler(event: dict, context) -> dict:
             return ok({"valid": True, "technician": {"id": row[0], "name": row[1], "phone": row[2], "specialization": row[3]}})
         else:
             cur.execute(
-                f"""SELECT m.id, COALESCE(m.name, m.full_name), m.role FROM {SC}.manager_sessions ms
+                f"""SELECT m.id, COALESCE(m.name, m.full_name), m.role, m.avatar_url
+                   FROM {SC}.manager_sessions ms
                    JOIN {SC}.managers m ON m.id = ms.manager_id
                    WHERE ms.token=%s AND ms.expires_at > NOW()""",
                 (token,)
@@ -542,7 +543,7 @@ def handler(event: dict, context) -> dict:
             conn.close()
             if not row:
                 return err("Сессия истекла", 401)
-            return ok({"valid": True, "manager": {"id": row[0], "name": row[1], "role": row[2]}})
+            return ok({"valid": True, "manager": {"id": row[0], "name": row[1], "role": row[2], "avatar_url": row[3]}})
 
     # ── КЛИЕНТ: обновление профиля ───────────────────────────────────────────
     if action == "client_update_profile":
@@ -693,6 +694,28 @@ def handler(event: dict, context) -> dict:
         if new_password:
             sets += ["password_hash=%s"]; vals += [hash_password(new_password)]
 
+        # Аватар — принимаем data-URL или уже готовый https URL
+        raw_avatar = body.get("avatar_url", "")
+        saved_avatar_url = None
+        if raw_avatar:
+            if raw_avatar.startswith("data:"):
+                import base64 as _b64, boto3 as _boto3, uuid as _uuid
+                try:
+                    header, b64data = raw_avatar.split(",", 1)
+                    mime = header.split(":")[1].split(";")[0]
+                    ext = "jpg" if "jpeg" in mime else mime.split("/")[-1]
+                    key = f"avatars/mgr_{mgr_id}_{_uuid.uuid4().hex[:8]}.{ext}"
+                    s3 = _boto3.client("s3", endpoint_url="https://bucket.poehali.dev",
+                        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+                        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+                    s3.put_object(Bucket="files", Key=key, Body=_b64.b64decode(b64data), ContentType=mime)
+                    saved_avatar_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+                    sets += ["avatar_url=%s"]; vals += [saved_avatar_url]
+                except Exception as e:
+                    print(f"[AVATAR ERROR] {e}")
+            elif raw_avatar.startswith("https://"):
+                sets += ["avatar_url=%s"]; vals += [raw_avatar]
+
         if not sets:
             conn.close(); return err("Нечего обновлять")
 
@@ -708,10 +731,10 @@ def handler(event: dict, context) -> dict:
             )
             conn.commit()
 
-        cur.execute(f"SELECT id, COALESCE(name, full_name), role, login, email FROM {SC}.managers WHERE id=%s", (mgr_id,))
+        cur.execute(f"SELECT id, COALESCE(name, full_name), role, login, email, avatar_url FROM {SC}.managers WHERE id=%s", (mgr_id,))
         m = cur.fetchone()
         cur.close(); conn.close()
-        return ok({"updated": True, "manager": {"id": m[0], "name": m[1], "role": m[2], "login": m[3], "email": m[4]}})
+        return ok({"updated": True, "manager": {"id": m[0], "name": m[1], "role": m[2], "login": m[3], "email": m[4], "avatar_url": m[5]}})
 
     # ── КЛИЕНТ: запрос смены пароля (код на email) ──────────────────────────
     if action == "client_change_password_request":

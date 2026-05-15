@@ -104,6 +104,9 @@ const ServicesAboutSection = () => {
   const { ref: servicesRef, inView: servicesInView } = useInView();
   const { str, json } = useSiteContent();
   const services = json<{icon:string;title:string;desc:string}[]>("services.items", DEFAULT_SERVICES);
+  type OnecItem = { icon: string; title: string; desc: string; img: string };
+  const cmsOnecItems = json<OnecItem[]>("onec.items", []);
+  const displayOnecItems: OnecItem[] = cmsOnecItems.length > 0 ? cmsOnecItems : onecServices;
   return (
     <>
       {/* SERVICES */}
@@ -146,7 +149,7 @@ const ServicesAboutSection = () => {
             <p className="text-[#4B5563] mt-4 max-w-xl mx-auto text-sm">Официальный партнёр 1С. Помогаем автоматизировать учёт и бизнес-процессы под ключ.</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {onecServices.map((s, i) => (
+            {displayOnecItems.map((s, i) => (
               <div
                 key={s.title}
                 className="group rounded-2xl overflow-hidden border border-gray-100 hover:border-[#3ca615] hover:shadow-xl transition-all duration-500 bg-white"

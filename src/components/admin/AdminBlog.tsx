@@ -39,6 +39,7 @@ export default function AdminBlog() {
   const [youtubeChannel, setYoutubeChannel] = useState("");
   const [subscribersCount, setSubscribersCount] = useState("");
   const [channelDesc, setChannelDesc] = useState("");
+  const [headerBg, setHeaderBg] = useState("#ffffff");
   const [ytSaving, setYtSaving] = useState(false);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function AdminBlog() {
       setYoutubeChannel(c["blog.youtube_channel"] || "");
       setSubscribersCount(c["blog.subscribers"] || "");
       setChannelDesc(c["blog.channel_desc"] || "");
+      setHeaderBg(c["blog.header_bg"] || "#ffffff");
     });
   }, []);
 
@@ -86,6 +88,7 @@ export default function AdminBlog() {
       "blog.youtube_channel": youtubeChannel,
       "blog.subscribers": subscribersCount,
       "blog.channel_desc": channelDesc,
+      "blog.header_bg": headerBg,
     });
     setYtSaving(false);
     setSavedMsg("✅ Настройки канала сохранены!");
@@ -171,6 +174,35 @@ export default function AdminBlog() {
               <input value={channelDesc} onChange={e => setChannelDesc(e.target.value)}
                 placeholder="Короткое описание..."
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-2">Фон страницы поста</label>
+            <div className="flex flex-wrap gap-2 items-center">
+              {[
+                { color: "#ffffff", label: "Белый" },
+                { color: "#F7F9FC", label: "Светлый" },
+                { color: "#0F0F0F", label: "Тёмный" },
+                { color: "#1a1a2e", label: "Ночной" },
+                { color: "#edf7e8", label: "Зелёный" },
+              ].map(p => (
+                <button key={p.color} onClick={() => setHeaderBg(p.color)}
+                  title={p.label}
+                  className={`w-9 h-9 rounded-xl border-2 transition-all ${headerBg === p.color ? "border-[#3ca615] scale-110 shadow-md" : "border-gray-200"}`}
+                  style={{ background: p.color }} />
+              ))}
+              <div className="flex items-center gap-1.5 ml-2">
+                <label className="text-xs text-gray-400">Свой:</label>
+                <input type="color" value={headerBg} onChange={e => setHeaderBg(e.target.value)}
+                  className="w-9 h-9 rounded-xl border border-gray-200 cursor-pointer p-0.5" />
+              </div>
+              <div className="ml-auto text-xs text-gray-400 flex items-center gap-1.5">
+                Предпросмотр:
+                <span className="inline-block w-16 h-6 rounded-lg border border-gray-200 text-[10px] flex items-center justify-center font-medium"
+                  style={{ background: headerBg, color: headerBg === "#0F0F0F" || headerBg === "#1a1a2e" ? "white" : "#333" }}>
+                  ПРОФИКС
+                </span>
+              </div>
             </div>
           </div>
           <button onClick={handleSaveChannel} disabled={ytSaving}
