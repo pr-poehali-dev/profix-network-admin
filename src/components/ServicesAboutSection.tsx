@@ -167,7 +167,7 @@ const ServicesAboutSection = () => {
               >
                 <div className="w-full h-48 overflow-hidden bg-gray-100 flex-shrink-0">
                   {s.img
-                    ? <img src={s.img} alt={s.title} className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" />
+                    ? <img src={s.img} alt={s.title} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
                     : <div className="w-full h-full flex items-center justify-center">
                         <Icon name={s.icon as "Code"} size={40} className="text-gray-200" fallback="Settings" />
                       </div>
