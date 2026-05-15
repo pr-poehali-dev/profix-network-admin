@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Icon from "@/components/ui/icon";
 import { useSiteContent } from "@/hooks/useSiteContent";
 
@@ -40,18 +40,34 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
   }, []);
 
   const perView = isMobile ? 2 : 3;
-  const slideWidth = isMobile ? "calc(50% - 8px)" : "calc(33.333% - 11px)";
   const slides = json<{img:string;title:string;desc:string}[]>("carousel.slides", DEFAULT_SLIDES);
   const stats = json<{val:string;label:string}[]>("hero.stats", [{val:"1000+",label:"клиентов"},{val:"15+",label:"лет опыта"},{val:"100%",label:"гарантия"}]);
   const titleLines = str("hero.title", "IT-ПОДДЕРЖКА\nДЛЯ БИЗНЕСА\nИ ЧАСТНЫХ ЛИЦ").split("\n");
 
+  const n = slides.length;
+  // Внутренний индекс: 0..n-1, начинаем с 0 → первый реальный слайд по центру
+  const [realIdx, setRealIdx] = useState(0);
+  // Синхронизируем внешний индекс
+  useEffect(() => { onSetCarouselIdx(realIdx); }, [realIdx]);
+
+  // Зацикленный список: ...tail + slides + ...head
+  const CLONE = Math.min(perView + 1, n);
+  const looped = n > 0
+    ? [...slides.slice(n - CLONE), ...slides, ...slides.slice(0, CLONE)]
+    : slides;
+  // Внутренний индекс в looped: CLONE = offset
+  const loopedIdx = CLONE + realIdx;
+
+  const goTo = useCallback((dir: 1 | -1) => {
+    setRealIdx(prev => (prev + dir + n) % n);
+  }, [n]);
+
+  // Автопрокрутка
   useEffect(() => {
-    if (!slides.length) return;
-    const timer = setInterval(() => {
-      onSetCarouselIdx(prev => (prev + 1) % slides.length);
-    }, 4500);
+    if (!n) return;
+    const timer = setInterval(() => goTo(1), 4500);
     return () => clearInterval(timer);
-  }, [slides.length, onSetCarouselIdx]);
+  }, [n, goTo]);
 
   const heroSize = str("hero.size", "medium");
   const sizeClasses: Record<string, string> = {
@@ -174,32 +190,44 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
           <div className="relative">
             {/* Стрелки */}
             <button
-              onClick={() => onSetCarouselIdx((carouselIdx - 1 + slides.length) % slides.length)}
+              onClick={() => goTo(-1)}
               className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-10 h-10 rounded-full bg-white hover:bg-[#edf7e8] shadow-lg border border-gray-100 flex items-center justify-center text-gray-600 hover:text-[#3ca615] transition-all"
             >
               <Icon name="ChevronLeft" size={20} />
             </button>
             <button
-              onClick={() => onSetCarouselIdx((carouselIdx + 1) % slides.length)}
+              onClick={() => goTo(1)}
               className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-10 h-10 rounded-full bg-white hover:bg-[#edf7e8] shadow-lg border border-gray-100 flex items-center justify-center text-gray-600 hover:text-[#3ca615] transition-all"
             >
               <Icon name="ChevronRight" size={20} />
             </button>
 
-            {/* Трек — 3 карточки на десктопе, 2 на мобильном; активный всегда по центру */}
+            {/* Трек: looped массив, активный всегда по центру */}
             <div className="overflow-hidden mx-6">
               <div
-                className="flex gap-4 transition-transform duration-700 ease-in-out"
+                className="flex gap-4"
                 style={{
-                  transform: `translateX(calc(-${carouselIdx * (100 / perView)}% - ${carouselIdx * 16}px + ${(perView - 1) / 2 * (100 / perView)}% + ${(perView - 1) / 2 * 16}px))`,
+                  transition: "transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94)",
+                  // Смещаем так, чтобы loopedIdx оказался в центре видимой области
+                  transform: `translateX(calc(
+                    -${loopedIdx * (100 / perView)}%
+                    - ${loopedIdx * 16}px
+                    + ${(perView - 1) / 2 * (100 / perView)}%
+                    + ${(perView - 1) / 2 * 16}px
+                  ))`,
                 }}
               >
-                {slides.map((slide, i) => {
-                  const isActive = i === carouselIdx;
+                {looped.map((slide, i) => {
+                  const isActive = i === loopedIdx;
+                  const slideWidth = isMobile ? "calc(50% - 8px)" : "calc(33.333% - 11px)";
                   return (
                     <div
                       key={i}
-                      onClick={() => onSetCarouselIdx(i)}
+                      onClick={() => {
+                        // Клик по клонам — сдвигаем realIdx
+                        const delta = i - loopedIdx;
+                        setRealIdx(prev => (prev + delta + n) % n);
+                      }}
                       className={`shrink-0 cursor-pointer rounded-2xl overflow-hidden transition-all duration-500 ${
                         isActive
                           ? "shadow-2xl scale-100 opacity-100"
@@ -214,9 +242,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
                           className="w-full h-full object-cover"
                           loading="lazy"
                         />
-                        {/* Градиент снизу */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                        {/* Подпись */}
                         {slide.title && (
                           <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
                             <p className={`font-oswald font-bold text-white leading-tight transition-all duration-300 ${isActive ? (isMobile ? "text-sm" : "text-base") : "text-xs sm:text-sm"}`}>
@@ -236,7 +262,6 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
                             </button>
                           </div>
                         )}
-                        {/* Зелёная рамка у активной */}
                         {isActive && (
                           <div className="absolute inset-0 rounded-2xl ring-2 ring-[#3ca615] ring-inset pointer-events-none" />
                         )}
@@ -247,14 +272,14 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
               </div>
             </div>
 
-            {/* Точки */}
+            {/* Точки — по реальным слайдам */}
             <div className="flex justify-center gap-1.5 mt-5">
               {slides.map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => onSetCarouselIdx(i)}
+                  onClick={() => setRealIdx(i)}
                   className={`transition-all duration-300 rounded-full ${
-                    i === carouselIdx
+                    i === realIdx
                       ? "w-6 h-2 bg-[#3ca615]"
                       : "w-2 h-2 bg-gray-200 hover:bg-gray-300"
                   }`}
