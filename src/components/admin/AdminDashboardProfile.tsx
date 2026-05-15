@@ -203,65 +203,73 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
       )}
 
       {/* ── Карточка профиля ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-          {/* Аватар */}
-          <div className="relative shrink-0">
-            <div className="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center border-2"
-              style={{ borderColor: "#3ca615", background: "#3ca615" }}>
-              {profile?.avatar_url
-                ? <img src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
-                : <span className="font-bold text-3xl text-white">{initials}</span>
-              }
-            </div>
-            {avatarUploading && (
-              <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
-                <Icon name="Loader2" size={22} className="animate-spin text-white" />
+      <div className="rounded-2xl overflow-hidden shadow-sm mb-5">
+        {/* Шапка с градиентом */}
+        <div className="relative px-6 pt-6 pb-16"
+          style={{ background: isAdmin ? "linear-gradient(135deg,#e53e3e,#c53030)" : "linear-gradient(135deg,#3ca615,#2d8a10)" }}>
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <h2 className="text-xl font-bold text-white">{profile?.name}</h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">
+                  {ROLE_LABEL[profile?.role || ""] || profile?.role}
+                </span>
               </div>
-            )}
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarFile} className="hidden" />
-            <button onClick={() => fileRef.current?.click()} disabled={avatarUploading}
-              className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center hover:bg-gray-50 transition-colors">
-              <Icon name="Camera" size={13} className="text-gray-600" />
+              <p className="text-white/60 text-sm">@{profile?.login}</p>
+            </div>
+            <button onClick={() => setEditOpen(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors">
+              <Icon name="Pencil" size={13} />Изменить
             </button>
           </div>
-
-          {/* Инфо */}
-          <div className="flex-1 text-center sm:text-left">
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
-              <h2 className="text-2xl font-bold text-gray-900">{profile?.name}</h2>
-              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${isAdmin ? "bg-red-50 text-red-700 border border-red-100" : "bg-blue-50 text-blue-700 border border-blue-100"}`}>
-                {ROLE_LABEL[profile?.role || ""] || profile?.role}
-              </span>
-            </div>
-            <p className="text-sm text-gray-400 mb-3">@{profile?.login}</p>
-            <div className="flex flex-wrap justify-center sm:justify-start gap-3 text-xs text-gray-500">
-              {profile?.email && <span className="flex items-center gap-1"><Icon name="Mail" size={11} />{profile.email}</span>}
-              {profile?.phone && <span className="flex items-center gap-1"><Icon name="Phone" size={11} />{profile.phone}</span>}
-              {profile?.address && <span className="flex items-center gap-1"><Icon name="MapPin" size={11} />{profile.address}</span>}
-              {profile?.tariff_name && <span className="flex items-center gap-1"><Icon name="Star" size={11} className="text-yellow-500" />{profile.tariff_name}</span>}
-            </div>
-          </div>
-
-          <button onClick={() => setEditOpen(v => !v)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors shrink-0">
-            <Icon name="Pencil" size={14} />Редактировать
-          </button>
+          {/* Декоративные круги */}
+          <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/3" />
+          <div className="absolute bottom-0 right-20 w-24 h-24 rounded-full bg-white/5 translate-y-1/2" />
         </div>
 
-        {/* Фиксики и штрафы */}
-        <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-gray-50">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-[#3ca615]">{profile?.fixies_balance ?? 0}</p>
-            <p className="text-xs text-gray-400 mt-0.5">💰 Фиксиков</p>
+        {/* Аватар поверх */}
+        <div className="bg-white px-6 pb-5">
+          <div className="flex items-end gap-4 -mt-10 mb-4">
+            <div className="relative shrink-0">
+              <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-white shadow-lg flex items-center justify-center"
+                style={{ background: isAdmin ? "#e53e3e" : "#3ca615" }}>
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
+                  : <span className="font-bold text-2xl text-white">{initials}</span>
+                }
+              </div>
+              {avatarUploading && (
+                <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
+                  <Icon name="Loader2" size={18} className="animate-spin text-white" />
+                </div>
+              )}
+              <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarFile} className="hidden" />
+              <button onClick={() => fileRef.current?.click()} disabled={avatarUploading}
+                className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-white border-2 border-gray-100 shadow flex items-center justify-center hover:bg-gray-50 transition-colors">
+                <Icon name="Camera" size={11} className="text-gray-600" />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-3 pb-1 text-xs text-gray-500">
+              {profile?.email && <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-lg"><Icon name="Mail" size={11} />{profile.email}</span>}
+              {profile?.phone && <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-lg"><Icon name="Phone" size={11} />{profile.phone}</span>}
+              {profile?.tariff_name && <span className="flex items-center gap-1 bg-yellow-50 text-yellow-700 px-2 py-1 rounded-lg"><Icon name="Star" size={11} />{profile.tariff_name}</span>}
+            </div>
           </div>
-          <div className="text-center border-x border-gray-100">
-            <p className="text-2xl font-bold text-red-500">{profile?.penalties ?? 0}</p>
-            <p className="text-xs text-gray-400 mt-0.5">⚠️ Штрафов</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">{profile?.done_tickets ?? 0}</p>
-            <p className="text-xs text-gray-400 mt-0.5">✅ Закрыто заявок</p>
+
+          {/* Фиксики и штрафы */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center bg-green-50 rounded-2xl py-3 px-2">
+              <p className="text-2xl font-bold text-[#3ca615]">{profile?.fixies_balance ?? 0}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">💰 Фиксиков</p>
+            </div>
+            <div className="text-center bg-red-50 rounded-2xl py-3 px-2">
+              <p className="text-2xl font-bold text-red-500">{profile?.penalties ?? 0}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">⚠️ Штрафов</p>
+            </div>
+            <div className="text-center bg-gray-50 rounded-2xl py-3 px-2">
+              <p className="text-2xl font-bold text-gray-800">{profile?.done_tickets ?? 0}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">✅ Закрыто</p>
+            </div>
           </div>
         </div>
       </div>

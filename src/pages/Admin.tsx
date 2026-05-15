@@ -583,7 +583,7 @@ export default function Admin() {
         newTgChatCount={newTgChatCount}
       />
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto pb-20 md:pb-0">
         {/* Глобальная ошибка */}
         {error && (
           <div className="mx-6 mt-6 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center justify-between">
