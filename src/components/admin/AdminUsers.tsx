@@ -37,8 +37,18 @@ const SECTIONS = [
   { key: "theme",      label: "Тема сайта" },
 ];
 
-// Права хранятся в content-api как JSON по ключу `manager_perms_{id}`
+const TECH_SECTIONS = [
+  { key: "tickets",   label: "Заявки" },
+  { key: "schedule",  label: "Мой график" },
+  { key: "fixies",    label: "Мои фиксики" },
+  { key: "chat",      label: "Чат" },
+  { key: "clients",   label: "Клиенты" },
+  { key: "shop",      label: "Магазин" },
+];
+
+// Права хранятся в content-api как JSON по ключу `manager_perms_{id}` / `tech_perms_{id}`
 const PERMS_KEY = (id: number) => `manager_perms_${id}`;
+const TECH_PERMS_KEY = (id: number) => `tech_perms_${id}`;
 
 function Avatar({ name, url, size = 10 }: { name: string; url?: string | null; size?: number }) {
   const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
@@ -70,10 +80,16 @@ export default function AdminUsers({ currentManagerRole }: { currentManagerRole?
   const [newTech, setNewTech] = useState({ name: "", phone: "", email: "", specialization: "", pin: "" });
   const [creating, setCreating] = useState(false);
 
-  // Права доступа
+  // Права доступа менеджеров
   const [permsId, setPermsId] = useState<number | null>(null);
   const [perms, setPerms] = useState<Record<string, boolean>>({});
   const [permsSaving, setPermsSaving] = useState(false);
+
+  // Права доступа тех спецов
+  const [techPermsId, setTechPermsId] = useState<number | null>(null);
+  const [techPermsName, setTechPermsName] = useState("");
+  const [techPerms, setTechPerms] = useState<Record<string, boolean>>({});
+  const [techPermsSaving, setTechPermsSaving] = useState(false);
 
   async function openPerms(m: Manager) {
     setPermsId(m.id);
@@ -82,7 +98,6 @@ export default function AdminUsers({ currentManagerRole }: { currentManagerRole?
     if (stored) {
       try { setPerms(JSON.parse(stored)); return; } catch { /* fallback */ }
     }
-    // По умолчанию — всё кроме admin-разделов
     const def: Record<string, boolean> = {};
     SECTIONS.forEach(s => { def[s.key] = true; });
     setPerms(def);
@@ -95,6 +110,28 @@ export default function AdminUsers({ currentManagerRole }: { currentManagerRole?
     setPermsSaving(false);
     setPermsId(null);
     flash("Права сохранены");
+  }
+
+  async function openTechPerms(t: Tech) {
+    setTechPermsId(t.id);
+    setTechPermsName(t.name);
+    const c = await fetchContent();
+    const stored = c[TECH_PERMS_KEY(t.id)];
+    if (stored) {
+      try { setTechPerms(JSON.parse(stored)); return; } catch { /* fallback */ }
+    }
+    const def: Record<string, boolean> = {};
+    TECH_SECTIONS.forEach(s => { def[s.key] = true; });
+    setTechPerms(def);
+  }
+
+  async function saveTechPerms() {
+    if (techPermsId === null) return;
+    setTechPermsSaving(true);
+    await saveContent({ [TECH_PERMS_KEY(techPermsId)]: JSON.stringify(techPerms) });
+    setTechPermsSaving(false);
+    setTechPermsId(null);
+    flash("Права специалиста сохранены");
   }
 
   // Редактирование
@@ -390,6 +427,11 @@ export default function AdminUsers({ currentManagerRole }: { currentManagerRole?
                   className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition-colors">
                   <Icon name="Pencil" size={13} />Редактировать
                 </button>
+                <button onClick={() => openTechPerms(t)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-blue-100 text-blue-600 text-xs hover:bg-blue-50 transition-colors"
+                  title="Права доступа">
+                  <Icon name="ShieldCheck" size={13} />
+                </button>
                 {t.is_active && (
                   <button onClick={() => deleteTech(t.id, t.name)}
                     className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-red-100 text-red-500 text-xs hover:bg-red-50 transition-colors">
@@ -491,6 +533,46 @@ export default function AdminUsers({ currentManagerRole }: { currentManagerRole?
                 {permsSaving ? <Icon name="Loader2" size={15} className="animate-spin" /> : <Icon name="Save" size={15} />}Сохранить права
               </button>
               <button onClick={() => setPermsId(null)}
+                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm">Отмена</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Модал прав тех спеца ── */}
+      {techPermsId !== null && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-sm space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                <Icon name="ShieldCheck" size={16} className="text-blue-500" />Права: {techPermsName}
+              </h3>
+              <button onClick={() => setTechPermsId(null)}><Icon name="X" size={18} className="text-gray-400" /></button>
+            </div>
+            <p className="text-xs text-gray-400">Разделы портала специалиста, доступные этому сотруднику</p>
+            <div className="space-y-1.5">
+              {TECH_SECTIONS.map(s => (
+                <label key={s.key} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 cursor-pointer">
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0 ${techPerms[s.key] ? "border-blue-500 bg-blue-500" : "border-gray-300"}`}
+                    onClick={() => setTechPerms(p => ({ ...p, [s.key]: !p[s.key] }))}>
+                    {techPerms[s.key] && <Icon name="Check" size={12} className="text-white" />}
+                  </div>
+                  <span className="text-sm text-gray-700">{s.label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setTechPerms(Object.fromEntries(TECH_SECTIONS.map(s => [s.key, true])))}
+                className="text-xs text-blue-600 hover:underline">Выбрать все</button>
+              <button onClick={() => setTechPerms(Object.fromEntries(TECH_SECTIONS.map(s => [s.key, false])))}
+                className="text-xs text-gray-400 hover:underline ml-2">Снять все</button>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={saveTechPerms} disabled={techPermsSaving}
+                className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 transition-colors">
+                {techPermsSaving ? <Icon name="Loader2" size={15} className="animate-spin" /> : <Icon name="Save" size={15} />}Сохранить права
+              </button>
+              <button onClick={() => setTechPermsId(null)}
                 className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm">Отмена</button>
             </div>
           </div>

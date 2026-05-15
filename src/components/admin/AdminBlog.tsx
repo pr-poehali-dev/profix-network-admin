@@ -39,8 +39,9 @@ export default function AdminBlog() {
   const [youtubeChannel, setYoutubeChannel] = useState("");
   const [subscribersCount, setSubscribersCount] = useState("");
   const [channelDesc, setChannelDesc] = useState("");
-  const [headerBg, setHeaderBg] = useState("#ffffff");
+  const [headerBg, setHeaderBg] = useState("#0F0F0F");
   const [headerBgImg, setHeaderBgImg] = useState("");
+  const [pageBg, setPageBg] = useState("#F7F9FC");
   const [bgImgUploading, setBgImgUploading] = useState(false);
   const [ytSaving, setYtSaving] = useState(false);
   const bgImgRef = useRef<HTMLInputElement>(null);
@@ -51,8 +52,9 @@ export default function AdminBlog() {
       setYoutubeChannel(c["blog.youtube_channel"] || "");
       setSubscribersCount(c["blog.subscribers"] || "");
       setChannelDesc(c["blog.channel_desc"] || "");
-      setHeaderBg(c["blog.header_bg"] || "#ffffff");
+      setHeaderBg(c["blog.header_bg"] || "#0F0F0F");
       setHeaderBgImg(c["blog.header_bg_img"] || "");
+      setPageBg(c["blog.page_bg"] || "#F7F9FC");
     });
   }, []);
 
@@ -94,6 +96,7 @@ export default function AdminBlog() {
       "blog.channel_desc": channelDesc,
       "blog.header_bg": headerBg,
       "blog.header_bg_img": headerBgImg,
+      "blog.page_bg": pageBg,
     });
     setYtSaving(false);
     setSavedMsg("✅ Настройки канала сохранены!");
@@ -244,8 +247,26 @@ export default function AdminBlog() {
               </div>
             </div>
             {headerBgImg && (
-              <p className="text-[10px] text-gray-400 mt-1">Картинка накладывается поверх цвета с прозрачностью</p>
+              <p className="text-[10px] text-gray-400 mt-1">Картинка используется как фон шапки</p>
             )}
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-2">Фон страницы (за пределами шапки)</label>
+            <div className="flex flex-wrap gap-2 items-center">
+              {[
+                { color: "#F7F9FC", label: "Светлый (по умолч.)" },
+                { color: "#ffffff", label: "Белый" },
+                { color: "#111827", label: "Тёмный" },
+                { color: "#edf7e8", label: "Зелёный" },
+              ].map(p => (
+                <button key={p.color} onClick={() => setPageBg(p.color)} title={p.label}
+                  className={`w-9 h-9 rounded-xl border-2 transition-all ${pageBg === p.color ? "border-[#3ca615] scale-110 shadow-md" : "border-gray-200"}`}
+                  style={{ background: p.color }} />
+              ))}
+              <input type="color" value={pageBg} onChange={e => setPageBg(e.target.value)}
+                className="w-9 h-9 rounded-xl border border-gray-200 cursor-pointer p-0.5" />
+              <span className="text-[10px] text-gray-400">— фон статей и контента</span>
+            </div>
           </div>
           <button onClick={handleSaveChannel} disabled={ytSaving}
             className="w-full py-2 rounded-xl text-white text-sm font-medium disabled:opacity-60 flex items-center justify-center gap-2"
