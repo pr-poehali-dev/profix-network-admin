@@ -274,9 +274,43 @@ export default function AdminStaffHub() {
   }
 
   // ── График ────────────────────────────────────────────────────────────────
+  const [workHours, setWorkHours] = useState<{tech_id:number;date:string;hours_start:string|null;hours_end:string|null}[]>([]);
+  const [schedTickets, setSchedTickets] = useState<{id:number;tech_id:number;title:string;status:string;started_at:string|null;arrival_time:string|null;work_hours:number|null;scheduled_date:string|null}[]>([]);
+  const [hoursCell, setHoursCell] = useState<{tech_id:number;date:string;start:string;end:string}|null>(null);
+  const [showWorkWeekModal, setShowWorkWeekModal] = useState<number|null>(null);
+  const [wwStart, setWwStart] = useState("09:00");
+  const [wwEnd, setWwEnd] = useState("18:00");
+  const [editTicketHours, setEditTicketHours] = useState<{ticket_id:number;title:string;hours:string}|null>(null);
+  const [timerTicket, setTimerTicket] = useState<{id:number;title:string;started_at:string|null}|null>(null);
+  const [timerNow, setTimerNow] = useState(Date.now());
+
+  // Тик таймера каждую секунду
+  useEffect(() => {
+    const t = setInterval(() => setTimerNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const TICKETS_URL = "https://functions.poehali.dev/80771697-657a-4565-8f5f-b8553431f806";
+
+  async function postTicket(body: object) {
+    const r = await fetch(TICKETS_URL, { method:"POST", headers:{"Content-Type":"application/json","Authorization":`Bearer ${token}`}, body: JSON.stringify(body) });
+    return r.json();
+  }
+  async function getTicketApi(params: Record<string,string>) {
+    const q = new URLSearchParams(params).toString();
+    const r = await fetch(`${TICKETS_URL}?${q}`, { headers:{"Authorization":`Bearer ${token}`} });
+    return r.json();
+  }
+
   const loadSchedule = useCallback(async () => {
-    const res = await tgStaffApi.schedule(token, schedYear, schedMonth);
-    if (res.schedule) setSchedule(res.schedule);
+    const month = `${schedYear}-${String(schedMonth).padStart(2,"0")}`;
+    const [resS, resE] = await Promise.all([
+      tgStaffApi.schedule(token, schedYear, schedMonth),
+      getTicketApi({ action:"schedule_extended", month }),
+    ]);
+    if (resS.schedule) setSchedule(resS.schedule);
+    if (resE.work_hours) setWorkHours(resE.work_hours);
+    if (resE.tickets)    setSchedTickets(resE.tickets);
   }, [token, schedYear, schedMonth]);
 
   useEffect(() => { if (activeTab === "schedule") loadSchedule(); }, [activeTab, loadSchedule]);
@@ -287,10 +321,55 @@ export default function AdminStaffHub() {
     setSchedCell(null); setSchedNote(""); loadSchedule();
   }
 
+  async function saveHoursCell() {
+    if (!hoursCell) return;
+    await postTicket({ action:"tech_work_hours_save", tech_id:hoursCell.tech_id, date:hoursCell.date, hours_start:hoursCell.start||null, hours_end:hoursCell.end||null });
+    setHoursCell(null); loadSchedule();
+  }
+
+  async function setWorkWeek(techId: number) {
+    const month = `${schedYear}-${String(schedMonth).padStart(2,"0")}`;
+    await postTicket({ action:"tech_set_work_week", tech_id:techId, month, hours_start:wwStart, hours_end:wwEnd });
+    setShowWorkWeekModal(null); loadSchedule();
+  }
+
+  async function startTimer(ticketId: number) {
+    const res = await postTicket({ action:"ticket_start_timer", ticket_id:ticketId });
+    if (res.started || res.already_started) {
+      setTimerTicket(t => t ? { ...t, started_at: res.started_at } : null);
+      loadSchedule();
+    }
+  }
+
+  async function setArrival(ticketId: number) {
+    await postTicket({ action:"ticket_set_arrival", ticket_id:ticketId });
+    loadSchedule();
+  }
+
+  async function saveTicketHours() {
+    if (!editTicketHours) return;
+    await postTicket({ action:"ticket_set_hours", ticket_id:editTicketHours.ticket_id, work_hours:parseFloat(editTicketHours.hours)||0 });
+    setEditTicketHours(null); loadSchedule();
+  }
+
   function getCell(techId: number, day: number) {
     const d = `${schedYear}-${String(schedMonth).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     return schedule.find(s => s.tech_id === techId && s.date === d);
   }
+
+  function getHours(techId: number, day: number) {
+    const d = `${schedYear}-${String(schedMonth).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    return workHours.find(h => h.tech_id === techId && h.date === d);
+  }
+
+  function formatElapsed(startedAt: string) {
+    const sec = Math.floor((timerNow - new Date(startedAt).getTime()) / 1000);
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  }
+
+  const DOW = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+  const days = daysInMonth(schedYear, schedMonth);
 
   // ── Контакты ──────────────────────────────────────────────────────────────
   const loadContacts = useCallback(async () => {
@@ -683,59 +762,263 @@ export default function AdminStaffHub() {
       {/* ── ГРАФИК ──────────────────────────────────────────────────────────── */}
       {activeTab==="schedule" && (
         <div className="flex-1 overflow-auto p-4">
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <button onClick={() => { if (schedMonth===1) { setSchedYear(y=>y-1); setSchedMonth(12); } else setSchedMonth(m=>m-1); }} className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="ChevronLeft" size={18} /></button>
-            <span className="font-bold text-gray-900">{new Date(schedYear, schedMonth-1).toLocaleString("ru-RU",{month:"long",year:"numeric"})}</span>
-            <button onClick={() => { if (schedMonth===12) { setSchedYear(y=>y+1); setSchedMonth(1); } else setSchedMonth(m=>m+1); }} className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="ChevronRight" size={18} /></button>
-            <div className="ml-auto flex gap-2 flex-wrap">
+          {/* Шапка месяца */}
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
+            <button onClick={() => { if (schedMonth===1){setSchedYear(y=>y-1);setSchedMonth(12);}else setSchedMonth(m=>m-1); }} className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="ChevronLeft" size={18}/></button>
+            <span className="font-bold text-gray-900 text-sm">{new Date(schedYear,schedMonth-1).toLocaleString("ru-RU",{month:"long",year:"numeric"})}</span>
+            <button onClick={() => { if (schedMonth===12){setSchedYear(y=>y+1);setSchedMonth(1);}else setSchedMonth(m=>m+1); }} className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="ChevronRight" size={18}/></button>
+            <div className="ml-auto flex gap-1.5 flex-wrap">
               {Object.entries(SCHEDULE_TYPE).map(([k,v]) => <span key={k} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${v.color}`}>{v.label}</span>)}
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-xs">
+
+          {/* Сводка заявок с таймером */}
+          {schedTickets.filter(t=>t.started_at && t.status !== "done").length > 0 && (
+            <div className="mb-4 space-y-2">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">⏱ Активные заявки с таймером</p>
+              {schedTickets.filter(t=>t.started_at && t.status!=="done").map(t => (
+                <div key={t.id} className="bg-white rounded-xl border border-orange-200 px-3 py-2 flex items-center gap-3 flex-wrap shadow-sm">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-900 truncate">{t.title}</p>
+                    <p className="text-[10px] text-gray-400">Спец ID {t.tech_id} · Старт: {t.started_at ? new Date(t.started_at).toLocaleString("ru-RU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}) : "—"}</p>
+                  </div>
+                  <div className="font-mono text-sm font-bold text-orange-600 shrink-0">
+                    {t.started_at ? formatElapsed(t.started_at) : "—"}
+                  </div>
+                  {t.arrival_time
+                    ? <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold">🚗 прибыл {new Date(t.arrival_time).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}</span>
+                    : <button onClick={() => setArrival(t.id)} className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-100 font-semibold">🚗 Прибыл</button>
+                  }
+                  <button onClick={() => setEditTicketHours({ticket_id:t.id,title:t.title,hours:String(t.work_hours||"")})} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded-lg hover:bg-gray-200 font-semibold">⏳ Часы{t.work_hours ? `: ${t.work_hours}ч` : ""}</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Таблица-сетка */}
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-sm bg-white">
+            <table className="min-w-full text-xs border-collapse">
               <thead>
-                <tr>
-                  <th className="text-left py-2 pr-3 font-semibold text-gray-600 sticky left-0 bg-white z-10 min-w-[120px]">Специалист</th>
+                {/* Строка дней недели */}
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left py-2 px-3 font-semibold text-gray-500 sticky left-0 bg-gray-50 z-10 min-w-[130px] border-r border-gray-200">Специалист</th>
                   {Array.from({length:days},(_,i)=>i+1).map(d => {
+                    const date = new Date(schedYear, schedMonth-1, d);
+                    const dow = (date.getDay()+6)%7; // 0=Пн
+                    const isWeekend = dow >= 5;
                     const isNow = d===now.getDate() && schedMonth===now.getMonth()+1 && schedYear===now.getFullYear();
-                    return <th key={d} className={`w-8 text-center py-1 font-semibold rounded-t-lg ${isNow ? "text-white" : "text-gray-500"}`} style={isNow?{background:"#3ca615"}:{}}>{d}</th>;
+                    return (
+                      <th key={d} className={`w-9 text-center py-1 border-r border-gray-100 last:border-0 ${isNow?"text-white font-bold":isWeekend?"text-red-400":"text-gray-500"}`}
+                        style={isNow?{background:"#3ca615"}:{}}>
+                        <div className="text-[9px] font-normal">{DOW[dow]}</div>
+                        <div className="text-[11px] font-bold">{d}</div>
+                      </th>
+                    );
                   })}
                 </tr>
               </thead>
               <tbody>
-                {techs.map(tech => (
-                  <tr key={tech.id} className="border-t border-gray-50">
-                    <td className="py-1.5 pr-3 font-medium text-gray-800 sticky left-0 bg-white z-10 whitespace-nowrap">{tech.name}</td>
-                    {Array.from({length:days},(_,i)=>i+1).map(d => {
-                      const cell = getCell(tech.id, d);
-                      const ti = cell ? SCHEDULE_TYPE[cell.type] : null;
-                      const dateStr = `${schedYear}-${String(schedMonth).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                      return (
-                        <td key={d} className="p-0.5">
-                          <button onClick={() => { setSchedCell({tech_id:tech.id,date:dateStr}); setSchedType(cell?.type||"day_off"); setSchedNote(cell?.note||""); }}
-                            className={`w-7 h-7 rounded-lg text-center text-[9px] font-bold transition-all hover:opacity-70 ${ti ? ti.color : "hover:bg-gray-100"}`}
-                            title={cell ? `${ti?.label}${cell.note?": "+cell.note:""}` : "Нажмите"}>
-                            {ti ? ti.label[0] : ""}
-                          </button>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                {techs.map((tech, rowIdx) => {
+                  const techTickets = schedTickets.filter(t => t.tech_id === tech.id);
+                  const activeTimer = techTickets.find(t => t.started_at && t.status !== "done");
+                  return (
+                    <tr key={tech.id} className={`border-t border-gray-100 ${rowIdx%2===0?"bg-white":"bg-gray-50/50"}`}>
+                      {/* Имя + кнопки */}
+                      <td className={`py-1.5 px-3 sticky left-0 z-10 border-r border-gray-200 ${rowIdx%2===0?"bg-white":"bg-gray-50"}`}>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-6 h-6 rounded-full bg-[#3ca615] flex items-center justify-center text-white font-bold text-[10px] shrink-0">{tech.name[0]}</div>
+                          <span className="font-medium text-gray-800 truncate max-w-[80px]">{tech.name}</span>
+                          <div className="flex gap-0.5 ml-auto">
+                            {/* Таймер-иконка */}
+                            {activeTimer && (
+                              <span title={`Таймер: ${formatElapsed(activeTimer.started_at!)}`} className="w-5 h-5 flex items-center justify-center text-orange-500">
+                                <Icon name="Timer" size={12}/>
+                              </span>
+                            )}
+                            {/* Рабочая неделя */}
+                            <button onClick={() => { setShowWorkWeekModal(tech.id); setWwStart("09:00"); setWwEnd("18:00"); }}
+                              title="Поставить рабочую неделю"
+                              className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-[#3ca615] hover:bg-green-50 rounded">
+                              <Icon name="CalendarDays" size={12}/>
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                      {/* Ячейки дней */}
+                      {Array.from({length:days},(_,i)=>i+1).map(d => {
+                        const dateStr = `${schedYear}-${String(schedMonth).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                        const cell  = getCell(tech.id, d);
+                        const hCell = getHours(tech.id, d);
+                        const ti_s  = cell ? SCHEDULE_TYPE[cell.type] : null;
+                        const date  = new Date(schedYear, schedMonth-1, d);
+                        const dow   = (date.getDay()+6)%7;
+                        const isWE  = dow >= 5;
+                        const dayTickets = techTickets.filter(t => t.scheduled_date === dateStr || (t.started_at && t.started_at.startsWith(dateStr)));
+
+                        return (
+                          <td key={d} className={`p-0.5 border-r border-gray-100 last:border-0 align-top ${isWE && !cell ? "bg-red-50/30" : ""}`}>
+                            {/* Тип дня */}
+                            <button
+                              onClick={() => { setSchedCell({tech_id:tech.id,date:dateStr}); setSchedType(cell?.type||(isWE?"day_off":"work")); setSchedNote(cell?.note||""); }}
+                              className={`w-8 h-5 rounded text-center text-[8px] font-bold transition-all hover:opacity-70 block w-full mb-0.5 ${ti_s ? ti_s.color : isWE ? "text-red-300 hover:bg-red-50" : "text-gray-200 hover:bg-gray-100"}`}
+                              title={cell ? `${ti_s?.label}${cell.note?": "+cell.note:""}` : isWE?"Выходной":"Нажмите"}>
+                              {ti_s ? ti_s.label[0] : (isWE ? "В" : "")}
+                            </button>
+                            {/* Часы работы */}
+                            <button
+                              onClick={() => setHoursCell({tech_id:tech.id,date:dateStr,start:hCell?.hours_start||"09:00",end:hCell?.hours_end||"18:00"})}
+                              className={`text-[8px] text-center block w-full rounded leading-tight px-0.5 py-0.5 hover:bg-blue-50 transition-colors ${hCell?"text-blue-600 font-semibold":"text-gray-300"}`}
+                              title={hCell ? `${hCell.hours_start}–${hCell.hours_end}` : "Задать часы"}>
+                              {hCell ? `${hCell.hours_start?.slice(0,5)}` : "—"}
+                            </button>
+                            {/* Заявки */}
+                            {dayTickets.map(t => (
+                              <div key={t.id} className="mt-0.5">
+                                <button onClick={() => setTimerTicket({id:t.id,title:t.title,started_at:t.started_at})}
+                                  className={`w-full rounded text-[7px] px-0.5 leading-tight text-left truncate ${t.started_at && t.status!=="done" ? "bg-orange-100 text-orange-700 font-bold" : "bg-blue-50 text-blue-600"}`}
+                                  title={t.title}>
+                                  {t.started_at && t.status!=="done" ? "⏱" : "📋"}{t.title.slice(0,8)}
+                                </button>
+                              </div>
+                            ))}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
+
+          {/* Модал: тип дня */}
           {schedCell && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-sm space-y-3">
-                <div className="flex items-center justify-between"><h3 className="font-bold text-gray-900">{schedCell.date}</h3><button onClick={() => setSchedCell(null)}><Icon name="X" size={18} className="text-gray-400" /></button></div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">{schedCell.date}</h3>
+                  <button onClick={() => setSchedCell(null)}><Icon name="X" size={18} className="text-gray-400"/></button>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(SCHEDULE_TYPE).map(([k,v]) => (
-                    <button key={k} onClick={() => setSchedType(k)} className={`py-2 rounded-xl text-xs font-semibold border-2 ${schedType===k ? "border-gray-900" : "border-transparent"} ${v.color}`}>{v.label}</button>
+                    <button key={k} onClick={() => setSchedType(k)} className={`py-2 rounded-xl text-xs font-semibold border-2 ${schedType===k?"border-gray-900":"border-transparent"} ${v.color}`}>{v.label}</button>
                   ))}
                 </div>
-                <input value={schedNote} onChange={e => setSchedNote(e.target.value)} placeholder="Заметка (необязательно)" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]" />
+                <input value={schedNote} onChange={e => setSchedNote(e.target.value)} placeholder="Заметка" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]"/>
                 <button onClick={saveScheduleCell} className="w-full py-2.5 rounded-xl text-white text-sm font-bold" style={{background:"#3ca615"}}>Сохранить</button>
+              </div>
+            </div>
+          )}
+
+          {/* Модал: рабочие часы дня */}
+          {hoursCell && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">Часы: {hoursCell.date}</h3>
+                  <button onClick={() => setHoursCell(null)}><Icon name="X" size={18} className="text-gray-400"/></button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Начало</label>
+                    <input type="time" value={hoursCell.start} onChange={e => setHoursCell(h => h?{...h,start:e.target.value}:h)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]"/>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Конец</label>
+                    <input type="time" value={hoursCell.end} onChange={e => setHoursCell(h => h?{...h,end:e.target.value}:h)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]"/>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={saveHoursCell} className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold" style={{background:"#3ca615"}}>Сохранить</button>
+                  <button onClick={() => setHoursCell(null)} className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600">Отмена</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Модал: рабочая неделя */}
+          {showWorkWeekModal !== null && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">Рабочая неделя (Пн–Пт)</h3>
+                  <button onClick={() => setShowWorkWeekModal(null)}><Icon name="X" size={18} className="text-gray-400"/></button>
+                </div>
+                <p className="text-xs text-gray-500">Все рабочие дни месяца получат эти часы</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Начало рабочего дня</label>
+                    <input type="time" value={wwStart} onChange={e => setWwStart(e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]"/>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Конец рабочего дня</label>
+                    <input type="time" value={wwEnd} onChange={e => setWwEnd(e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]"/>
+                  </div>
+                </div>
+                <button onClick={() => setWorkWeek(showWorkWeekModal)} className="w-full py-2.5 rounded-xl text-white text-sm font-bold" style={{background:"#3ca615"}}>
+                  Применить к {new Date(schedYear,schedMonth-1).toLocaleString("ru-RU",{month:"long"})}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Модал: таймер заявки */}
+          {timerTicket && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">Заявка #{timerTicket.id}</h3>
+                  <button onClick={() => setTimerTicket(null)}><Icon name="X" size={18} className="text-gray-400"/></button>
+                </div>
+                <p className="text-sm text-gray-700">{timerTicket.title}</p>
+                {timerTicket.started_at ? (
+                  <div className="text-center bg-orange-50 rounded-2xl py-4">
+                    <p className="text-xs text-gray-500 mb-1">Таймер запущен</p>
+                    <p className="font-mono text-3xl font-bold text-orange-600">{formatElapsed(timerTicket.started_at)}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">Старт: {new Date(timerTicket.started_at).toLocaleString("ru-RU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</p>
+                  </div>
+                ) : (
+                  <div className="text-center bg-gray-50 rounded-2xl py-4">
+                    <p className="text-sm text-gray-500">Таймер не запущен</p>
+                    <button onClick={() => startTimer(timerTicket.id)} className="mt-2 flex items-center gap-2 mx-auto px-5 py-2.5 rounded-xl text-white text-sm font-bold" style={{background:"#3ca615"}}>
+                      <Icon name="Play" size={15}/>Запустить таймер
+                    </button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button onClick={() => setArrival(timerTicket.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-blue-200 text-blue-600 text-sm font-semibold hover:bg-blue-50">
+                    <Icon name="MapPin" size={14}/>Прибыл на место
+                  </button>
+                  <button onClick={() => setEditTicketHours({ticket_id:timerTicket.id,title:timerTicket.title,hours:""})} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50">
+                    <Icon name="Clock" size={14}/>Указать часы
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Модал: часы за заявку */}
+          {editTicketHours && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">Часы за заявку</h3>
+                  <button onClick={() => setEditTicketHours(null)}><Icon name="X" size={18} className="text-gray-400"/></button>
+                </div>
+                <p className="text-xs text-gray-500 truncate">{editTicketHours.title}</p>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Потрачено часов</label>
+                  <input type="number" step="0.5" min="0" max="24" value={editTicketHours.hours}
+                    onChange={e => setEditTicketHours(h => h?{...h,hours:e.target.value}:h)}
+                    placeholder="1.5"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]"/>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={saveTicketHours} className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold" style={{background:"#3ca615"}}>Сохранить</button>
+                  <button onClick={() => setEditTicketHours(null)} className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600">Отмена</button>
+                </div>
               </div>
             </div>
           )}

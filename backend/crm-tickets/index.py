@@ -882,5 +882,134 @@ def handler(event: dict, context) -> dict:
         cur.close(); conn.close()
         return ok({"techs": techs, "managers": managers_list})
 
+    # ── ТАЙМЕР ЗАЯВКИ: старт ─────────────────────────────────────────────────
+    if method == "POST" and action == "ticket_start_timer":
+        ticket_id = body.get("ticket_id")
+        if not ticket_id:
+            cur.close(); conn.close(); return err("Укажите ticket_id")
+        cur.execute(f"SELECT id, started_at, status FROM {SC}.tickets WHERE id=%s", (ticket_id,))
+        t = cur.fetchone()
+        if not t:
+            cur.close(); conn.close(); return err("Заявка не найдена", 404)
+        if t[1]:
+            cur.close(); conn.close(); return ok({"already_started": True, "started_at": t[1].isoformat()})
+        cur.execute(f"UPDATE {SC}.tickets SET started_at=NOW(), status='in_progress', updated_at=NOW() WHERE id=%s", (ticket_id,))
+        conn.commit()
+        cur.execute(f"SELECT started_at FROM {SC}.tickets WHERE id=%s", (ticket_id,))
+        started = cur.fetchone()[0]
+        cur.close(); conn.close()
+        return ok({"started": True, "started_at": started.isoformat()})
+
+    # ── ТАЙМЕР ЗАЯВКИ: время прибытия ────────────────────────────────────────
+    if method == "POST" and action == "ticket_set_arrival":
+        ticket_id = body.get("ticket_id")
+        if not ticket_id:
+            cur.close(); conn.close(); return err("Укажите ticket_id")
+        arrival = body.get("arrival_time") or datetime.now().isoformat()
+        cur.execute(f"UPDATE {SC}.tickets SET arrival_time=%s, updated_at=NOW() WHERE id=%s", (arrival, ticket_id))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"arrival_set": True, "arrival_time": arrival})
+
+    # ── ЧАСЫ ЗА ЗАЯВКУ ───────────────────────────────────────────────────────
+    if method == "POST" and action == "ticket_set_hours":
+        ticket_id = body.get("ticket_id")
+        hours = body.get("work_hours")
+        if not ticket_id or hours is None:
+            cur.close(); conn.close(); return err("Укажите ticket_id и work_hours")
+        cur.execute(f"UPDATE {SC}.tickets SET work_hours=%s, updated_at=NOW() WHERE id=%s", (float(hours), ticket_id))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"hours_set": True})
+
+    # ── РАБОЧИЕ ЧАСЫ ТЕХНИКА (шаблон графика) ────────────────────────────────
+    if method == "GET" and action == "tech_work_hours":
+        tech_id = params.get("tech_id")
+        month   = params.get("month")   # YYYY-MM
+        if not tech_id or not month:
+            cur.close(); conn.close(); return err("Нужны tech_id и month")
+        cur.execute(f"""SELECT date, hours_start, hours_end FROM {SC}.tech_work_hours
+                        WHERE tech_id=%s AND to_char(date,'YYYY-MM')=%s ORDER BY date""",
+                    (int(tech_id), month))
+        rows = [{"date": str(r[0]), "hours_start": str(r[1]) if r[1] else None,
+                 "hours_end": str(r[2]) if r[2] else None} for r in cur.fetchall()]
+        cur.close(); conn.close()
+        return ok({"work_hours": rows})
+
+    if method == "POST" and action == "tech_work_hours_save":
+        if role != "manager":
+            cur.close(); conn.close(); return err("Доступ запрещён", 403)
+        tech_id     = body.get("tech_id")
+        date        = body.get("date")
+        hours_start = body.get("hours_start") or None
+        hours_end   = body.get("hours_end") or None
+        if not tech_id or not date:
+            cur.close(); conn.close(); return err("Нужны tech_id и date")
+        cur.execute(f"""INSERT INTO {SC}.tech_work_hours (tech_id, date, hours_start, hours_end)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (tech_id, date) DO UPDATE
+                        SET hours_start=EXCLUDED.hours_start, hours_end=EXCLUDED.hours_end""",
+                    (int(tech_id), date, hours_start, hours_end))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"saved": True})
+
+    # ── РАБОЧАЯ НЕДЕЛЯ (шаблон: Пн-Пт для месяца) ────────────────────────────
+    if method == "POST" and action == "tech_set_work_week":
+        if role != "manager":
+            cur.close(); conn.close(); return err("Доступ запрещён", 403)
+        tech_id     = body.get("tech_id")
+        month       = body.get("month")      # YYYY-MM
+        hours_start = body.get("hours_start", "09:00")
+        hours_end   = body.get("hours_end",   "18:00")
+        if not tech_id or not month:
+            cur.close(); conn.close(); return err("Нужны tech_id и month")
+        from datetime import date as dt_date, timedelta
+        y, m = map(int, month.split("-"))
+        import calendar
+        days_count = calendar.monthrange(y, m)[1]
+        inserted = 0
+        for day in range(1, days_count + 1):
+            d = dt_date(y, m, day)
+            if d.weekday() < 5:   # Пн=0..Пт=4
+                cur.execute(f"""INSERT INTO {SC}.tech_work_hours (tech_id, date, hours_start, hours_end)
+                                VALUES (%s, %s, %s, %s)
+                                ON CONFLICT (tech_id, date) DO UPDATE
+                                SET hours_start=EXCLUDED.hours_start, hours_end=EXCLUDED.hours_end""",
+                            (int(tech_id), d, hours_start, hours_end))
+                inserted += 1
+        conn.commit(); cur.close(); conn.close()
+        return ok({"saved": True, "days": inserted})
+
+    # ── РАСПИСАНИЕ + ЧАСЫ (расширенное) ──────────────────────────────────────
+    if method == "GET" and action == "schedule_extended":
+        month = params.get("month")   # YYYY-MM
+        if not month:
+            cur.close(); conn.close(); return err("Нужен month")
+        # Все техники
+        cur.execute(f"SELECT id, name FROM {SC}.technicians WHERE is_active=TRUE ORDER BY name")
+        techs_list = cur.fetchall()
+        # Записи графика
+        cur.execute(f"""SELECT tech_id, date, type, note FROM {SC}.staff_schedule
+                        WHERE to_char(date,'YYYY-MM')=%s""", (month,))
+        sched = [{"tech_id":r[0],"date":str(r[1]),"type":r[2],"note":r[3]} for r in cur.fetchall()]
+        # Рабочие часы
+        cur.execute(f"""SELECT tech_id, date, hours_start, hours_end FROM {SC}.tech_work_hours
+                        WHERE to_char(date,'YYYY-MM')=%s""", (month,))
+        hours = [{"tech_id":r[0],"date":str(r[1]),
+                  "hours_start": str(r[2]) if r[2] else None,
+                  "hours_end":   str(r[3]) if r[3] else None} for r in cur.fetchall()]
+        # Заявки с таймером в этом месяце
+        cur.execute(f"""SELECT id, technician_id, title, status, started_at, arrival_time, work_hours, scheduled_date
+                        FROM {SC}.tickets
+                        WHERE technician_id IS NOT NULL
+                          AND (to_char(scheduled_date,'YYYY-MM')=%s OR to_char(started_at,'YYYY-MM')=%s)""",
+                    (month, month))
+        tickets_rows = [{"id":r[0],"tech_id":r[1],"title":r[2],"status":r[3],
+                         "started_at": r[4].isoformat() if r[4] else None,
+                         "arrival_time": r[5].isoformat() if r[5] else None,
+                         "work_hours": float(r[6]) if r[6] else None,
+                         "scheduled_date": str(r[7]) if r[7] else None} for r in cur.fetchall()]
+        cur.close(); conn.close()
+        return ok({"techs": [{"id":r[0],"name":r[1]} for r in techs_list],
+                   "schedule": sched, "work_hours": hours, "tickets": tickets_rows})
+
     cur.close(); conn.close()
     return err("Неизвестное действие")
