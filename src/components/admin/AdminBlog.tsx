@@ -185,34 +185,34 @@ export default function AdminBlog() {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-2">Цвет фона шапки блога</label>
+            <label className="block text-xs text-gray-500 mb-1">Цвет баннера блога</label>
+            <p className="text-[10px] text-gray-400 mb-2">Баннер — большой блок с логотипом и описанием под навбаром. По умолчанию — зелёный как на главной.</p>
             <div className="flex flex-wrap gap-2 items-center mb-3">
               {[
-                { color: "#ffffff", label: "Белый" },
+                { color: "", label: "По умолчанию (как Hero)" },
+                { color: "#edf7e8", label: "Светло-зелёный" },
                 { color: "#F7F9FC", label: "Светлый" },
                 { color: "#0F0F0F", label: "Тёмный" },
                 { color: "#1a1a2e", label: "Ночной" },
-                { color: "#edf7e8", label: "Зелёный" },
                 { color: "#1e3a5f", label: "Синий" },
               ].map(p => (
                 <button key={p.color} onClick={() => setHeaderBg(p.color)}
                   title={p.label}
                   className={`w-9 h-9 rounded-xl border-2 transition-all ${headerBg === p.color ? "border-[#3ca615] scale-110 shadow-md" : "border-gray-200"}`}
-                  style={{ background: p.color }} />
+                  style={{ background: p.color || "linear-gradient(135deg,#edf7e8,#d4f0c8)" }} />
               ))}
               <div className="flex items-center gap-1.5 ml-1">
                 <label className="text-xs text-gray-400">Свой:</label>
-                <input type="color" value={headerBg} onChange={e => setHeaderBg(e.target.value)}
+                <input type="color" value={headerBg || "#edf7e8"} onChange={e => setHeaderBg(e.target.value)}
                   className="w-9 h-9 rounded-xl border border-gray-200 cursor-pointer p-0.5" />
               </div>
-              <div className="ml-auto">
-                <div className="h-8 w-24 rounded-lg border border-gray-200 flex items-center justify-center text-[10px] font-bold"
-                  style={{ background: headerBg, color: ["#0F0F0F","#1a1a2e","#1e3a5f"].includes(headerBg) ? "white" : "#333" }}>
-                  ПРОФИКС
-                </div>
-              </div>
+              {headerBg && (
+                <button onClick={() => setHeaderBg("")} className="text-[10px] text-gray-400 hover:text-red-500 hover:underline">
+                  Сбросить
+                </button>
+              )}
             </div>
-            <label className="block text-xs text-gray-500 mb-1.5">Фоновая картинка шапки (необязательно)</label>
+            <label className="block text-xs text-gray-500 mb-1.5">Фоновая картинка баннера (необязательно)</label>
             <div className="flex items-center gap-3">
               {headerBgImg && (
                 <div className="relative w-20 h-12 rounded-lg overflow-hidden border border-gray-200 shrink-0">

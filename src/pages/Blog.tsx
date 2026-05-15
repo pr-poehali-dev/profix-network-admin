@@ -329,12 +329,12 @@ export default function Blog() {
   const youtubeChannel = str("blog.youtube_channel", "");
   const subscribersCount = str("blog.subscribers", "");
   const channelDesc = str("blog.channel_desc", "IT-советы, разборы техники и жизнь сервисного центра в Якутске");
-  const blogHeaderBg    = str("blog.header_bg", "#0F0F0F");   // цвет шапки
-  const blogHeaderBgImg = str("blog.header_bg_img", "");       // картинка шапки
-  const blogPageBg      = str("blog.page_bg", "#F7F9FC");       // фон всей страницы
-  const blogDarkHeader  = ["#0f0f0f","#1a1a2e","#1e3a5f","#111827","#000000"].some(
-    c => blogHeaderBg.toLowerCase() === c
-  );
+  const blogBannerBg    = str("blog.header_bg", "");            // цвет баннера (пусто = дефолтный зелёный как hero)
+  const blogBannerImg   = str("blog.header_bg_img", "");        // картинка баннера
+  const blogPageBg      = str("blog.page_bg", "#F7F9FC");       // фон страницы за баннером
+  const blogBannerDark  = blogBannerBg ? ["#0f0f0f","#1a1a2e","#1e3a5f","#111827","#000000","#1a1a1a"].some(
+    c => blogBannerBg.toLowerCase() === c || blogBannerBg.toLowerCase().startsWith("#0") || blogBannerBg.toLowerCase().startsWith("#1")
+  ) : false; // дефолт светлый (зелёный как hero)
 
   useEffect(() => {
     const token = clientSession.get();
@@ -388,19 +388,15 @@ export default function Blog() {
           canonical={`/blog/${post.id}`}
         />
 
-        {/* Шапка */}
-        <header className="border-b sticky top-0 z-10" style={{
-          backgroundColor: blogHeaderBg,
-          borderColor: blogDarkHeader ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
-          ...(blogHeaderBgImg ? { backgroundImage: `url(${blogHeaderBgImg})`, backgroundSize: "cover", backgroundPosition: "center" } : {})
-        }}>
+        {/* Навбар — всегда тёмный */}
+        <header className="bg-[#0F0F0F] border-b border-white/10 sticky top-0 z-10">
           <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
-            <button onClick={() => navigate("/blog")} className="p-1.5 rounded-lg transition-colors" style={{ color: blogDarkHeader ? "#9ca3af" : "#6b7280" }}>
+            <button onClick={() => navigate("/blog")} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
               <Icon name="ChevronLeft" size={20} />
             </button>
             <span className="font-oswald text-lg font-bold">
               <span className="text-[#3ca615]">ПРО</span>
-              <span style={{ color: blogDarkHeader ? "white" : "#0D1B2A" }}>ФИКС</span>
+              <span className="text-white">ФИКС</span>
             </span>
             {youtubeChannel && (
               <a href={youtubeChannel} target="_blank" rel="noopener noreferrer"
@@ -545,20 +541,15 @@ export default function Blog() {
         canonical="/blog"
       />
 
-      {/* Шапка */}
-      <header className="sticky top-0 z-10 border-b" style={{
-        backgroundColor: blogHeaderBg,
-        borderColor: blogDarkHeader ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
-        ...(blogHeaderBgImg ? { backgroundImage: `url(${blogHeaderBgImg})`, backgroundSize: "cover", backgroundPosition: "center" } : {})
-      }}>
+      {/* Навбар — всегда тёмный */}
+      <header className="bg-[#0F0F0F] sticky top-0 z-10 border-b border-white/10">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="p-1.5 rounded-lg transition-colors"
-            style={{ color: blogDarkHeader ? "#9ca3af" : "#6b7280" }}>
+          <button onClick={() => navigate("/")} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
             <Icon name="ChevronLeft" size={20} />
           </button>
           <span className="font-oswald text-lg font-bold">
             <span className="text-[#3ca615]">ПРО</span>
-            <span style={{ color: blogDarkHeader ? "white" : "#0D1B2A" }}>ФИКС</span>
+            <span className="text-white">ФИКС</span>
           </span>
 
           {/* Фильтры в шапке */}
@@ -582,41 +573,58 @@ export default function Blog() {
         </div>
       </header>
 
-      {/* Баннер канала */}
-      <div className="bg-gradient-to-b from-[#0F0F0F] to-[#1a1a1a] border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="flex items-center gap-5">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#3ca615] flex items-center justify-center shrink-0 shadow-lg shadow-[#3ca615]/30">
-              <Icon name="Wrench" size={36} className="text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="font-oswald text-2xl sm:text-3xl font-bold text-white mb-1">ProFiX</h1>
-              <p className="text-gray-400 text-sm">{channelDesc}</p>
-              <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                {subscribersCount && <span className="flex items-center gap-1"><Icon name="Users" size={11} />{subscribersCount} подписчиков</span>}
-                <span className="flex items-center gap-1"><Icon name="FileText" size={11} />{posts.length || "…"} публикаций</span>
+      {/* Баннер канала — управляемый цвет, дефолт как hero */}
+      {(() => {
+        const bannerStyle: React.CSSProperties = blogBannerBg
+          ? { backgroundColor: blogBannerBg }
+          : {}; // дефолт — CSS-классы ниже (зелёный как hero)
+        if (blogBannerImg) {
+          bannerStyle.backgroundImage = `url(${blogBannerImg})`;
+          bannerStyle.backgroundSize = "cover";
+          bannerStyle.backgroundPosition = "center";
+        }
+        const textPrimary   = blogBannerDark ? "text-white" : "text-[#0D1B2A]";
+        const textSecondary = blogBannerDark ? "text-gray-400" : "text-[#4B5563]";
+        const textMuted     = blogBannerDark ? "text-gray-500" : "text-gray-500";
+        const filterActive  = blogBannerDark ? "bg-white text-gray-900" : "bg-[#0D1B2A] text-white";
+        const filterIdle    = blogBannerDark ? "bg-white/10 text-gray-400" : "bg-black/10 text-gray-600";
+        return (
+          <div className={`border-b ${blogBannerBg ? "border-black/10" : "bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8] border-gray-200"}`}
+            style={bannerStyle}>
+            <div className="max-w-6xl mx-auto px-4 py-8">
+              <div className="flex items-center gap-5">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#3ca615] flex items-center justify-center shrink-0 shadow-lg shadow-[#3ca615]/30">
+                  <Icon name="Wrench" size={36} className="text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h1 className={`font-oswald text-2xl sm:text-3xl font-bold mb-1 ${textPrimary}`}>ProFiX</h1>
+                  <p className={`text-sm ${textSecondary}`}>{channelDesc}</p>
+                  <div className={`flex items-center gap-4 mt-2 text-xs ${textMuted}`}>
+                    {subscribersCount && <span className="flex items-center gap-1"><Icon name="Users" size={11} />{subscribersCount} подписчиков</span>}
+                    <span className="flex items-center gap-1"><Icon name="FileText" size={11} />{posts.length || "…"} публикаций</span>
+                  </div>
+                </div>
+                {youtubeChannel && (
+                  <a href={youtubeChannel} target="_blank" rel="noopener noreferrer"
+                    className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 rounded-full text-sm font-bold hover:bg-gray-100 transition-colors">
+                    <Icon name="Play" size={16} className="text-red-600" />
+                    Подписаться
+                  </a>
+                )}
+              </div>
+              {/* Фильтры на мобилке */}
+              <div className="sm:hidden flex gap-2 mt-5 overflow-x-auto pb-1 -mx-1 px-1">
+                {[{ v: "all", l: "Все" }, { v: "video", l: "Видео" }, { v: "news", l: "Новости" }, { v: "article", l: "Статьи" }, { v: "forum", l: "Форум" }].map(f => (
+                  <button key={f.v} onClick={() => changeFilter(f.v)}
+                    className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filter === f.v ? filterActive : filterIdle}`}>
+                    {f.l}
+                  </button>
+                ))}
               </div>
             </div>
-            {youtubeChannel && (
-              <a href={youtubeChannel} target="_blank" rel="noopener noreferrer"
-                className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 rounded-full text-sm font-bold hover:bg-gray-100 transition-colors">
-                <Icon name="Play" size={16} className="text-red-600" />
-                Подписаться
-              </a>
-            )}
           </div>
-
-          {/* Фильтры на мобилке */}
-          <div className="sm:hidden flex gap-2 mt-5 overflow-x-auto pb-1 -mx-1 px-1">
-            {[{ v: "all", l: "Все" }, { v: "video", l: "Видео" }, { v: "news", l: "Новости" }, { v: "article", l: "Статьи" }, { v: "forum", l: "Форум" }].map(f => (
-              <button key={f.v} onClick={() => changeFilter(f.v)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filter === f.v ? "bg-white text-gray-900" : "bg-white/10 text-gray-400"}`}>
-                {f.l}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Контент */}
       <main className="max-w-6xl mx-auto px-4 py-8">
