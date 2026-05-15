@@ -348,7 +348,8 @@ export function OnecEditor({ content, onChange }: { content: ContentMap; onChang
                   <Field label="Описание" value={item.desc} textarea
                     onChange={v => updateItem(i, {desc:v})} />
                   <ImageUpload label="Изображение" value={item.img}
-                    onChange={url => updateItem(i, {img:url})} />
+                    onChange={url => updateItem(i, {img:url})}
+                    maxW={800} maxH={500} aspect="16/9" />
                 </div>
               )}
             </div>
