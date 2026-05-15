@@ -84,7 +84,8 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
     if (!token) return;
     clientApi.verifyToken(token).then(r => {
       if (r.valid && r.client) {
-        setClientName(r.client.name || r.client.phone || "Кабинет");
+        // Показываем имя или ник, но не телефон
+        setClientName(r.client.name && !r.client.name.startsWith("+") ? r.client.name : "Кабинет");
         setClientAvatar(r.client.avatar_url || null);
       } else {
         clientSession.clear();
@@ -306,11 +307,17 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         {/* Десктоп — кнопки справа */}
         <div className="hidden md:flex items-center gap-2">
           {btnItems.map(it => renderDesktopBtnItem(it))}
-          <a href={phoneHref}
-            className="flex items-center gap-2 bg-[#3ca615] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2d8a10] transition-colors">
-            <Icon name="Phone" size={15} />
-            {phone}
-          </a>
+          {(clientName || managerName)
+            ? <a href={phoneHref} title={phone}
+                className="flex items-center justify-center bg-[#3ca615] text-white w-9 h-9 rounded-lg hover:bg-[#2d8a10] transition-colors shrink-0">
+                <Icon name="Phone" size={16} />
+              </a>
+            : <a href={phoneHref}
+                className="flex items-center gap-2 bg-[#3ca615] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2d8a10] transition-colors">
+                <Icon name="Phone" size={15} />
+                {phone}
+              </a>
+          }
         </div>
 
         {/* Мобильный бургер */}
@@ -424,10 +431,16 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
             return null;
           })}
 
-          <a href={phoneHref} className="mt-1 flex items-center gap-2 bg-[#3ca615] text-white px-4 py-3 rounded-lg text-sm font-medium justify-center">
-            <Icon name="Phone" size={15} />
-            {phone}
-          </a>
+          {(clientName || managerName)
+            ? <a href={phoneHref} title={phone} className="mt-1 flex items-center gap-2 bg-[#3ca615] text-white px-4 py-3 rounded-lg text-sm font-medium justify-center">
+                <Icon name="Phone" size={15} />
+                Позвонить
+              </a>
+            : <a href={phoneHref} className="mt-1 flex items-center gap-2 bg-[#3ca615] text-white px-4 py-3 rounded-lg text-sm font-medium justify-center">
+                <Icon name="Phone" size={15} />
+                {phone}
+              </a>
+          }
         </div>
       )}
     </header>
