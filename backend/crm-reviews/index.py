@@ -202,5 +202,71 @@ def handler(event: dict, context) -> dict:
         conn.close()
         return ok({"deleted": True})
 
+    # ── Создать отзыв от лица менеджера (с именем и сервисом) ────────────────
+    if method == "POST" and action == "create_by_manager":
+        role = get_manager_role(event, conn)
+        if not role:
+            conn.close()
+            return err("Необходима авторизация менеджера", 401)
+        rating = body.get("rating")
+        text = body.get("text", "").strip()
+        name = body.get("name", "").strip() or "Клиент"
+        service = body.get("service", "").strip() or None
+        published = body.get("is_published", True)
+        if not rating or int(rating) < 1 or int(rating) > 5:
+            conn.close()
+            return err("Оценка от 1 до 5")
+        if not text:
+            conn.close()
+            return err("Напишите текст отзыва")
+        cur = conn.cursor()
+        # Если есть колонка service в reviews — используем, иначе только name
+        try:
+            cur.execute(
+                f"""INSERT INTO {SC}.reviews (client_id, ticket_id, client_name, rating, text, published)
+                    VALUES (NULL, NULL, %s, %s, %s, %s) RETURNING id""",
+                (f"{name}" + (f" · {service}" if service else ""), int(rating), text, published)
+            )
+        except Exception:
+            conn.rollback()
+            cur.execute(
+                f"""INSERT INTO {SC}.reviews (client_name, rating, text, published)
+                    VALUES (%s, %s, %s, %s) RETURNING id""",
+                (f"{name}" + (f" · {service}" if service else ""), int(rating), text, published)
+            )
+        new_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        return ok({"id": new_id, "created": True})
+
+    # ── Редактировать отзыв (менеджер) ───────────────────────────────────────
+    if method == "POST" and action == "update":
+        role = get_manager_role(event, conn)
+        if not role:
+            conn.close()
+            return err("Необходима авторизация", 401)
+        review_id = body.get("id")
+        if not review_id:
+            conn.close()
+            return err("Не указан id")
+        cur = conn.cursor()
+        sets, vals = [], []
+        if "text" in body:
+            sets.append("text=%s"); vals.append(body["text"])
+        if "rating" in body:
+            sets.append("rating=%s"); vals.append(int(body["rating"]))
+        if "client_name" in body:
+            sets.append("client_name=%s"); vals.append(body["client_name"])
+        if not sets:
+            conn.close()
+            return err("Нечего обновлять")
+        vals.append(review_id)
+        cur.execute(f"UPDATE {SC}.reviews SET {', '.join(sets)} WHERE id=%s", vals)
+        conn.commit()
+        cur.close()
+        conn.close()
+        return ok({"updated": True})
+
     conn.close()
     return err("Неизвестное действие")
