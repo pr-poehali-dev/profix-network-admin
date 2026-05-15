@@ -165,8 +165,13 @@ const ServicesAboutSection = () => {
                 className="group rounded-2xl overflow-hidden border border-gray-100 hover:border-[#3ca615] hover:shadow-xl transition-all duration-500 bg-white"
                 style={{ transitionDelay: `${i * 0.08}s` }}
               >
-                <div className="h-44 overflow-hidden">
-                  <img src={s.img} alt={s.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <div className="h-44 overflow-hidden bg-gray-100">
+                  {s.img
+                    ? <img src={s.img} alt={s.title} className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" />
+                    : <div className="w-full h-full flex items-center justify-center">
+                        <Icon name={s.icon as "Code"} size={40} className="text-gray-200" fallback="Settings" />
+                      </div>
+                  }
                 </div>
                 <div className="p-5">
                   <div className="flex items-center gap-3 mb-3">
