@@ -107,6 +107,16 @@ const ServicesAboutSection = () => {
   type OnecItem = { icon: string; title: string; desc: string; img: string };
   const cmsOnecItems = json<OnecItem[]>("onec.items", []);
   const displayOnecItems: OnecItem[] = cmsOnecItems.length > 0 ? cmsOnecItems : onecServices;
+
+  type FeatureItem = { icon: string; text: string };
+  const cmsFeatures = json<FeatureItem[]>("about.features", []);
+  const displayFeatures: FeatureItem[] = cmsFeatures.length > 0 ? cmsFeatures : [
+    { icon: "Clock", text: "Быстрый выезд к клиенту" },
+    { icon: "Star",  text: "Гарантия на все работы" },
+    { icon: "Users", text: "Опытная команда" },
+    { icon: "Headphones", text: "Поддержка 24/7" },
+  ];
+  const aboutImage = str("about.image", "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/782196eb-d7c0-4190-8b39-b90929fde10b.png");
   return (
     <>
       {/* SERVICES */}
@@ -189,14 +199,9 @@ const ServicesAboutSection = () => {
                 {str("about.text2", "Наша команда — сертифицированные специалисты с многолетним опытом. Мы ценим время клиента и гарантируем быстрое, качественное решение любых задач.")}
               </p>
               <div className="grid grid-cols-2 gap-4">
-                {([
-                  { icon: "Clock", text: "Быстрый выезд к клиенту" },
-                  { icon: "Star", text: "Гарантия на все работы" },
-                  { icon: "Users", text: "Опытная команда" },
-                  { icon: "Headphones", text: "Поддержка 24/7" },
-                ] as { icon: FeatureIcon; text: string }[]).map((f) => (
+                {displayFeatures.map((f) => (
                   <div key={f.text} className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm">
-                    <Icon name={f.icon} size={18} className="text-[#3ca615] shrink-0" fallback="Check" />
+                    <Icon name={f.icon as FeatureIcon} size={18} className="text-[#3ca615] shrink-0" fallback="Check" />
                     <span className="text-sm text-[#374151] font-medium">{f.text}</span>
                   </div>
                 ))}
@@ -205,7 +210,7 @@ const ServicesAboutSection = () => {
 
             <div className="rounded-3xl overflow-hidden shadow-xl">
               <img
-                src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/782196eb-d7c0-4190-8b39-b90929fde10b.png"
+                src={aboutImage}
                 alt="Доверьтесь профессионалам"
                 className="w-full h-full object-cover"
               />

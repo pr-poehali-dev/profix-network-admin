@@ -13,6 +13,7 @@ import {
   RequisitesEditor,
 } from "./HomePageEditors";
 import { NavbarEditor, PartnerEditor } from "./NavbarPartnerEditors";
+import { ReviewsEditor, MapEditor } from "./HomePageEditors_Extra";
 
 // ── Константы табов ───────────────────────────────────────────────────────────
 
@@ -33,6 +34,8 @@ const HOME_SUBTABS = [
   { key: "onec",     label: "Услуги 1С",        icon: "Monitor" },
   { key: "about",    label: "О компании",       icon: "Building2" },
   { key: "contacts", label: "Контакты и футер", icon: "Phone" },
+  { key: "map",      label: "Как нас найти",    icon: "MapPin" },
+  { key: "reviews",  label: "Отзывы",           icon: "Star" },
 ] as const;
 
 type HomeSubKey = typeof HOME_SUBTABS[number]["key"];
@@ -200,6 +203,8 @@ export default function AdminContentEditor() {
           {tab === "home" && homeSubTab === "onec"     && <OnecEditor content={content} onChange={handleChange} />}
           {tab === "home" && homeSubTab === "about"    && <AboutEditor content={content} onChange={handleChange} />}
           {tab === "home" && homeSubTab === "contacts" && <ContactsEditor content={content} onChange={handleChange} />}
+          {tab === "home" && homeSubTab === "map"      && <MapEditor content={content} onChange={handleChange} />}
+          {tab === "home" && homeSubTab === "reviews"  && <ReviewsEditor />}
           {tab === "navbar"       && <NavbarEditor content={content} onChange={handleChange} />}
           {tab === "partners"     && <PartnerEditor content={content} onChange={handleChange} />}
           {tab === "requisites"   && <RequisitesEditor content={content} onChange={handleChange} />}

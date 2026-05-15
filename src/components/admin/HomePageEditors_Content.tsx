@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Icon from "@/components/ui/icon";
 import { ContentMap, parseJson, Field, ImageUpload } from "./editor-shared";
 
@@ -107,12 +108,47 @@ export function HeroEditor({ content, onChange }: { content: ContentMap; onChang
 
 // ── Секция: О компании ────────────────────────────────────────────────────────
 
+const DEFAULT_FEATURES = [
+  { icon: "Clock", text: "Быстрый выезд к клиенту" },
+  { icon: "Star",  text: "Гарантия на все работы" },
+  { icon: "Users", text: "Опытная команда" },
+  { icon: "Headphones", text: "Поддержка 24/7" },
+];
+
 export function AboutEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {
+  const features = parseJson<{icon:string;text:string}[]>(content["about.features"] || "", DEFAULT_FEATURES);
+
+  function setFeatures(arr: typeof features) {
+    onChange("about.features", JSON.stringify(arr));
+  }
+
   return (
     <div className="space-y-4">
       <Field label="Заголовок" value={content["about.title"] || ""} onChange={v => onChange("about.title", v)} />
       <Field label="Абзац 1" value={content["about.text1"] || ""} onChange={v => onChange("about.text1", v)} textarea />
       <Field label="Абзац 2" value={content["about.text2"] || ""} onChange={v => onChange("about.text2", v)} textarea />
+
+      <ImageUpload
+        label="Фото справа"
+        value={content["about.image"] || "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/782196eb-d7c0-4190-8b39-b90929fde10b.png"}
+        onChange={v => onChange("about.image", v)}
+        maxW={900} maxH={700}
+      />
+
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 mb-2">Преимущества (4 блока)</label>
+        <div className="space-y-2">
+          {features.map((f, i) => (
+            <div key={i} className="flex gap-2 items-center">
+              <input value={f.icon} onChange={e => { const n=[...features]; n[i]={...n[i],icon:e.target.value}; setFeatures(n); }}
+                placeholder="Clock" className="w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-green-400" />
+              <input value={f.text} onChange={e => { const n=[...features]; n[i]={...n[i],text:e.target.value}; setFeatures(n); }}
+                placeholder="Текст" className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-green-400" />
+            </div>
+          ))}
+        </div>
+        <p className="text-[10px] text-gray-400 mt-1.5">Иконки: Clock, Star, Users, Headphones, Shield, Zap и др. (lucide-react)</p>
+      </div>
     </div>
   );
 }
