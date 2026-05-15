@@ -400,7 +400,6 @@ export default function AdminStaffHub() {
     else groupedMsgs[groupedMsgs.length-1].msgs.push(m);
   }
   const depts = Array.from(new Set(contacts.map(c => c.department || "Без отдела")));
-  const days = daysInMonth(schedYear, schedMonth);
 
   // ═════════════════════════════════════════════════════════════════════════
   return (
