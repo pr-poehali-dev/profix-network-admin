@@ -22,6 +22,7 @@ import AdminStaffHub from "@/components/admin/AdminStaffHub";
 import AdminTariffs from "@/components/admin/AdminTariffs";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminDashboardProfile from "@/components/admin/AdminDashboardProfile";
+import AdminReviews from "@/components/admin/AdminReviews";
 import ApiDocs from "@/pages/ApiDocs";
 
 export default function Admin() {
@@ -661,6 +662,7 @@ export default function Admin() {
         {section === "tg-chat" && <AdminStaffHub />}
         {section === "tariffs" && <AdminTariffs />}
         {section === "users" && <AdminUsers currentManagerRole={manager?.role} />}
+        {section === "reviews" && <AdminReviews />}
         {section === "profile" && (
           <AdminProfile
             manager={manager}
