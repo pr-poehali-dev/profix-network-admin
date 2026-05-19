@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { onPhoneChange } from "@/lib/phone";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { clientApi, clientSession, reviewsApi, Ticket, STATUS_COLORS, PRIORITY_COLORS } from "@/lib/crm-api";
@@ -409,7 +410,8 @@ export default function Cabinet() {
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onFocus={e => { if (!e.target.value) setPhone("+7"); }}
+                  onChange={(e) => onPhoneChange(e.target.value, setPhone)}
                   placeholder="+7 (999) 000-00-00"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/30 focus:border-[#3ca615] transition"
                   onKeyDown={(e) => e.key === "Enter" && handleRequestOtp()}

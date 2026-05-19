@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { clientApi } from "@/lib/crm-api";
+import { onPhoneChange } from "@/lib/phone";
 
 const BOT_USERNAME = "ProFiXBot";
 
@@ -336,8 +337,10 @@ export default function CabinetProfile({ client, onBack, onClientUpdate }: Props
           )}
           {phoneStep === "idle" && (
             <div className="flex gap-2">
-              <input type="tel" value={phoneNew} onChange={e => setPhoneNew(e.target.value)}
-                placeholder="Новый номер телефона"
+              <input type="tel" value={phoneNew}
+                onFocus={e => { if (!e.target.value) setPhoneNew("+7"); }}
+                onChange={e => onPhoneChange(e.target.value, setPhoneNew)}
+                placeholder="+7 (___) ___-__-__"
                 className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615]" />
               <button onClick={handlePhoneRequest} disabled={phoneLoading}
                 className="px-3 py-2 rounded-xl text-white text-sm font-medium disabled:opacity-60 flex items-center gap-1"

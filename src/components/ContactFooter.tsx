@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
 import { useSiteContent } from "@/hooks/useSiteContent";
+import { onPhoneChange } from "@/lib/phone";
 
 const topics = [
   "Услуги по 1С",
@@ -91,7 +92,8 @@ const ContactFooter = ({
                   type="tel"
                   required
                   value={formData.phone}
-                  onChange={(e) => onFormChange({ ...formData, phone: e.target.value })}
+                  onFocus={e => { if (!e.target.value) onFormChange({ ...formData, phone: "+7" }); }}
+                  onChange={(e) => onPhoneChange(e.target.value, v => onFormChange({ ...formData, phone: v }))}
                   placeholder="+7 (___) ___-__-__"
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-[#3ca615] focus:ring-2 focus:ring-[#3ca615]/20 transition-all text-sm"
                 />

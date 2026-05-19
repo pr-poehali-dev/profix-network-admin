@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
+import { onPhoneChange } from "@/lib/phone";
 
 const SEND_URL = "https://functions.poehali.dev/d9dfa652-a0b7-4233-ba59-2efd338c4f10";
 
@@ -123,7 +124,8 @@ export default function QuickOrderModal({ open, serviceName, onClose }: Props) {
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Телефон *</label>
               <input
                 type="tel" required value={form.phone}
-                onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                onFocus={e => { if (!e.target.value) setForm(p => ({ ...p, phone: "+7" })); }}
+                onChange={e => onPhoneChange(e.target.value, v => setForm(p => ({ ...p, phone: v })))}
                 placeholder="+7 (___) ___-__-__"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#3ca615] focus:ring-2 focus:ring-[#3ca615]/20"
               />

@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession } from "@/lib/crm-api";
+import { onPhoneChange } from "@/lib/phone";
 
 type Manager = { id: number; name: string; role: string };
 
@@ -161,7 +162,9 @@ export default function AdminProfile({ manager, onManagerUpdate, onBack }: Props
         </div>
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1.5">Телефон</label>
-          <input value={phone} onChange={e => setPhone(e.target.value)}
+          <input value={phone}
+            onFocus={e => { if (!e.target.value) setPhone("+7"); }}
+            onChange={e => onPhoneChange(e.target.value, setPhone)}
             placeholder="+7 (___) ___-__-__" type="tel"
             className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
         </div>

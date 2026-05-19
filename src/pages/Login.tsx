@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { onPhoneChange } from "@/lib/phone";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import TurnstileWidget from "@/components/TurnstileWidget";
@@ -432,7 +433,9 @@ export default function Login() {
                   <>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5">Телефон</label>
-                      <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+                      <input type="tel" value={phone}
+                        onFocus={e => { if (!e.target.value) setPhone("+7"); }}
+                        onChange={e => onPhoneChange(e.target.value, setPhone)}
                         onKeyDown={e => e.key === "Enter" && handleRequestOtp()}
                         placeholder="+7 (999) 000-00-00" autoFocus
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
@@ -492,7 +495,9 @@ export default function Login() {
                   <>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5">Телефон</label>
-                      <input type="tel" value={clientPasswordPhone} onChange={e => setClientPasswordPhone(e.target.value)}
+                      <input type="tel" value={clientPasswordPhone}
+                        onFocus={e => { if (!e.target.value) setClientPasswordPhone("+7"); }}
+                        onChange={e => onPhoneChange(e.target.value, setClientPasswordPhone)}
                         placeholder="+7 (999) 000-00-00" autoFocus
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
                     </div>
@@ -711,7 +716,9 @@ export default function Login() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Телефон *</label>
-                <input type="tel" value={regPhone} onChange={e => setRegPhone(e.target.value)}
+                <input type="tel" value={regPhone}
+                  onFocus={e => { if (!e.target.value) setRegPhone("+7"); }}
+                  onChange={e => onPhoneChange(e.target.value, setRegPhone)}
                   placeholder="+7 (999) 000-00-00"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
               </div>

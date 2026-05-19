@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
+import { onPhoneChange } from "@/lib/phone";
 
 const SEND_URL = "https://functions.poehali.dev/d9dfa652-a0b7-4233-ba59-2efd338c4f10";
 
@@ -97,7 +98,8 @@ const PartnerContactForm = ({ accentColor = "#3ca615", defaultTopic = "" }: Prop
             required
             type="tel"
             value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            onFocus={e => { if (!e.target.value) setForm({ ...form, phone: "+7" }); }}
+            onChange={(e) => onPhoneChange(e.target.value, v => setForm({ ...form, phone: v }))}
             placeholder="+7 (___) ___-__-__"
             className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-[#3ca615] focus:ring-2 focus:ring-[#3ca615]/20 transition-all text-sm"
           />

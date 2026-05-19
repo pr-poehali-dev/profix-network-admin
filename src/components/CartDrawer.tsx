@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { shopApi, cart, CartItem } from "@/lib/shop-api";
+import { onPhoneChange } from "@/lib/phone";
 
 const PAYMENT_OPTIONS = [
   { key: "cash",    icon: "Banknote",    label: "Наличными",       desc: "При получении или в офисе" },
@@ -18,7 +19,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
   const [paymentMethod, setPaymentMethod] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [agreed, setAgreed] = useState(false);
+  const [agreed, setAgreed] = useState(true);
   const [invoiceNumber, setInvoiceNumber] = useState("");
 
   function reload() { setItems(cart.get()); }
@@ -160,8 +161,10 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Телефон *</label>
-                    <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} required
-                      placeholder="+7 (___) ___-__-__" type="tel"
+                    <input value={form.phone}
+                      onFocus={e => { if (!e.target.value) setForm(p => ({ ...p, phone: "+7" })); }}
+                      onChange={e => onPhoneChange(e.target.value, v => setForm(p => ({ ...p, phone: v })))}
+                      required placeholder="+7 (___) ___-__-__" type="tel"
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-green-400" />
                   </div>
                   <div>

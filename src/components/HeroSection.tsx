@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { useSiteContent } from "@/hooks/useSiteContent";
 
@@ -62,6 +62,26 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
   const goTo = useCallback((dir: 1 | -1) => {
     setRealIdx(prev => (prev + dir + n) % n);
   }, [n]);
+
+  // Touch-свайп для мобилки
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+      goTo(dx < 0 ? 1 : -1);
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }
 
   // Автопрокрутка
   useEffect(() => {
@@ -210,7 +230,9 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
             </button>
 
             {/* Трек: looped массив, активный всегда по центру */}
-            <div className="overflow-hidden mx-6">
+            <div className="overflow-hidden mx-6"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}>
               <div
                 className="flex gap-4"
                 style={{
