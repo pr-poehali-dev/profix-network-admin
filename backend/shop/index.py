@@ -416,10 +416,10 @@ def handler(event: dict, context) -> dict:
                 return err("Корзина пуста")
 
             items_text = "\n".join([
-                f"- {i.get('name')} x{i.get('qty',1)} = {i.get('price',0)*i.get('qty',1):,.0f} ₽"
+                f"- {i.get('name')} x{i.get('qty',1)} = {float(i.get('price') or 0)*int(i.get('qty',1)):,.0f} ₽"
                 for i in items
             ])
-            total = sum(i.get("price", 0) * i.get("qty", 1) for i in items)
+            total = sum(float(i.get("price") or 0) * int(i.get("qty", 1)) for i in items)
             title = f"Заказ из магазина: {len(items)} поз. на {total:,.0f} ₽"
             description = f"Клиент: {name}\nТелефон: {phone}"
             if email:
@@ -467,7 +467,7 @@ def handler(event: dict, context) -> dict:
             # Уведомление в Telegram
             pm_labels = {"cash": "Наличными", "card": "Картой", "invoice": "По счёту", "qr": "QR / СБП"}
             items_lines = "\n".join(
-                f"  • {i.get('name')} ×{i.get('qty',1)} — {i.get('price',0)*i.get('qty',1):,.0f} ₽"
+                f"  • {i.get('name')} ×{i.get('qty',1)} — {float(i.get('price') or 0)*int(i.get('qty',1)):,.0f} ₽"
                 for i in items
             )
             tg_text = (
