@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { fetchContent } from "@/lib/content-api";
 import { clientSession, clientApi, managerSession, managerApi } from "@/lib/crm-api";
+import { cart } from "@/lib/shop-api";
+import CartDrawer from "@/components/CartDrawer";
 
 const PARTNER_LINKS = [
   { name: "DataMobile", path: "/datamobile" },
@@ -56,12 +58,20 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
   const [managerAvatar, setManagerAvatar] = useState<string | null>(null);
   const [managerRole, setManagerRole] = useState<string | null>(null);
   const [phoneHref, setPhoneHref] = useState("tel:+79142727187");
+  const [cartCount, setCartCount] = useState(cart.count());
+  const [cartOpen, setCartOpen] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
   const isOnMain = location.pathname === "/";
   const dropdownRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const update = () => setCartCount(cart.count());
+    window.addEventListener("cart-updated", update);
+    return () => window.removeEventListener("cart-updated", update);
+  }, []);
 
   // Проверяем авторизацию менеджера/админа
   useEffect(() => {
@@ -260,6 +270,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
   }
 
   return (
+    <>
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white shadow-md" : "bg-white/80 backdrop-blur"}`}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         {/* Логотип */}
@@ -307,6 +318,15 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         {/* Десктоп — кнопки справа */}
         <div className="hidden md:flex items-center gap-2">
           {btnItems.map(it => renderDesktopBtnItem(it))}
+          {/* Корзина */}
+          <button onClick={() => setCartOpen(true)} className="relative flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] text-[#374151] transition-colors">
+            <Icon name="ShoppingCart" size={17} />
+            {cartCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
+                {cartCount > 9 ? "9+" : cartCount}
+              </span>
+            )}
+          </button>
           {(clientName || managerName)
             ? <a href={phoneHref} title={phone}
                 className="flex items-center justify-center bg-[#3ca615] text-white w-9 h-9 rounded-lg hover:bg-[#2d8a10] transition-colors shrink-0">
@@ -320,10 +340,20 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
           }
         </div>
 
-        {/* Мобильный бургер */}
-        <button className="md:hidden p-2 rounded-lg hover:bg-gray-100" onClick={onMenuToggle}>
-          <Icon name={menuOpen ? "X" : "Menu"} size={22} />
-        </button>
+        {/* Мобильный: корзина + бургер */}
+        <div className="md:hidden flex items-center gap-1">
+          <button onClick={() => setCartOpen(true)} className="relative p-2 rounded-lg hover:bg-gray-100">
+            <Icon name="ShoppingCart" size={20} className="text-[#374151]" />
+            {cartCount > 0 && (
+              <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
+                {cartCount > 9 ? "9+" : cartCount}
+              </span>
+            )}
+          </button>
+          <button className="p-2 rounded-lg hover:bg-gray-100" onClick={onMenuToggle}>
+            <Icon name={menuOpen ? "X" : "Menu"} size={22} />
+          </button>
+        </div>
       </div>
 
       {/* Мобильное меню */}
@@ -444,6 +474,9 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         </div>
       )}
     </header>
+
+    <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+    </>
   );
 };
 
