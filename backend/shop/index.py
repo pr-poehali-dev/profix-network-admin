@@ -454,10 +454,9 @@ def handler(event: dict, context) -> dict:
             cur.execute(f"""
                 INSERT INTO {SC}.tickets
                   (client_id, title, description, status, priority, amount, payment_method, invoice_number, payment_status, source)
-                VALUES (%s, %s, %s, 'new', 'normal', %s, %s, %s, %s, 'shop') RETURNING id
+                VALUES (%s, %s, %s, 'new', 'normal', %s, %s, %s, 'pending', 'manual') RETURNING id
             """, (client_id, title, description, total,
-                  payment_method or None, invoice_number,
-                  'pending' if payment_method in ('invoice','qr') else 'not_required'))
+                  payment_method or None, invoice_number))
             ticket_id = cur.fetchone()[0]
             # Обновляем invoice_number финальным id
             final_invoice = f"INV-{ticket_id:05d}"
