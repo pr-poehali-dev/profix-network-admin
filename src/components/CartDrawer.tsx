@@ -42,6 +42,9 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
 
   async function handleOrder(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.name.trim()) { setError("Укажите ваше имя"); return; }
+    if (!form.phone.trim() || form.phone.trim() === "+7") { setError("Укажите номер телефона"); return; }
+    if (needsInvoice && !form.email.trim()) { setError("Укажите email — счёт придёт на него"); return; }
     if (!paymentMethod) { setError("Выберите способ оплаты"); return; }
     setLoading(true); setError("");
     try {
@@ -155,7 +158,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
                 <div className="space-y-2">
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Ваше имя *</label>
-                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required
+                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                       placeholder="Иван Иванов"
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-green-400" />
                   </div>
@@ -164,7 +167,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
                     <input value={form.phone}
                       onFocus={e => { if (!e.target.value) setForm(p => ({ ...p, phone: "+7" })); }}
                       onChange={e => onPhoneChange(e.target.value, v => setForm(p => ({ ...p, phone: v })))}
-                      required placeholder="+7 (___) ___-__-__" type="tel"
+                      placeholder="+7 (___) ___-__-__" type="tel"
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-green-400" />
                   </div>
                   <div>
@@ -173,7 +176,7 @@ export default function CartDrawer({ open, onClose }: { open: boolean; onClose: 
                       {needsInvoice && <span className="text-gray-400 font-normal ml-1">(счёт придёт сюда)</span>}
                     </label>
                     <input value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                      required={needsInvoice} placeholder="your@email.com" type="email"
+                      placeholder="your@email.com" type="email"
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-green-400" />
                   </div>
                   <div>
