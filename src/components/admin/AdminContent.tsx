@@ -68,7 +68,9 @@ interface TicketsProps {
   tickets: Ticket[];
   loading: boolean;
   statusFilter: string;
+  sourceFilter?: string;
   onFilterChange: (f: string) => void;
+  onSourceFilterChange?: (s: string) => void;
   onOpenTicket: (t: Ticket) => void;
 }
 
@@ -224,7 +226,7 @@ export function AdminDashboard({ stats, tickets, loading, onOpenTicket, onGoTick
 
 // ── СПИСОК ЗАЯВОК ─────────────────────────────────────────────────────────────
 
-export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, onOpenTicket }: TicketsProps) {
+export function AdminTickets({ tickets, loading, statusFilter, sourceFilter = "", onFilterChange, onSourceFilterChange, onOpenTicket }: TicketsProps) {
   const [techFilter, setTechFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
 
@@ -330,6 +332,25 @@ export function AdminTickets({ tickets, loading, statusFilter, onFilterChange, o
 
       {/* Фильтры */}
       <div className="space-y-3 mb-5">
+        {/* Источник */}
+        {onSourceFilterChange && (
+          <div className="flex gap-2">
+            {[
+              { value: "", label: "Все заявки", icon: "LayoutList" },
+              { value: "shop", label: "🛒 Магазин", icon: "" },
+              { value: "other", label: "Обычные", icon: "" },
+            ].map(s => (
+              <button key={s.value} onClick={() => onSourceFilterChange(s.value)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-colors border ${
+                  sourceFilter === s.value ? "text-white border-transparent" : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                }`}
+                style={sourceFilter === s.value ? { background: "#111827", borderColor: "#111827" } : {}}>
+                {s.icon && <Icon name={s.icon as "LayoutList"} size={14} />}
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
         {/* Статус */}
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTER_LABELS.map((f) => (

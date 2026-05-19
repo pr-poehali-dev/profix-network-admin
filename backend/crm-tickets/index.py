@@ -347,6 +347,7 @@ def handler(event: dict, context) -> dict:
             status_filter = params.get("status", "")
             tech_filter = params.get("technician_id", "")
             date_filter = params.get("date", "")
+            source_filter = params.get("source", "")
             where_parts = []
             where_vals = []
             if status_filter:
@@ -358,6 +359,12 @@ def handler(event: dict, context) -> dict:
             if date_filter:
                 where_parts.append("t.scheduled_date = %s")
                 where_vals.append(date_filter)
+            if source_filter == "shop":
+                where_parts.append("t.title LIKE %s")
+                where_vals.append("Заказ из магазина%")
+            elif source_filter == "other":
+                where_parts.append("(t.title NOT LIKE %s OR t.title IS NULL)")
+                where_vals.append("Заказ из магазина%")
             where_sql = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
             cur.execute(
                 f"""SELECT t.id, t.title, t.status, t.priority, t.amount, t.paid,

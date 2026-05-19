@@ -46,6 +46,7 @@ export default function Admin() {
   const [selectedTech, setSelectedTech] = useState<Technician | null>(null);
   const [techSchedule, setTechSchedule] = useState<Ticket[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [comment, setComment] = useState("");
@@ -90,10 +91,10 @@ export default function Admin() {
     }
   }, []);
 
-  const loadTickets = useCallback(async (status?: string) => {
+  const loadTickets = useCallback(async (status?: string, source?: string) => {
     try {
       setLoading(true);
-      const res = await managerApi.getTickets(status || undefined);
+      const res = await managerApi.getTickets(status || undefined, source || undefined);
       if (res.tickets) setTickets(res.tickets);
     } catch {
       setError("Не удалось загрузить заявки");
@@ -377,16 +378,22 @@ export default function Admin() {
     setSelectedTech(null);
     if (s === "tickets" || s === "dashboard") { setNewCommentCount(0); setNewTicketCount(0); }
     if (s === "dashboard") loadDashboard();
-    if (s === "tickets") loadTickets(statusFilter);
+    if (s === "tickets") loadTickets(statusFilter, sourceFilter);
     if (s === "clients") loadClients();
     if (s === "managers") loadManagers();
     if (s === "technicians") loadTechnicians();
     if (s === "reviews") { loadReviews(); setNewReviewCount(0); }
   }
 
+  function handleSourceFilterChange(s: string) {
+    setSourceFilter(s);
+    setStatusFilter("");
+    loadTickets("", s);
+  }
+
   function handleFilterChange(f: string) {
     setStatusFilter(f);
-    loadTickets(f);
+    loadTickets(f, sourceFilter);
   }
 
   async function handleOpenTicket(ticket: Ticket) {
@@ -605,7 +612,9 @@ export default function Admin() {
             tickets={tickets}
             loading={loading}
             statusFilter={statusFilter}
+            sourceFilter={sourceFilter}
             onFilterChange={handleFilterChange}
+            onSourceFilterChange={handleSourceFilterChange}
             onOpenTicket={handleOpenTicket}
           />
         )}
