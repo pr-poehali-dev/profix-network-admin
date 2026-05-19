@@ -10,6 +10,20 @@ import psycopg2
 import boto3
 import uuid
 from datetime import datetime
+from urllib.request import urlopen, Request as URequest
+
+
+def _send_tg(chat_id: str, text: str) -> None:
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not token or not chat_id:
+        return
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode()
+    req = URequest(url, data=data, headers={"Content-Type": "application/json"})
+    try:
+        urlopen(req, timeout=5)
+    except Exception:
+        pass
 
 SC = os.environ.get("MAIN_DB_SCHEMA") or "t_p83689144_profix_network_admin"
 
@@ -449,6 +463,22 @@ def handler(event: dict, context) -> dict:
             final_invoice = f"INV-{ticket_id:05d}"
             cur.execute(f"UPDATE {SC}.tickets SET invoice_number=%s WHERE id=%s", (final_invoice, ticket_id))
             conn.commit()
+
+            # Уведомление в Telegram
+            pm_labels = {"cash": "Наличными", "card": "Картой", "invoice": "По счёту", "qr": "QR / СБП"}
+            items_lines = "\n".join(
+                f"  • {i.get('name')} ×{i.get('qty',1)} — {i.get('price',0)*i.get('qty',1):,.0f} ₽"
+                for i in items
+            )
+            tg_text = (
+                f"🛒 <b>Новый заказ #{ticket_id}</b>\n"
+                f"👤 {name} | 📞 {phone}\n"
+                f"💳 {pm_labels.get(payment_method, payment_method or '—')}\n"
+                f"💰 Итого: <b>{total:,.0f} ₽</b>\n\n"
+                f"{items_lines}"
+            )
+            _send_tg(os.environ.get("TELEGRAM_CHAT_ID", ""), tg_text)
+
             return ok({"ok": True, "ticket_id": ticket_id, "invoice_number": final_invoice,
                        "payment_method": payment_method, "total": total})
 
