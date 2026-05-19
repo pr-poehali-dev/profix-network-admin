@@ -6,11 +6,68 @@ import os
 import base64
 import csv
 import io
+import smtplib
 import psycopg2
 import boto3
 import uuid
 from datetime import datetime
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from urllib.request import urlopen, Request as URequest
+
+
+def _send_email_order(ticket_id: int, name: str, phone: str, email: str,
+                      payment_method: str, total: float, items_html: str) -> None:
+    smtp_host     = os.environ.get("SMTP_HOST", "")
+    smtp_port_str = os.environ.get("SMTP_PORT", "465")
+    smtp_user     = os.environ.get("SMTP_USER", "")
+    smtp_password = os.environ.get("SMTP_PASSWORD", "")
+    if not smtp_host or not smtp_user or not smtp_password:
+        return
+    to_email = smtp_user
+    pm_labels = {"cash": "Наличными", "card": "Картой", "invoice": "По счёту", "qr": "QR / СБП"}
+    pm_label  = pm_labels.get(payment_method, payment_method or "—")
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"🛒 Новый заказ #{ticket_id} из магазина — {name}"
+    msg["From"]    = smtp_user
+    msg["To"]      = to_email
+    html = f"""
+    <html><body style="font-family:Arial,sans-serif;color:#1a1a1a;max-width:600px;margin:0 auto;padding:20px;">
+      <div style="background:#3ca615;padding:24px;border-radius:12px 12px 0 0;">
+        <h1 style="color:white;margin:0;font-size:20px;">🛒 Заказ #{ticket_id} из магазина ProFiX</h1>
+      </div>
+      <div style="background:#f7f9fc;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:8px 0;color:#6b7280;font-size:13px;width:130px;">Клиент</td><td style="padding:8px 0;font-weight:600;">{name}</td></tr>
+          <tr style="border-top:1px solid #e5e7eb;"><td style="padding:8px 0;color:#6b7280;font-size:13px;">Телефон</td><td style="padding:8px 0;font-weight:600;"><a href="tel:{phone}" style="color:#3ca615;">{phone}</a></td></tr>
+          {"" if not email else f'<tr style="border-top:1px solid #e5e7eb;"><td style="padding:8px 0;color:#6b7280;font-size:13px;">Email</td><td style="padding:8px 0;">{email}</td></tr>'}
+          <tr style="border-top:1px solid #e5e7eb;"><td style="padding:8px 0;color:#6b7280;font-size:13px;">Оплата</td><td style="padding:8px 0;">{pm_label}</td></tr>
+        </table>
+        <div style="margin-top:16px;padding:16px;background:white;border-radius:8px;border:1px solid #e5e7eb;">
+          <p style="margin:0 0 10px;font-weight:700;color:#111;">Состав заказа:</p>
+          {items_html}
+          <div style="border-top:2px solid #3ca615;margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;">
+            <span style="font-weight:700;font-size:16px;">Итого</span>
+            <span style="font-weight:700;font-size:16px;color:#3ca615;">{total:,.0f} ₽</span>
+          </div>
+        </div>
+      </div>
+    </body></html>
+    """
+    msg.attach(MIMEText(html, "html", "utf-8"))
+    try:
+        smtp_port = int(smtp_port_str)
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port) as s:
+                s.login(smtp_user, smtp_password)
+                s.sendmail(smtp_user, to_email, msg.as_string())
+        else:
+            with smtplib.SMTP(smtp_host, smtp_port) as s:
+                s.starttls()
+                s.login(smtp_user, smtp_password)
+                s.sendmail(smtp_user, to_email, msg.as_string())
+    except Exception:
+        pass
 
 
 def _send_tg(chat_id: str, text: str) -> None:
@@ -463,7 +520,7 @@ def handler(event: dict, context) -> dict:
             cur.execute(f"UPDATE {SC}.tickets SET invoice_number=%s WHERE id=%s", (final_invoice, ticket_id))
             conn.commit()
 
-            # Уведомление в Telegram
+            # Уведомление в Telegram + письмо на почту
             pm_labels = {"cash": "Наличными", "card": "Картой", "invoice": "По счёту", "qr": "QR / СБП"}
             items_lines = "\n".join(
                 f"  • {i.get('name')} ×{i.get('qty',1)} — {float(i.get('price') or 0)*int(i.get('qty',1)):,.0f} ₽"
@@ -477,6 +534,16 @@ def handler(event: dict, context) -> dict:
                 f"{items_lines}"
             )
             _send_tg(os.environ.get("TELEGRAM_CHAT_ID", ""), tg_text)
+
+            # Письмо на почту
+            items_html = "".join(
+                f'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:14px;">'
+                f'<span>{i.get("name")} <span style="color:#9ca3af;">×{i.get("qty",1)}</span></span>'
+                f'<span style="font-weight:600;">{float(i.get("price") or 0)*int(i.get("qty",1)):,.0f} ₽</span>'
+                f'</div>'
+                for i in items
+            )
+            _send_email_order(ticket_id, name, phone, email, payment_method, total, items_html)
 
             return ok({"ok": True, "ticket_id": ticket_id, "invoice_number": final_invoice,
                        "payment_method": payment_method, "total": total})
