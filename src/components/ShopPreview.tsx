@@ -51,10 +51,10 @@ function ProductCard({ product }: { product: Product }) {
               ? <span className="text-[10px] text-red-500 font-medium">Нет в наличии</span>
               : <button
                   onClick={handleAdd}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
-                  style={{ background: added ? "#22c55e" : "#3ca615", color: "#ffffff" }}
+                  className="w-full py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+                  style={{ background: added ? "#22c55e" : "#3ca615", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
                 >
-                  {added ? "✓ Добавлено!" : "🛒 В корзину"}
+                  <span style={{ color: "#fff" }}>{added ? "✓ Добавлено!" : "🛒 В корзину"}</span>
                 </button>
             }
           </div>
