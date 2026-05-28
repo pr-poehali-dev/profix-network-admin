@@ -51,8 +51,8 @@ function ProductCard({ product }: { product: Product }) {
               ? <span className="text-[10px] text-red-500 font-medium">Нет в наличии</span>
               : <button
                   onClick={handleAdd}
-                  className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${added ? "bg-green-500 text-white" : "text-white hover:opacity-90"}`}
-                  style={added ? {} : { background: "#3ca615" }}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90"
+                  style={{ background: added ? "#22c55e" : "#3ca615" }}
                 >
                   <Icon name={added ? "Check" : "ShoppingCart"} size={13} />
                   {added ? "Добавлено!" : "В корзину"}
