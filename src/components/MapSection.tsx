@@ -11,7 +11,7 @@ export default function MapSection() {
             <p className="text-gray-500 text-sm">{str("contacts.address", "г. Якутск, ул. Халтурина, д. 6")}</p>
           </div>
           <a
-            href={str("contacts.map_url", "https://yandex.ru/map-widget/v1/?ll=129.736301%2C62.047174&z=17&pt=129.736301%2C62.047174%2Cpm2rdm&l=map")}
+            href={str("contacts.map_url", "https://yandex.ru/maps/74/yakutsk/?pt=129.737092%2C62.047747&z=17")}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#3ca615] text-[#3ca615] text-sm font-medium hover:bg-[#edf7e8] transition"
@@ -22,7 +22,7 @@ export default function MapSection() {
 
         <div className="rounded-2xl overflow-hidden shadow-lg border border-gray-100" style={{ height: "400px" }}>
           <iframe
-            src={str("contacts.map_url", "https://yandex.ru/map-widget/v1/?ll=129.736301%2C62.047174&z=17&pt=129.736301%2C62.047174%2Cpm2rdm&l=map")}
+            src={str("contacts.map_embed_url", "https://yandex.ru/map-widget/v1/?ll=129.737092%2C62.047747&z=17&pt=129.737092%2C62.047747%2Cpm2rdm&l=map")}
             width="100%"
             height="100%"
             frameBorder="0"
