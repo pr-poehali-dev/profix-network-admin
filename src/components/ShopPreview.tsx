@@ -98,7 +98,8 @@ export default function ShopPreview() {
             {cartCount > 0 && (
               <button
                 onClick={() => setCartOpen(true)}
-                className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-[#3ca615] text-[#3ca615] text-sm font-semibold hover:bg-[#3ca615] hover:text-white transition-all"
+                className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                style={{ background: "#3ca615", color: "#ffffff", border: "2px solid #3ca615" }}
               >
                 <Icon name="ShoppingCart" size={16} />
                 Корзина
@@ -143,8 +144,8 @@ export default function ShopPreview() {
             {cartCount > 0 && (
               <button
                 onClick={() => setCartOpen(true)}
-                className="relative flex items-center gap-2 px-6 py-3 rounded-xl border-2 font-semibold text-sm transition-all"
-                style={{ borderColor: "#3ca615", color: "#3ca615" }}
+                className="relative flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all"
+                style={{ background: "#3ca615", color: "#ffffff", border: "2px solid #3ca615" }}
               >
                 <Icon name="ShoppingCart" size={18} />
                 Корзина ({cartCount})
