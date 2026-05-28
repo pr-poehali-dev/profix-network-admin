@@ -220,7 +220,8 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
             <div
               className="flex gap-4"
               style={{
-                transition: "transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94)",
+                transition: "transform 0.55s cubic-bezier(0.4,0,0.2,1)",
+                willChange: "transform",
                 transform: `translateX(calc(
                   -${loopedIdx * (100 / perView)}%
                   - ${loopedIdx * 16}px
@@ -239,10 +240,10 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
                       const delta = i - loopedIdx;
                       setRealIdx(prev => (prev + delta + n) % n);
                     }}
-                    className={`shrink-0 cursor-pointer rounded-2xl overflow-hidden transition-all duration-500 ${
+                    className={`shrink-0 cursor-pointer rounded-2xl overflow-hidden transition-opacity transition-shadow duration-300 ${
                       isActive
-                        ? "shadow-2xl scale-100 opacity-100"
-                        : "shadow-md scale-95 opacity-60 hover:opacity-80 hover:scale-[0.97]"
+                        ? "shadow-2xl opacity-100"
+                        : "shadow-md opacity-60 hover:opacity-80"
                     }`}
                     style={{ width: slideWidth }}
                   >

@@ -172,7 +172,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
     if (it.type === "section") {
       return (
         <button key={it.id} onClick={() => handleNavClick(it.section || it.label)}
-          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+          className={`px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap ${
             isOnMain && activeSection === (it.section || it.label)
               ? "bg-[#3ca615] text-white"
               : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
@@ -184,7 +184,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
     if (it.type === "page") {
       return (
         <button key={it.id} onClick={() => navigate(`/p/${it.slug}`)}
-          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap ${
             location.pathname === `/p/${it.slug}` ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
           }`}>
           {it.label}
@@ -285,13 +285,13 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         </button>
 
         {/* Десктоп — меню */}
-        <nav className="hidden md:flex items-center gap-0.5 justify-center flex-1 min-w-0 overflow-hidden">
+        <nav className="hidden md:flex items-center gap-0.5 justify-center flex-1 min-w-0">
           {menuItems.map(it => renderDesktopMenuItem(it))}
 
           {/* Партнёры */}
           <div ref={dropdownRef} className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <button onClick={() => setPartnersOpen(v => !v)}
-              className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap ${
                 partnersOpen ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
               }`}>
               Партнёры
