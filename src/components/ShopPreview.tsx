@@ -98,12 +98,13 @@ export default function ShopPreview() {
             {cartCount > 0 && (
               <button
                 onClick={() => setCartOpen(true)}
-                className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                style={{ background: "#3ca615", color: "#ffffff", border: "2px solid #3ca615" }}
+                className="relative rounded-xl text-sm font-semibold transition-all"
+                style={{ background: "#3ca615", color: "#ffffff", border: "2px solid #3ca615", display: "flex", alignItems: "center", gap: "8px", padding: "10px 16px" }}
               >
-                <Icon name="ShoppingCart" size={16} />
-                Корзина
-                <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
+                <span style={{ color: "#ffffff", display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600 }}>
+                  🛒 <span style={{ color: "#ffffff" }}>Корзина</span>
+                </span>
+                <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full text-[10px] font-bold flex items-center justify-center" style={{ color: "#ffffff" }}>
                   {cartCount > 9 ? "9+" : cartCount}
                 </span>
               </button>
@@ -144,11 +145,10 @@ export default function ShopPreview() {
             {cartCount > 0 && (
               <button
                 onClick={() => setCartOpen(true)}
-                className="relative flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all"
-                style={{ background: "#3ca615", color: "#ffffff", border: "2px solid #3ca615" }}
+                className="relative rounded-xl font-semibold text-sm transition-all"
+                style={{ background: "#3ca615", color: "#ffffff", border: "2px solid #3ca615", display: "flex", alignItems: "center", gap: "8px", padding: "12px 24px" }}
               >
-                <Icon name="ShoppingCart" size={18} />
-                Корзина ({cartCount})
+                <span style={{ color: "#ffffff", fontSize: "14px", fontWeight: 600 }}>🛒 Корзина ({cartCount})</span>
               </button>
             )}
             <button
