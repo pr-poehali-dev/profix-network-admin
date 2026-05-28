@@ -97,8 +97,33 @@ export const shopApi = {
   placeOrder: (data: {
     name: string; phone: string; email?: string; comment?: string;
     payment_method?: string;
+    delivery_type?: string;
+    delivery_address?: string;
+    client_type?: string;
+    company_name?: string;
+    company_inn?: string;
     items: { name: string; qty: number; price: number }[];
-  }) => req("order", "POST", data),
+  }, token?: string) => {
+    const url = new URL(SHOP_URL);
+    url.searchParams.set("type", "order");
+    return fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(data),
+    }).then(r => r.json());
+  },
+
+  // Мои заказы (для клиента)
+  getMyOrders: (token: string) => {
+    const url = new URL(SHOP_URL);
+    url.searchParams.set("type", "orders");
+    return fetch(url.toString(), {
+      headers: { "Authorization": `Bearer ${token}` },
+    }).then(r => r.json());
+  },
 
   // Счёт
   getInvoice: (invoiceNumber: string) =>

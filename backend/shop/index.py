@@ -459,14 +459,60 @@ def handler(event: dict, context) -> dict:
                 return ok({"ok": True})
 
         # ══════════════════════════════════════════════════════════════════════
+        # СПИСОК ЗАКАЗОВ КЛИЕНТА
+        # ══════════════════════════════════════════════════════════════════════
+        if resource == "orders" and method == "GET":
+            token = (event.get("headers") or {}).get("X-Authorization", "").replace("Bearer ", "").strip()
+            client_id = None
+            if token:
+                cur.execute(f"SELECT client_id FROM {SC}.client_sessions WHERE token=%s AND expires_at>NOW() LIMIT 1", (token,))
+                row = cur.fetchone()
+                if row:
+                    client_id = row[0]
+            if not client_id:
+                return err("Unauthorized", 401)
+            cur.execute(f"""
+                SELECT id, invoice_number, status, payment_status, payment_method,
+                       total, items, delivery_type, created_at
+                FROM {SC}.shop_orders
+                WHERE client_id=%s ORDER BY created_at DESC LIMIT 50
+            """, (client_id,))
+            rows = cur.fetchall()
+            orders = []
+            for r in rows:
+                orders.append({
+                    "id": r[0], "invoice_number": r[1], "status": r[2],
+                    "payment_status": r[3], "payment_method": r[4],
+                    "total": float(r[5]) if r[5] else 0,
+                    "items": r[6] if r[6] else [],
+                    "delivery_type": r[7],
+                    "created_at": r[8].isoformat() if r[8] else None,
+                })
+            return ok({"orders": orders})
+
+        # ══════════════════════════════════════════════════════════════════════
         # ОФОРМЛЕНИЕ ЗАКАЗА
         # ══════════════════════════════════════════════════════════════════════
         if resource == "order" and method == "POST":
-            name           = body.get("name", "").strip()
-            phone          = body.get("phone", "").strip()
-            email          = body.get("email", "").strip()
-            payment_method = body.get("payment_method", "").strip()  # cash | card | invoice | qr
-            items          = body.get("items", [])
+            name            = body.get("name", "").strip()
+            phone           = body.get("phone", "").strip()
+            email           = body.get("email", "").strip()
+            payment_method  = body.get("payment_method", "").strip()
+            delivery_type   = body.get("delivery_type", "physical").strip()  # physical | digital | pickup
+            delivery_address= body.get("delivery_address", "").strip()
+            client_type     = body.get("client_type", "individual").strip()  # individual | company
+            company_name    = body.get("company_name", "").strip()
+            company_inn     = body.get("company_inn", "").strip()
+            items           = body.get("items", [])
+            # client_id из токена если авторизован
+            token = (event.get("headers") or {}).get("X-Authorization", "").replace("Bearer ", "").strip()
+            auth_client_id = None
+            if token:
+                cur.execute(f"SELECT client_id FROM {SC}.client_sessions WHERE token=%s AND expires_at>NOW() LIMIT 1", (token,))
+                row = cur.fetchone()
+                if row:
+                    auth_client_id = row[0]
+
             if not name or not phone:
                 return err("Укажите имя и телефон")
             if not items:
@@ -478,30 +524,43 @@ def handler(event: dict, context) -> dict:
             ])
             total = sum(float(i.get("price") or 0) * int(i.get("qty", 1)) for i in items)
             title = f"Заказ из магазина: {len(items)} поз. на {total:,.0f} ₽"
+
+            dt_labels = {"physical": "Доставка", "digital": "Электронная доставка", "pickup": "Самовывоз"}
+            pm_labels = {"cash": "Наличными", "card": "Картой", "invoice": "По счёту", "qr": "QR / СБП"}
+
             description = f"Клиент: {name}\nТелефон: {phone}"
             if email:
                 description += f"\nEmail: {email}"
+            description += f"\nТип доставки: {dt_labels.get(delivery_type, delivery_type)}"
+            if delivery_type == "physical" and delivery_address:
+                description += f"\nАдрес: {delivery_address}"
+            if client_type == "company":
+                description += f"\nЮр. лицо: {company_name}"
+                if company_inn: description += f" ИНН: {company_inn}"
             if payment_method:
-                pm_labels = {"cash": "Наличными", "card": "Картой", "invoice": "По счёту", "qr": "QR / СБП"}
                 description += f"\nСпособ оплаты: {pm_labels.get(payment_method, payment_method)}"
             description += f"\n\nТовары:\n{items_text}"
             if body.get("comment"):
                 description += f"\n\nКомментарий: {body['comment']}"
 
             # Найти или создать клиента
-            client_id = None
-            cur.execute(f"SELECT id FROM {SC}.clients WHERE phone = %s LIMIT 1", (phone,))
-            cl = cur.fetchone()
-            if cl:
-                client_id = cl[0]
+            if auth_client_id:
+                client_id = auth_client_id
                 if email:
-                    cur.execute(f"UPDATE {SC}.clients SET email=COALESCE(email,%s), name=COALESCE(NULLIF(name,''),%s) WHERE id=%s", (email, name, client_id))
+                    cur.execute(f"UPDATE {SC}.clients SET email=COALESCE(NULLIF(email,''),%s) WHERE id=%s", (email, client_id))
             else:
-                cur.execute(
-                    f"INSERT INTO {SC}.clients (name, phone, email) VALUES (%s, %s, %s) RETURNING id",
-                    (name, phone, email or None)
-                )
-                client_id = cur.fetchone()[0]
+                cur.execute(f"SELECT id FROM {SC}.clients WHERE phone = %s LIMIT 1", (phone,))
+                cl = cur.fetchone()
+                if cl:
+                    client_id = cl[0]
+                    if email:
+                        cur.execute(f"UPDATE {SC}.clients SET email=COALESCE(email,%s), name=COALESCE(NULLIF(name,''),%s) WHERE id=%s", (email, name, client_id))
+                else:
+                    cur.execute(
+                        f"INSERT INTO {SC}.clients (name, phone, email) VALUES (%s, %s, %s) RETURNING id",
+                        (name, phone, email or None)
+                    )
+                    client_id = cur.fetchone()[0]
 
             # Генерируем номер счёта
             cur.execute(f"SELECT COALESCE(MAX(id),0)+1 FROM {SC}.tickets")
@@ -512,16 +571,30 @@ def handler(event: dict, context) -> dict:
                 INSERT INTO {SC}.tickets
                   (client_id, title, description, status, priority, amount, payment_method, invoice_number, payment_status, source)
                 VALUES (%s, %s, %s, 'new', 'normal', %s, %s, %s, 'pending', 'manual') RETURNING id
-            """, (client_id, title, description, total,
-                  payment_method or None, invoice_number))
+            """, (client_id, title, description, total, payment_method or None, invoice_number))
             ticket_id = cur.fetchone()[0]
-            # Обновляем invoice_number финальным id
             final_invoice = f"INV-{ticket_id:05d}"
             cur.execute(f"UPDATE {SC}.tickets SET invoice_number=%s WHERE id=%s", (final_invoice, ticket_id))
+
+            # Сохраняем в shop_orders
+            import json as _json
+            cur.execute(f"""
+                INSERT INTO {SC}.shop_orders
+                  (ticket_id, client_id, name, phone, email, delivery_type, delivery_address,
+                   client_type, company_name, company_inn, payment_method, payment_status,
+                   status, total, items, invoice_number, comment)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'pending','new',%s,%s,%s,%s)
+            """, (
+                ticket_id, client_id, name, phone, email or None,
+                delivery_type, delivery_address or None,
+                client_type, company_name or None, company_inn or None,
+                payment_method or None, total,
+                _json.dumps(items, ensure_ascii=False),
+                final_invoice, body.get("comment") or None
+            ))
             conn.commit()
 
             # Уведомление в Telegram + письмо на почту
-            pm_labels = {"cash": "Наличными", "card": "Картой", "invoice": "По счёту", "qr": "QR / СБП"}
             items_lines = "\n".join(
                 f"  • {i.get('name')} ×{i.get('qty',1)} — {float(i.get('price') or 0)*int(i.get('qty',1)):,.0f} ₽"
                 for i in items
@@ -529,13 +602,14 @@ def handler(event: dict, context) -> dict:
             tg_text = (
                 f"🛒 <b>Новый заказ #{ticket_id}</b>\n"
                 f"👤 {name} | 📞 {phone}\n"
+                f"📦 {dt_labels.get(delivery_type, delivery_type)}"
+                + (f" → {delivery_address}" if delivery_type == "physical" and delivery_address else "") + "\n"
                 f"💳 {pm_labels.get(payment_method, payment_method or '—')}\n"
                 f"💰 Итого: <b>{total:,.0f} ₽</b>\n\n"
                 f"{items_lines}"
             )
             _send_tg(os.environ.get("TELEGRAM_CHAT_ID", ""), tg_text)
 
-            # Письмо на почту
             items_html = "".join(
                 f'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:14px;">'
                 f'<span>{i.get("name")} <span style="color:#9ca3af;">×{i.get("qty",1)}</span></span>'

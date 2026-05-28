@@ -33,7 +33,12 @@ export default function Cabinet() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [view, setView] = useState<"list" | "ticket" | "new" | "review" | "chat" | "profile">("list");
+  const [view, setView] = useState<"list" | "ticket" | "new" | "review" | "chat" | "profile" | "orders" | "requisites">("list");
+  const [orders, setOrders] = useState<{id:number;invoice_number:string;status:string;payment_status:string;payment_method:string;total:number;items:{name:string;qty:number;price:number}[];delivery_type:string;created_at:string}[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [requisites, setRequisites] = useState({ client_type: "individual", company_name: "", company_inn: "", company_kpp: "", company_address: "" });
+  const [reqSaving, setReqSaving] = useState(false);
+  const [reqSuccess, setReqSuccess] = useState(false);
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<{id?:number;from:"user"|"bot"|"operator";text:string;time:string}[]>([
@@ -111,6 +116,18 @@ export default function Cabinet() {
     } catch {
       setError("Не удалось загрузить заявки");
     }
+  }
+
+  async function loadOrders() {
+    const token = clientSession.get();
+    if (!token) return;
+    setOrdersLoading(true);
+    try {
+      const { shopApi } = await import("@/lib/shop-api");
+      const res = await shopApi.getMyOrders(token);
+      if (res.orders) setOrders(res.orders);
+    } catch { /* ignore */ }
+    finally { setOrdersLoading(false); }
   }
 
   async function handleRequestOtp() {
@@ -542,7 +559,7 @@ export default function Cabinet() {
       <header className="bg-white border-b border-gray-100 shadow-sm h-16 flex items-center px-6">
         <div className="max-w-3xl mx-auto w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {(view === "ticket" || view === "new" || view === "review" || view === "chat" || view === "profile") && (
+            {(view === "ticket" || view === "new" || view === "review" || view === "chat" || view === "profile" || view === "orders" || view === "requisites") && (
               <button
                 onClick={() => { setView("list"); setSelectedTicket(null); setError(""); setReviewSent(false); }}
                 className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500"
@@ -560,9 +577,19 @@ export default function Cabinet() {
               {view === "review" && "Оставить отзыв"}
               {view === "chat" && "Чат с менеджером"}
               {view === "profile" && "Профиль"}
+              {view === "orders" && "Мои заказы"}
+              {view === "requisites" && "Реквизиты"}
             </span>
           </div>
           <div className="flex items-center gap-2">
+            {/* Мои заказы */}
+            <button
+              onClick={() => { setView("orders"); loadOrders(); }}
+              className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition ${view === "orders" ? "bg-[#3ca615] text-white" : "border border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+            >
+              <Icon name="ShoppingBag" size={15} />
+              <span className="hidden sm:inline">Заказы</span>
+            </button>
             {/* Кнопка чата */}
             <button
               onClick={() => { setView("chat"); setChatUnread(0); }}
@@ -593,6 +620,13 @@ export default function Cabinet() {
               <span className="text-sm text-gray-600 hidden sm:block max-w-[100px] truncate">
                 {client?.name || client?.phone || phone}
               </span>
+            </button>
+            <button
+              onClick={() => setView("requisites")}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition ${view === "requisites" ? "bg-[#3ca615] text-white" : "border border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+            >
+              <Icon name="Building2" size={15} />
+              <span className="hidden sm:inline">Реквизиты</span>
             </button>
             <button
               onClick={handleLogout}
@@ -1093,6 +1127,123 @@ export default function Cabinet() {
                 <Icon name="Send" size={16} className="text-white" />
               </button>
             </div>
+          </div>
+        )}
+
+        {/* ── Мои заказы ── */}
+        {view === "orders" && (
+          <div>
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-sm text-gray-500">{ordersLoading ? "Загружаем..." : orders.length === 0 ? "Заказов пока нет" : `${orders.length} ${orders.length === 1 ? "заказ" : orders.length < 5 ? "заказа" : "заказов"}`}</p>
+            </div>
+            {orders.length === 0 && !ordersLoading && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+                <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Icon name="ShoppingBag" size={24} className="text-gray-400" />
+                </div>
+                <p className="text-gray-500 text-sm">Здесь будут ваши заказы из магазина</p>
+              </div>
+            )}
+            <div className="space-y-3">
+              {orders.map(order => {
+                const st = { new: { label: "Новый", color: "#6366f1" }, in_progress: { label: "В обработке", color: "#f59e0b" }, waiting: { label: "Ожидание", color: "#8b5cf6" }, done: { label: "Выполнен", color: "#3ca615" } }[order.status] || { label: order.status, color: "#9ca3af" };
+                const ps = { pending: { label: "Ожидает оплаты", color: "#f59e0b" }, paid: { label: "Оплачен", color: "#3ca615" }, not_required: { label: "Не требуется", color: "#9ca3af" } }[order.payment_status] || { label: order.payment_status, color: "#9ca3af" };
+                const pm: Record<string, string> = { cash: "Наличными", card: "Картой", invoice: "По счёту", qr: "QR / СБП" };
+                const dt: Record<string, string> = { pickup: "Самовывоз", physical: "Доставка", digital: "Электронная" };
+                return (
+                  <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{order.invoice_number}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{new Date(order.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ background: st.color }}>{st.label}</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ background: ps.color }}>{ps.label}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1 mb-3">
+                      {(order.items as {name:string;qty:number;price:number}[]).map((it, i) => (
+                        <div key={i} className="flex justify-between text-xs text-gray-600">
+                          <span className="truncate flex-1 mr-2">{it.name} ×{it.qty}</span>
+                          <span className="font-medium shrink-0">{(it.price * it.qty).toLocaleString("ru-RU")} ₽</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+                      <div className="flex items-center gap-3 text-xs text-gray-400">
+                        <span>{dt[order.delivery_type] || order.delivery_type}</span>
+                        {order.payment_method && <span>{pm[order.payment_method] || order.payment_method}</span>}
+                      </div>
+                      <p className="font-bold text-gray-900 text-sm">{order.total.toLocaleString("ru-RU")} ₽</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Реквизиты ── */}
+        {view === "requisites" && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-3">Тип получателя</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[{ key: "individual", label: "Физическое лицо", icon: "User" }, { key: "company", label: "Юридическое лицо", icon: "Building2" }].map(opt => (
+                  <button key={opt.key} type="button"
+                    onClick={() => setRequisites(p => ({ ...p, client_type: opt.key }))}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${requisites.client_type === opt.key ? "border-[#3ca615] bg-[#edf7e8] text-[#2d6a0a]" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}>
+                    <Icon name={opt.icon as "User"} size={15} />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {requisites.client_type === "company" && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Название организации</label>
+                  <input value={requisites.company_name} onChange={e => setRequisites(p => ({ ...p, company_name: e.target.value }))}
+                    placeholder="ООО «Название»"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-green-400" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">ИНН</label>
+                    <input value={requisites.company_inn} onChange={e => setRequisites(p => ({ ...p, company_inn: e.target.value }))}
+                      placeholder="1234567890"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-green-400" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">КПП</label>
+                    <input value={requisites.company_kpp} onChange={e => setRequisites(p => ({ ...p, company_kpp: e.target.value }))}
+                      placeholder="123456789"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-green-400" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Юридический адрес</label>
+                  <input value={requisites.company_address} onChange={e => setRequisites(p => ({ ...p, company_address: e.target.value }))}
+                    placeholder="г. Якутск, ул. ..."
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-green-400" />
+                </div>
+              </div>
+            )}
+            {reqSuccess && <p className="text-sm text-[#3ca615] font-medium">✓ Реквизиты сохранены</p>}
+            <button onClick={async () => {
+              setReqSaving(true); setReqSuccess(false);
+              await new Promise(r => setTimeout(r, 400));
+              localStorage.setItem("profix_requisites", JSON.stringify(requisites));
+              setReqSaving(false); setReqSuccess(true);
+              setTimeout(() => setReqSuccess(false), 3000);
+            }}
+              className="w-full py-2.5 rounded-xl text-white text-sm font-semibold"
+              style={{ background: "#3ca615", color: "#ffffff" }}
+              disabled={reqSaving}>
+              {reqSaving ? "Сохраняем..." : "Сохранить реквизиты"}
+            </button>
+            <p className="text-xs text-gray-400 text-center">Реквизиты будут автоматически подставляться при оформлении заказов</p>
           </div>
         )}
 
