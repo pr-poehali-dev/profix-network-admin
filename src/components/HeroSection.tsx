@@ -285,20 +285,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
               })}
             </div>
 
-            {/* Точки */}
-            <div className="flex justify-center gap-1.5 mt-5">
-              {slides.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setRealIdx(i)}
-                  className={`transition-all duration-300 rounded-full ${
-                    i === realIdx
-                      ? "w-6 h-2 bg-[#3ca615]"
-                      : "w-2 h-2 bg-gray-200 hover:bg-gray-300"
-                  }`}
-                />
-              ))}
-            </div>
+
           </div>
         </div>
       </section>
