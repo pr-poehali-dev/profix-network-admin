@@ -7,12 +7,12 @@ import {
   clientApi, clientSession,
   managerApi, managerSession,
   techApi, techSession,
-  authApi,
+  authApi, totpApi,
 } from "@/lib/crm-api";
 
 type Role = "manager" | "client" | "tech";
 type AuthMethod = "otp" | "password";
-type Screen = "roles" | "form" | "mfa" | "register" | "register_done" | "forgot" | "reset_sent" | "reset_confirm" | "reset_done";
+type Screen = "roles" | "form" | "mfa" | "totp" | "register" | "register_done" | "forgot" | "reset_sent" | "reset_confirm" | "reset_done";
 
 const ROLES = [
   {
@@ -92,6 +92,13 @@ export default function Login() {
   const [mfaLoading, setMfaLoading] = useState(false);
   const [mfaError, setMfaError] = useState("");
 
+  // TOTP — общий для всех ролей
+  const [totpUserId, setTotpUserId] = useState<number | null>(null);
+  const [totpRole, setTotpRole] = useState<"manager" | "technician" | "client">("manager");
+  const [totpCode, setTotpCode] = useState("");
+  const [totpLoading, setTotpLoading] = useState(false);
+  const [totpError, setTotpError] = useState("");
+
   // Регистрация клиента
   const [regName, setRegName] = useState("");
   const [regPhone, setRegPhone] = useState("");
@@ -146,7 +153,10 @@ export default function Login() {
     setError(""); setLoading(true);
     try {
       const res = await managerApi.login(login.trim(), password.trim(), cfToken);
-      if (res.mfa) {
+      if (res.totp_required) {
+        setTotpUserId(res.manager_id); setTotpRole("manager"); setTotpCode(""); setTotpError("");
+        setScreen("totp");
+      } else if (res.mfa) {
         setMfaManagerId(res.manager_id); setMfaEmailMasked(res.email_masked); setMfaCode(""); setMfaError("");
         setScreen("mfa");
       } else if (res.token) { managerSession.set(res.token); navigate("/admin"); }
@@ -162,7 +172,10 @@ export default function Login() {
     setError(""); setLoading(true);
     try {
       const res = await managerApi.loginEmail(login.trim(), password.trim(), cfToken);
-      if (res.mfa) {
+      if (res.totp_required) {
+        setTotpUserId(res.manager_id); setTotpRole("manager"); setTotpCode(""); setTotpError("");
+        setScreen("totp");
+      } else if (res.mfa) {
         setMfaManagerId(res.manager_id); setMfaEmailMasked(res.email_masked); setMfaCode(""); setMfaError("");
         setScreen("mfa");
       } else if (res.token) { managerSession.set(res.token); navigate("/admin"); }
@@ -237,10 +250,29 @@ export default function Login() {
     setError(""); setLoading(true);
     try {
       const res = await techApi.loginPassword(techEmail.trim(), techPassword.trim());
-      if (res.token) { techSession.set(res.token); navigate("/techportal"); }
+      if (res.totp_required) {
+        setTotpUserId(res.technician_id); setTotpRole("technician"); setTotpCode(""); setTotpError("");
+        setScreen("totp");
+      } else if (res.token) { techSession.set(res.token); navigate("/techportal"); }
       else setError(res.error || "Неверный email или пароль");
     } catch { setError("Ошибка входа"); }
     finally { setLoading(false); }
+  }
+
+  // ── TOTP верификация при входе ───────────────────────────────────────────
+  async function handleTotpVerify() {
+    if (!totpCode.trim() || totpCode.length < 6) { setTotpError("Введите 6-значный код"); return; }
+    if (!totpUserId) return;
+    setTotpError(""); setTotpLoading(true);
+    try {
+      const res = await totpApi.verifyLogin(totpRole, totpUserId, totpCode.trim());
+      if (res.token) {
+        if (totpRole === "manager") { managerSession.set(res.token); navigate("/admin"); }
+        else if (totpRole === "technician") { techSession.set(res.token); navigate("/techportal"); }
+        else { clientSession.set(res.token); navigate("/cabinet"); }
+      } else setTotpError(res.error || "Неверный код");
+    } catch { setTotpError("Ошибка соединения"); }
+    finally { setTotpLoading(false); }
   }
 
   // ── Регистрация клиента ──────────────────────────────────────────────────
@@ -676,6 +708,63 @@ export default function Login() {
                 {mfaLoading ? "Проверка..." : "Подтвердить и войти"}
               </button>
               <button onClick={() => { setScreen("form"); setMfaCode(""); setMfaError(""); }}
+                className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                ← Вернуться к вводу пароля
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── TOTP верификация ── */}
+        {screen === "totp" && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <button onClick={() => { setScreen("form"); setTotpCode(""); setTotpError(""); }}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
+                <Icon name="ChevronLeft" size={18} />
+              </button>
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3ca615] to-[#2d8a10] flex items-center justify-center shrink-0">
+                <Icon name="Shield" size={17} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900 text-sm">Двухфакторная аутентификация</p>
+                <p className="text-xs text-gray-400">Google Authenticator</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 bg-[#edf7e8] border border-green-100 rounded-xl px-4 py-3 mb-5">
+              <Icon name="Smartphone" size={18} className="text-[#3ca615] shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-gray-700">Откройте приложение аутентификатор</p>
+                <p className="text-xs text-gray-400 mt-0.5">и введите 6-значный код для ProFiX</p>
+              </div>
+            </div>
+
+            {totpError && (
+              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
+                <Icon name="AlertCircle" size={15} className="shrink-0" />
+                {totpError}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Код из приложения</label>
+                <input
+                  type="text" value={totpCode}
+                  onChange={e => { setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6)); setTotpError(""); }}
+                  onKeyDown={e => e.key === "Enter" && handleTotpVerify()}
+                  placeholder="000000" maxLength={6} autoFocus
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-[#3ca615]/30 focus:border-[#3ca615]"
+                />
+              </div>
+              <button onClick={handleTotpVerify} disabled={totpLoading || totpCode.length < 6}
+                className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                style={{ background: "#3ca615" }}>
+                {totpLoading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
+                {totpLoading ? "Проверка..." : "Войти"}
+              </button>
+              <button onClick={() => { setScreen("form"); setTotpCode(""); setTotpError(""); }}
                 className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors">
                 ← Вернуться к вводу пароля
               </button>

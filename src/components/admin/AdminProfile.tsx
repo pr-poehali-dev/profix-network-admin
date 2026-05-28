@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession } from "@/lib/crm-api";
 import { onPhoneChange } from "@/lib/phone";
+import TotpBlock from "@/components/TotpBlock";
 
 type Manager = { id: number; name: string; role: string };
 
@@ -209,6 +210,15 @@ export default function AdminProfile({ manager, onManagerUpdate, onBack }: Props
         {saving ? <><Icon name="Loader2" size={16} className="animate-spin" />Сохранение...</>
           : <><Icon name="Save" size={16} />Сохранить изменения</>}
       </button>
+
+      {/* ── 2FA ── */}
+      <div className="pt-2">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Icon name="ShieldCheck" size={14} className="text-[#3ca615]" />
+          Двухфакторная аутентификация
+        </p>
+        <TotpBlock role="manager" />
+      </div>
     </div>
   );
 }

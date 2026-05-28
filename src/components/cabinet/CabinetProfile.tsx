@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { clientApi } from "@/lib/crm-api";
 import { onPhoneChange } from "@/lib/phone";
+import TotpBlock from "@/components/TotpBlock";
 
 const BOT_USERNAME = "ProFiXBot";
 
@@ -477,6 +478,15 @@ export default function CabinetProfile({ client, onBack, onClientUpdate }: Props
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Двухфакторная аутентификация ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+        <h3 className="font-oswald text-base font-bold text-gray-700 flex items-center gap-2">
+          <Icon name="ShieldCheck" size={16} className="text-[#3ca615]" />
+          Двухфакторная аутентификация
+        </h3>
+        <TotpBlock role="client" />
       </div>
     </div>
   );

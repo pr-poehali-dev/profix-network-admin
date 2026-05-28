@@ -39,6 +39,27 @@ def hash_password(pw: str) -> str:
     return hashlib.sha256(pw.encode()).hexdigest()
 
 
+def _verify_totp(secret_b32: str, code: str, window: int = 1) -> bool:
+    """Проверяет TOTP-код (RFC 6238, SHA1, 6 цифр, 30 сек)."""
+    import base64, hmac, hashlib, struct, time
+    try:
+        # Нормализуем секрет — убираем пробелы, дополняем паддинг
+        s = secret_b32.upper().replace(" ", "").replace("-", "")
+        pad = (8 - len(s) % 8) % 8
+        key = base64.b32decode(s + "=" * pad)
+        t = int(time.time()) // 30
+        for delta in range(-window, window + 1):
+            msg = struct.pack(">Q", t + delta)
+            h = hmac.new(key, msg, hashlib.sha1).digest()
+            offset = h[-1] & 0x0F
+            val = struct.unpack(">I", h[offset:offset+4])[0] & 0x7FFFFFFF
+            if str(val % 1_000_000).zfill(6) == code.strip():
+                return True
+        return False
+    except Exception:
+        return False
+
+
 def make_token() -> str:
     return secrets.token_hex(32)
 
@@ -342,6 +363,13 @@ def handler(event: dict, context) -> dict:
             return err("Неверный логин или пароль", 401)
 
         mgr_id, mgr_name, mgr_role, mgr_email = mgr
+
+        # Если TOTP включён — просим код из приложения, не шлём email
+        cur.execute(f"SELECT totp_enabled FROM {SC}.managers WHERE id=%s", (mgr_id,))
+        totp_row = cur.fetchone()
+        if totp_row and totp_row[0]:
+            conn.close()
+            return ok({"totp_required": True, "manager_id": mgr_id})
 
         if not mgr_email:
             conn.close()
@@ -1022,6 +1050,14 @@ def handler(event: dict, context) -> dict:
         tech = cur.fetchone()
         if not tech:
             conn.close(); return err("Неверный email или пароль", 401)
+
+        # Если TOTP включён — просим код из приложения
+        cur.execute(f"SELECT totp_enabled FROM {SC}.technicians WHERE id=%s", (tech[0],))
+        totp_row = cur.fetchone()
+        if totp_row and totp_row[0]:
+            conn.close()
+            return ok({"totp_required": True, "technician_id": tech[0]})
+
         token = make_token()
         cur.execute(
             f"INSERT INTO {SC}.technician_sessions (technician_id, token, expires_at) VALUES (%s,%s,%s)",
@@ -1047,6 +1083,14 @@ def handler(event: dict, context) -> dict:
             conn.close(); return err("Неверный email или пароль", 401)
 
         mgr_id, mgr_name, mgr_role = mgr
+
+        # Если TOTP включён — просим код из приложения
+        cur.execute(f"SELECT totp_enabled FROM {SC}.managers WHERE id=%s", (mgr_id,))
+        totp_row = cur.fetchone()
+        if totp_row and totp_row[0]:
+            conn.close()
+            return ok({"totp_required": True, "manager_id": mgr_id})
+
         code = str(secrets.randbelow(900000) + 100000)
         expires = datetime.now() + timedelta(minutes=10)
         cur.execute(f"UPDATE {SC}.managers SET tfa_code=%s, tfa_expires_at=%s WHERE id=%s", (code, expires, mgr_id))
@@ -1403,5 +1447,157 @@ def handler(event: dict, context) -> dict:
             "fixies_balance": r[6] or 0, "tariff_name": r[7],
             "penalties": int(penalties), "done_tickets": int(done_tickets),
         }})
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # TOTP / Google Authenticator — для всех ролей
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _get_token_role(event, body):
+        """Возвращает (token, role) из заголовков и тела."""
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        role  = body.get("role", "client")  # client | manager | technician
+        return token, role
+
+    def _resolve_user(cur, token, role):
+        """Возвращает (user_id,) или None."""
+        if role == "client":
+            cur.execute(f"SELECT client_id FROM {SC}.client_sessions WHERE token=%s AND expires_at>NOW()", (token,))
+        elif role == "manager":
+            cur.execute(f"SELECT manager_id FROM {SC}.manager_sessions WHERE token=%s AND expires_at>NOW()", (token,))
+        else:
+            cur.execute(f"SELECT technician_id FROM {SC}.technician_sessions WHERE token=%s AND expires_at>NOW()", (token,))
+        row = cur.fetchone()
+        return row[0] if row else None
+
+    def _table(role):
+        return {"client": f"{SC}.clients", "manager": f"{SC}.managers", "technician": f"{SC}.technicians"}[role]
+
+    # ── TOTP: генерация нового секрета (шаг 1 — показать QR) ────────────────
+    if action == "totp_generate":
+        import base64 as _b64, struct, hashlib as _hl, time as _time
+        token, role = _get_token_role(event, body)
+        if not token: return err("Необходима авторизация", 401)
+        conn = get_conn(); cur = conn.cursor()
+        uid = _resolve_user(cur, token, role)
+        if not uid: conn.close(); return err("Сессия истекла", 401)
+
+        # Генерируем случайный 20-байтный секрет в base32
+        raw = secrets.token_bytes(20)
+        import base64 as _b64e
+        totp_secret = _b64e.b32encode(raw).decode().rstrip("=")
+
+        # Сохраняем временно (не включаем — только после верификации)
+        cur.execute(f"UPDATE {_table(role)} SET totp_secret=%s WHERE id=%s", (totp_secret, uid))
+        conn.commit(); cur.close(); conn.close()
+
+        # Формируем otpauth URI
+        app_name = "ProFiX"
+        cur2 = get_conn().cursor()
+        if role == "client":
+            cur2.execute(f"SELECT phone FROM {SC}.clients WHERE id=%s", (uid,))
+        elif role == "manager":
+            cur2.execute(f"SELECT COALESCE(login, email, 'manager') FROM {SC}.managers WHERE id=%s", (uid,))
+        else:
+            cur2.execute(f"SELECT COALESCE(email, name) FROM {SC}.technicians WHERE id=%s", (uid,))
+        label_row = cur2.fetchone()
+        cur2.close()
+        label = (label_row[0] if label_row else str(uid)).replace(" ", "_")
+        # Паддим секрет до кратного 8
+        padded = totp_secret + "=" * ((8 - len(totp_secret) % 8) % 8)
+        uri = f"otpauth://totp/{app_name}:{label}?secret={padded}&issuer={app_name}&algorithm=SHA1&digits=6&period=30"
+        return ok({"uri": uri, "secret": padded})
+
+    # ── TOTP: подтверждение и включение ─────────────────────────────────────
+    if action == "totp_enable":
+        token, role = _get_token_role(event, body)
+        totp_code = body.get("code", "").strip()
+        if not token or not totp_code: return err("Нужен код из приложения", 400)
+        conn = get_conn(); cur = conn.cursor()
+        uid = _resolve_user(cur, token, role)
+        if not uid: conn.close(); return err("Сессия истекла", 401)
+
+        cur.execute(f"SELECT totp_secret FROM {_table(role)} WHERE id=%s", (uid,))
+        row = cur.fetchone()
+        if not row or not row[0]: conn.close(); return err("Сначала сгенерируйте QR-код")
+        secret = row[0]
+
+        if not _verify_totp(secret, totp_code):
+            conn.close(); return err("Неверный код. Проверьте время на устройстве.", 400)
+
+        cur.execute(f"UPDATE {_table(role)} SET totp_enabled=TRUE WHERE id=%s", (uid,))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"enabled": True})
+
+    # ── TOTP: отключение ─────────────────────────────────────────────────────
+    if action == "totp_disable":
+        token, role = _get_token_role(event, body)
+        totp_code = body.get("code", "").strip()
+        if not token or not totp_code: return err("Нужен код из приложения для отключения", 400)
+        conn = get_conn(); cur = conn.cursor()
+        uid = _resolve_user(cur, token, role)
+        if not uid: conn.close(); return err("Сессия истекла", 401)
+
+        cur.execute(f"SELECT totp_secret FROM {_table(role)} WHERE id=%s", (uid,))
+        row = cur.fetchone()
+        if not row or not row[0]: conn.close(); return err("TOTP не подключён")
+
+        if not _verify_totp(row[0], totp_code):
+            conn.close(); return err("Неверный код", 400)
+
+        cur.execute(f"UPDATE {_table(role)} SET totp_enabled=FALSE, totp_secret=NULL WHERE id=%s", (uid,))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"disabled": True})
+
+    # ── TOTP: статус (подключён ли) ──────────────────────────────────────────
+    if action == "totp_status":
+        token, role = _get_token_role(event, body)
+        if not token: return err("Необходима авторизация", 401)
+        conn = get_conn(); cur = conn.cursor()
+        uid = _resolve_user(cur, token, role)
+        if not uid: conn.close(); return err("Сессия истекла", 401)
+        cur.execute(f"SELECT totp_enabled FROM {_table(role)} WHERE id=%s", (uid,))
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        return ok({"totp_enabled": bool(row[0]) if row else False})
+
+    # ── TOTP: верификация при входе (второй шаг) ─────────────────────────────
+    if action == "totp_verify_login":
+        role     = body.get("role", "manager")
+        user_id  = body.get("user_id")
+        totp_code= body.get("code", "").strip()
+        if not user_id or not totp_code: return err("Нужен код")
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(f"SELECT totp_secret, totp_enabled FROM {_table(role)} WHERE id=%s", (int(user_id),))
+        row = cur.fetchone()
+        if not row or not row[1]: conn.close(); return err("TOTP не подключён")
+        if not _verify_totp(row[0], totp_code):
+            conn.close(); return err("Неверный код", 401)
+        # Выдаём сессию
+        token = make_token()
+        expires = datetime.now() + timedelta(days=7 if role == "manager" else 30)
+        if role == "manager":
+            cur.execute(f"SELECT COALESCE(name,full_name), r.role FROM {SC}.managers r WHERE id=%s",
+                        (int(user_id),))
+            ur = cur.fetchone()
+            cur.execute(f"INSERT INTO {SC}.manager_sessions (manager_id,token,expires_at) VALUES (%s,%s,%s)",
+                        (int(user_id), token, expires))
+            conn.commit(); cur.close(); conn.close()
+            return ok({"token": token, "manager": {"id": int(user_id), "name": ur[0] if ur else "", "role": ur[1] if ur else "manager"}})
+        elif role == "technician":
+            cur.execute(f"SELECT name,phone,specialization FROM {SC}.technicians WHERE id=%s", (int(user_id),))
+            ur = cur.fetchone()
+            cur.execute(f"INSERT INTO {SC}.technician_sessions (technician_id,token,expires_at) VALUES (%s,%s,%s)",
+                        (int(user_id), token, expires))
+            conn.commit(); cur.close(); conn.close()
+            return ok({"token": token, "technician": {"id": int(user_id), "name": ur[0] if ur else "", "phone": ur[1] if ur else "", "specialization": ur[2] if ur else ""}})
+        else:
+            cur.execute(f"SELECT name,phone,email FROM {SC}.clients WHERE id=%s", (int(user_id),))
+            ur = cur.fetchone()
+            cur.execute(f"INSERT INTO {SC}.client_sessions (client_id,token,expires_at) VALUES (%s,%s,%s)",
+                        (int(user_id), token, expires))
+            conn.commit(); cur.close(); conn.close()
+            return ok({"token": token, "client": {"id": int(user_id), "name": ur[0] if ur else "", "phone": ur[1] if ur else "", "email": ur[2] if ur else ""}})
 
     return err("Неизвестное действие")

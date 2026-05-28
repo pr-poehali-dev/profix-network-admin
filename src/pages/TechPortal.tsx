@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { techApi, techSession, Ticket, fixiesApi } from "@/lib/crm-api";
+import TotpBlock from "@/components/TotpBlock";
 import AdminNotificationPanel from "@/components/admin/AdminNotificationPanel";
 import TechLogin from "@/components/tech/TechLogin";
 import TechTicketList from "@/components/tech/TechTicketList";
@@ -44,6 +45,7 @@ export default function TechPortal() {
   const [fixiesBalance, setFixiesBalance] = useState<number | null>(null);
   const [tariffName, setTariffName] = useState<string | null>(null);
   const [showFixies, setShowFixies] = useState(false);
+  const [showSecurity, setShowSecurity] = useState(false);
   const [fixiesHistory, setFixiesHistory] = useState<{amount:number;reason:string;created_at:string}[]>([]);
   const [isInstalled, setIsInstalled] = useState(false);
   const pollTicketRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -306,6 +308,12 @@ export default function TechPortal() {
             </div>
           )}
           <button
+            onClick={() => { setShowSecurity(v => !v); setShowFixies(false); }}
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors ${showSecurity ? "bg-[#edf7e8] text-[#3ca615]" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"}`}
+          >
+            <Icon name="Shield" size={15} />
+          </button>
+          <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors px-2 py-1.5 rounded-lg hover:bg-red-50"
           >
@@ -313,6 +321,19 @@ export default function TechPortal() {
           </button>
         </div>
       </header>
+
+      {/* Панель безопасности */}
+      {showSecurity && (
+        <div className="bg-white border-b border-gray-100 shadow-sm">
+          <div className="max-w-3xl mx-auto px-4 py-4">
+            <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-3">
+              <Icon name="ShieldCheck" size={16} className="text-[#3ca615]" />
+              Безопасность
+            </h3>
+            <TotpBlock role="technician" />
+          </div>
+        </div>
+      )}
 
       {/* Панель фиксиков */}
       {showFixies && (

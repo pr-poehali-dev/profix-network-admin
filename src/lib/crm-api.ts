@@ -166,6 +166,29 @@ export const authApi = {
     postAuth({ action: "reset_password_confirm", token, password, role }),
 };
 
+// ── TOTP / Google Authenticator ───────────────────────────────────────────────
+
+type TotpRole = "client" | "manager" | "technician";
+
+function totpToken(role: TotpRole) {
+  if (role === "client") return clientSession.get()!;
+  if (role === "manager") return managerSession.get()!;
+  return techSession.get()!;
+}
+
+export const totpApi = {
+  status:   (role: TotpRole) =>
+    postAuthWithToken({ action: "totp_status",   role }, totpToken(role)),
+  generate: (role: TotpRole) =>
+    postAuthWithToken({ action: "totp_generate", role }, totpToken(role)),
+  enable:   (role: TotpRole, code: string) =>
+    postAuthWithToken({ action: "totp_enable",   role, code }, totpToken(role)),
+  disable:  (role: TotpRole, code: string) =>
+    postAuthWithToken({ action: "totp_disable",  role, code }, totpToken(role)),
+  verifyLogin: (role: TotpRole, user_id: number, code: string) =>
+    postAuth({ action: "totp_verify_login", role, user_id, code }),
+};
+
 // ── API менеджера ────────────────────────────────────────────────────────────
 
 export const managerApi = {
