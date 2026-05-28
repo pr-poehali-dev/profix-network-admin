@@ -54,8 +54,7 @@ function ProductCard({ product }: { product: Product }) {
                   className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90"
                   style={{ background: added ? "#22c55e" : "#3ca615" }}
                 >
-                  <Icon name={added ? "Check" : "ShoppingCart"} size={13} />
-                  {added ? "Добавлено!" : "В корзину"}
+                  {added ? "✓ Добавлено!" : "🛒 В корзину"}
                 </button>
             }
           </div>
