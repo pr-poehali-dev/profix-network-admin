@@ -40,7 +40,19 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
   }, []);
 
   const perView = isMobile ? 2 : 3;
-  const slideWidth = isMobile ? "calc(50% - 8px)" : "calc(33.333% - 11px)";
+  const GAP = 16;
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [trackW, setTrackW] = useState(0);
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setTrackW(el.offsetWidth));
+    ro.observe(el);
+    setTrackW(el.offsetWidth);
+    return () => ro.disconnect();
+  }, []);
+  const slideW = trackW > 0 ? (trackW - GAP * (perView - 1)) / perView : 0;
+  const slideWidth = slideW > 0 ? `${slideW}px` : (isMobile ? "calc(50% - 8px)" : "calc(33.333% - 11px)");
   const slides = json<{img:string;title:string;desc:string}[]>("carousel.slides", DEFAULT_SLIDES);
   const stats = json<{val:string;label:string}[]>("hero.stats", [{val:"1000+",label:"клиентов"},{val:"15+",label:"лет опыта"},{val:"100%",label:"гарантия"}]);
   const titleLines = str("hero.title", "IT-ПОДДЕРЖКА\nДЛЯ БИЗНЕСА\nИ ЧАСТНЫХ ЛИЦ").split("\n");
@@ -214,7 +226,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
           <h2 className="text-center font-oswald text-2xl font-bold text-[#0D1B2A] mb-2">{str("carousel.title", "Торговое оборудование")}</h2>
           <p className="text-center text-gray-500 text-sm mb-6">{str("carousel.subtitle", "Ремонт, продажа, обслуживание торгового оборудования. Регистрация онлайн-касс.")}</p>
 
-          <div className="relative overflow-hidden"
+          <div className="relative overflow-hidden" ref={trackRef}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}>
             <div
@@ -222,12 +234,9 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
               style={{
                 transition: "transform 0.55s cubic-bezier(0.4,0,0.2,1)",
                 willChange: "transform",
-                transform: `translateX(calc(
-                  -${loopedIdx * (100 / perView)}%
-                  - ${loopedIdx * 16}px
-                  + ${(perView - 1) / 2 * (100 / perView)}%
-                  + ${(perView - 1) / 2 * 16}px
-                ))`,
+                transform: slideW > 0
+                  ? `translateX(${-(loopedIdx * (slideW + GAP)) + (trackW / 2 - slideW / 2)}px)`
+                  : "none",
               }}
             >
               {looped.map((slide, i) => {
