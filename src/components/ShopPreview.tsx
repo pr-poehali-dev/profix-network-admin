@@ -16,49 +16,49 @@ function ProductCard({ product }: { product: Product }) {
   }
 
   return (
-    <div
-      onClick={() => navigate(`/shop/${product.id}`)}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-200 flex flex-col overflow-hidden group h-full cursor-pointer"
-    >
-      <div className="relative h-44 sm:h-48 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
-        {product.image_url
-          ? <img src={product.image_url} alt={product.name} className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300" />
-          : <Icon name="Package" size={44} className="text-gray-200" />
-        }
-        {product.price_old && product.price && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-            -{Math.round((1 - product.price / product.price_old) * 100)}%
-          </div>
-        )}
-      </div>
-      <div className="p-3 flex flex-col flex-1">
-        {product.category_name && (
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1 truncate">{product.category_name}</p>
-        )}
-        <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 flex-1 leading-snug" style={{ minHeight: "2.5rem" }}>{product.name}</h3>
-        <div className="mt-auto pt-2 border-t border-gray-50">
-          <div className="flex flex-col gap-2">
-            <div>
-              {product.price != null
-                ? <p className="text-base font-bold text-gray-900 leading-none">{product.price.toLocaleString("ru-RU")} <span className="text-xs font-normal text-gray-500">₽</span></p>
-                : <p className="text-xs text-gray-400">По запросу</p>
-              }
-              {product.price_old != null && (
-                <p className="text-[10px] text-gray-400 line-through mt-0.5">{product.price_old.toLocaleString("ru-RU")} ₽</p>
-              )}
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-200 flex flex-col group h-full">
+      <div
+        onClick={() => navigate(`/shop/${product.id}`)}
+        className="flex flex-col flex-1 overflow-hidden cursor-pointer"
+      >
+        <div className="relative h-44 sm:h-48 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+          {product.image_url
+            ? <img src={product.image_url} alt={product.name} className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300" />
+            : <Icon name="Package" size={44} className="text-gray-200" />
+          }
+          {product.price_old && product.price && (
+            <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              -{Math.round((1 - product.price / product.price_old) * 100)}%
             </div>
-            {!product.in_stock
-              ? <span className="text-[10px] text-red-500 font-medium">Нет в наличии</span>
-              : <button
-                  onClick={handleAdd}
-                  className="w-full py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
-                  style={{ background: added ? "#22c55e" : "#3ca615", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
-                >
-                  <span style={{ color: "#fff" }}>{added ? "✓ Добавлено!" : "🛒 В корзину"}</span>
-                </button>
+          )}
+        </div>
+        <div className="p-3 flex flex-col flex-1">
+          {product.category_name && (
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1 truncate">{product.category_name}</p>
+          )}
+          <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 flex-1 leading-snug" style={{ minHeight: "2.5rem" }}>{product.name}</h3>
+          <div className="pt-2 border-t border-gray-50">
+            {product.price != null
+              ? <p className="text-base font-bold text-gray-900 leading-none">{product.price.toLocaleString("ru-RU")} <span className="text-xs font-normal text-gray-500">₽</span></p>
+              : <p className="text-xs text-gray-400">По запросу</p>
             }
+            {product.price_old != null && (
+              <p className="text-[10px] text-gray-400 line-through mt-0.5">{product.price_old.toLocaleString("ru-RU")} ₽</p>
+            )}
           </div>
         </div>
+      </div>
+      <div className="px-3 pb-3">
+        {!product.in_stock
+          ? <span className="text-[10px] text-red-500 font-medium">Нет в наличии</span>
+          : <button
+              onClick={handleAdd}
+              className="w-full py-2 rounded-lg text-xs font-semibold"
+              style={{ background: added ? "#22c55e" : "#3ca615", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", opacity: 1 }}
+            >
+              <span style={{ color: "#ffffff", fontSize: "12px" }}>{added ? "✓ Добавлено!" : "🛒 В корзину"}</span>
+            </button>
+        }
       </div>
     </div>
   );
