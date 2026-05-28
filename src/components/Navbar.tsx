@@ -288,14 +288,6 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         <nav className="hidden md:flex items-center gap-0.5 justify-center flex-1 min-w-0">
           {menuItems.map(it => renderDesktopMenuItem(it))}
 
-          {/* Реквизиты */}
-          <a href="/requisites"
-            className={`px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap ${
-              location.pathname === "/requisites" ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
-            }`}>
-            Реквизиты
-          </a>
-
           {/* Партнёры */}
           <div ref={dropdownRef} className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <button onClick={() => setPartnersOpen(v => !v)}
@@ -387,13 +379,6 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
             );
             return null;
           })}
-
-          {/* Реквизиты */}
-          <a href="/requisites" onClick={onMenuToggle}
-            className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] transition-colors">
-            <Icon name="Building2" size={15} />
-            Реквизиты
-          </a>
 
           {/* Партнёры */}
           <button onClick={() => setMobilePartnersOpen(!mobilePartnersOpen)}
