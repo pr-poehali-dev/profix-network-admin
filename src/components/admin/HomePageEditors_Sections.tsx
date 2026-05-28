@@ -37,6 +37,21 @@ export function CarouselEditor({ content, onChange }: { content: ContentMap; onC
         <Field label="Заголовок раздела" value={content["carousel.title"] || ""} onChange={v => onChange("carousel.title", v)} />
         <Field label="Подзаголовок" value={content["carousel.subtitle"] || ""} onChange={v => onChange("carousel.subtitle", v)} />
       </div>
+      <div className="grid grid-cols-2 gap-4 items-end">
+        <div>
+          <label className="text-xs font-semibold text-gray-500 block mb-1">Скорость прокрутки</label>
+          <select
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            value={content["carousel.speed"] || "60"}
+            onChange={e => onChange("carousel.speed", e.target.value)}
+          >
+            <option value="30">Очень быстро</option>
+            <option value="60">Быстро</option>
+            <option value="90">Медленно (как Кинопоиск)</option>
+            <option value="120">Очень медленно</option>
+          </select>
+        </div>
+      </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">

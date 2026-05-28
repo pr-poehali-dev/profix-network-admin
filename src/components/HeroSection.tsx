@@ -42,6 +42,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
   const slides = json<{img:string;title:string;desc:string}[]>("carousel.slides", DEFAULT_SLIDES);
   const stats = json<{val:string;label:string}[]>("hero.stats", [{val:"1000+",label:"клиентов"},{val:"15+",label:"лет опыта"},{val:"100%",label:"гарантия"}]);
   const titleLines = str("hero.title", "IT-ПОДДЕРЖКА\nДЛЯ БИЗНЕСА\nИ ЧАСТНЫХ ЛИЦ").split("\n");
+  const carouselSpeed = parseInt(str("carousel.speed", "90"), 10);
 
   // Синхронизируем внешний индекс (не используется в marquee, но пропс обязателен)
   useEffect(() => { onSetCarouselIdx(0); }, []);
@@ -179,7 +180,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
           .marquee-track {
             display: flex;
             width: max-content;
-            animation: marquee 40s linear infinite;
+            animation: marquee ${carouselSpeed}s linear infinite;
           }
           .marquee-track:hover {
             animation-play-state: paused;
