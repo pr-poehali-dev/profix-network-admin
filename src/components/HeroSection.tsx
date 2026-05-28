@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { useSiteContent } from "@/hooks/useSiteContent";
 
@@ -43,6 +43,29 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
   const stats = json<{val:string;label:string}[]>("hero.stats", [{val:"1000+",label:"клиентов"},{val:"15+",label:"лет опыта"},{val:"100%",label:"гарантия"}]);
   const titleLines = str("hero.title", "IT-ПОДДЕРЖКА\nДЛЯ БИЗНЕСА\nИ ЧАСТНЫХ ЛИЦ").split("\n");
   const carouselSpeed = parseInt(str("carousel.speed", "150"), 10);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+    if (trackRef.current) trackRef.current.style.animationPlayState = "paused";
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (trackRef.current) {
+      // Небольшая задержка перед возобновлением — чтобы свайп ощущался
+      setTimeout(() => {
+        if (trackRef.current) trackRef.current.style.animationPlayState = "running";
+      }, 800);
+    }
+    // Свайп влево — ускоряем, вправо — тормозим (визуальный фидбэк)
+    if (Math.abs(dx) > 30 && trackRef.current) {
+      trackRef.current.style.animationPlayState = "running";
+    }
+  }
 
   // Синхронизируем внешний индекс (не используется в marquee, но пропс обязателен)
   useEffect(() => { onSetCarouselIdx(0); }, []);
@@ -187,8 +210,10 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
           }
         `}</style>
 
-        <div className="overflow-hidden">
-          <div className="marquee-track gap-4" style={{ gap: "16px" }}>
+        <div className="overflow-hidden"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}>
+          <div ref={trackRef} className="marquee-track gap-4" style={{ gap: "16px" }}>
             {[...slides, ...slides].map((slide, i) => (
               <div
                 key={i}
