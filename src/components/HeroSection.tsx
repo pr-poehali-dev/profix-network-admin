@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import Icon from "@/components/ui/icon";
 import { useSiteContent } from "@/hooks/useSiteContent";
 
@@ -39,68 +39,12 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  const perView = isMobile ? 2 : 3;
-  const GAP = 16;
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [trackW, setTrackW] = useState(0);
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setTrackW(el.offsetWidth));
-    ro.observe(el);
-    setTrackW(el.offsetWidth);
-    return () => ro.disconnect();
-  }, []);
-  const slideW = trackW > 0 ? (trackW - GAP * (perView - 1)) / perView : 0;
-  const slideWidth = slideW > 0 ? `${slideW}px` : (isMobile ? "calc(50% - 8px)" : "calc(33.333% - 11px)");
   const slides = json<{img:string;title:string;desc:string}[]>("carousel.slides", DEFAULT_SLIDES);
   const stats = json<{val:string;label:string}[]>("hero.stats", [{val:"1000+",label:"клиентов"},{val:"15+",label:"лет опыта"},{val:"100%",label:"гарантия"}]);
   const titleLines = str("hero.title", "IT-ПОДДЕРЖКА\nДЛЯ БИЗНЕСА\nИ ЧАСТНЫХ ЛИЦ").split("\n");
 
-  const n = slides.length;
-  // Внутренний индекс: 0..n-1, начинаем с 0 → первый реальный слайд по центру
-  const [realIdx, setRealIdx] = useState(0);
-  // Синхронизируем внешний индекс
-  useEffect(() => { onSetCarouselIdx(realIdx); }, [realIdx]);
-
-  // Зацикленный список: ...tail + slides + ...head
-  const CLONE = Math.min(perView + 1, n);
-  const looped = n > 0
-    ? [...slides.slice(n - CLONE), ...slides, ...slides.slice(0, CLONE)]
-    : slides;
-  // Внутренний индекс в looped: CLONE = offset
-  const loopedIdx = CLONE + realIdx;
-
-  const goTo = useCallback((dir: 1 | -1) => {
-    setRealIdx(prev => (prev + dir + n) % n);
-  }, [n]);
-
-  // Touch-свайп для мобилки
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-
-  function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  }
-
-  function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null || touchStartY.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dy = e.changedTouches[0].clientY - touchStartY.current;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
-      goTo(dx < 0 ? 1 : -1);
-    }
-    touchStartX.current = null;
-    touchStartY.current = null;
-  }
-
-  // Автопрокрутка
-  useEffect(() => {
-    if (!n) return;
-    const timer = setInterval(() => goTo(1), 4500);
-    return () => clearInterval(timer);
-  }, [n, goTo]);
+  // Синхронизируем внешний индекс (не используется в marquee, но пропс обязателен)
+  useEffect(() => { onSetCarouselIdx(0); }, []);
 
   const heroSize = str("hero.size", "medium");
   const sizeClasses: Record<string, string> = {
@@ -220,79 +164,57 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
         </div>
       </section>
 
-      {/* CAROUSEL */}
-      <section className="bg-white py-10">
-        <div className="px-4 sm:px-6">
+      {/* CAROUSEL — бегущая строка */}
+      <section className="bg-white py-10 overflow-hidden">
+        <div className="px-4 sm:px-6 mb-6">
           <h2 className="text-center font-oswald text-2xl font-bold text-[#0D1B2A] mb-2">{str("carousel.title", "Торговое оборудование")}</h2>
-          <p className="text-center text-gray-500 text-sm mb-6">{str("carousel.subtitle", "Ремонт, продажа, обслуживание торгового оборудования. Регистрация онлайн-касс.")}</p>
+          <p className="text-center text-gray-500 text-sm">{str("carousel.subtitle", "Ремонт, продажа, обслуживание торгового оборудования. Регистрация онлайн-касс.")}</p>
+        </div>
 
-          <div className="relative overflow-hidden" ref={trackRef}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}>
-            <div
-              className="flex gap-4"
-              style={{
-                transition: "transform 0.55s cubic-bezier(0.4,0,0.2,1)",
-                willChange: "transform",
-                transform: slideW > 0
-                  ? `translateX(${-(loopedIdx * (slideW + GAP)) + (trackW / 2 - slideW / 2)}px)`
-                  : "none",
-              }}
-            >
-              {looped.map((slide, i) => {
-                const isActive = i === loopedIdx;
-                const cardHeight = isMobile ? "220px" : "300px";
-                return (
-                  <div
-                    key={i}
-                    onClick={() => {
-                      const delta = i - loopedIdx;
-                      setRealIdx(prev => (prev + delta + n) % n);
-                    }}
-                    className={`shrink-0 cursor-pointer transition-opacity transition-shadow duration-300 ${
-                      isActive
-                        ? "shadow-2xl opacity-100 ring-2 ring-[#3ca615]"
-                        : "shadow-md opacity-60 hover:opacity-80"
-                    }`}
-                    style={{ width: slideWidth }}
-                  >
-                    <div className="relative overflow-hidden" style={{ height: cardHeight }}>
-                      <img
-                        src={slide.img}
-                        alt={slide.title || `Фото ${i + 1}`}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      {slide.title && (
-                        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
-                          <p className={`font-oswald font-bold text-white leading-tight ${isMobile ? "text-sm" : "text-base"}`}>
-                            {slide.title}
-                          </p>
-                          {isActive && !isMobile && <p className="text-white/70 text-xs mt-1 leading-snug line-clamp-2">{slide.desc}</p>}
-                          {isActive && (
-                            <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                if (onQuickOrder) onQuickOrder(slide.title || "");
-                                else onScrollTo("Контакты");
-                              }}
-                              className="mt-1.5 sm:mt-2 flex items-center gap-1.5 bg-[#3ca615] hover:bg-[#2d8a10] text-white text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all shadow-lg w-fit"
-                            >
-                              <Icon name="Zap" size={12} />
-                              Заказать в 1 клик
-                            </button>
-                          )}
-                        </div>
-                      )}
+        <style>{`
+          @keyframes marquee {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .marquee-track {
+            display: flex;
+            width: max-content;
+            animation: marquee 40s linear infinite;
+          }
+          .marquee-track:hover {
+            animation-play-state: paused;
+          }
+        `}</style>
 
+        <div className="overflow-hidden">
+          <div className="marquee-track gap-4" style={{ gap: "16px" }}>
+            {[...slides, ...slides].map((slide, i) => (
+              <div
+                key={i}
+                onClick={() => { if (onQuickOrder) onQuickOrder(slide.title || ""); else onScrollTo("Контакты"); }}
+                className="shrink-0 cursor-pointer shadow-md hover:shadow-xl transition-shadow duration-300"
+                style={{ width: isMobile ? "240px" : "320px", marginRight: "16px" }}
+              >
+                <div className="relative overflow-hidden" style={{ height: isMobile ? "180px" : "240px" }}>
+                  <img
+                    src={slide.img}
+                    alt={slide.title || `Фото ${i + 1}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  {slide.title && (
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="font-oswald font-bold text-white text-sm leading-tight">{slide.title}</p>
+                      <div className="mt-1.5 flex items-center gap-1 bg-[#3ca615] text-white text-[10px] font-bold px-2.5 py-1 w-fit">
+                        <Icon name="Zap" size={10} />
+                        Заказать в 1 клик
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-
-
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
