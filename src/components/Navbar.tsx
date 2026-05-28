@@ -285,7 +285,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         </button>
 
         {/* Десктоп — меню */}
-        <nav className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
+        <nav className="hidden md:flex items-center gap-0.5 justify-center flex-1 min-w-0 overflow-hidden">
           {menuItems.map(it => renderDesktopMenuItem(it))}
 
           {/* Партнёры */}
@@ -327,17 +327,11 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
               </span>
             )}
           </button>
-          {(clientName || managerName)
-            ? <a href={phoneHref} title={phone}
-                className="flex items-center justify-center bg-[#3ca615] text-white w-9 h-9 rounded-lg hover:bg-[#2d8a10] transition-colors shrink-0">
-                <Icon name="Phone" size={16} />
-              </a>
-            : <a href={phoneHref}
-                className="flex items-center gap-2 bg-[#3ca615] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2d8a10] transition-colors">
-                <Icon name="Phone" size={15} />
-                {phone}
-              </a>
-          }
+          <a href={phoneHref} title={phone}
+            className="flex items-center gap-1.5 bg-[#3ca615] text-white px-3 py-2 rounded-lg hover:bg-[#2d8a10] transition-colors shrink-0">
+            <Icon name="Phone" size={14} />
+            <span className="text-sm font-semibold tracking-wide whitespace-nowrap">{phone}</span>
+          </a>
         </div>
 
         {/* Мобильный: корзина + бургер */}
