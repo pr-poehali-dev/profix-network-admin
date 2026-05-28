@@ -276,9 +276,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
                           )}
                         </div>
                       )}
-                      {isActive && (
-                        <div className="absolute inset-0 rounded-2xl ring-2 ring-[#3ca615] ring-inset pointer-events-none" />
-                      )}
+
                     </div>
                   </div>
                 );
