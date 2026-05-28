@@ -274,7 +274,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white shadow-md" : "bg-white/80 backdrop-blur"}`}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         {/* Логотип */}
-        <button onClick={() => navigate("/")} className="flex items-center gap-2 shrink-0">
+        <button onClick={() => navigate("/")} className="flex items-center gap-2 shrink-0 mr-4">
           <img
             src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
             alt="ProFiX логотип" className="h-9 w-9 object-contain"

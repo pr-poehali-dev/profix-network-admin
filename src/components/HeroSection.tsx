@@ -209,97 +209,82 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
       </section>
 
       {/* CAROUSEL */}
-      <section className="bg-white py-10 overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      <section className="bg-white py-10">
+        <div className="px-4 sm:px-6">
           <h2 className="text-center font-oswald text-2xl font-bold text-[#0D1B2A] mb-2">{str("carousel.title", "Торговое оборудование")}</h2>
           <p className="text-center text-gray-500 text-sm mb-6">{str("carousel.subtitle", "Ремонт, продажа, обслуживание торгового оборудования. Регистрация онлайн-касс.")}</p>
 
-          <div className="relative">
-            {/* Стрелки */}
-            <button
-              onClick={() => goTo(-1)}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-10 h-10 rounded-full bg-white hover:bg-[#edf7e8] shadow-lg border border-gray-100 flex items-center justify-center text-gray-600 hover:text-[#3ca615] transition-all"
+          <div className="relative overflow-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}>
+            <div
+              className="flex gap-4"
+              style={{
+                transition: "transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94)",
+                transform: `translateX(calc(
+                  -${loopedIdx * (100 / perView)}%
+                  - ${loopedIdx * 16}px
+                  + ${(perView - 1) / 2 * (100 / perView)}%
+                  + ${(perView - 1) / 2 * 16}px
+                ))`,
+              }}
             >
-              <Icon name="ChevronLeft" size={20} />
-            </button>
-            <button
-              onClick={() => goTo(1)}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-10 h-10 rounded-full bg-white hover:bg-[#edf7e8] shadow-lg border border-gray-100 flex items-center justify-center text-gray-600 hover:text-[#3ca615] transition-all"
-            >
-              <Icon name="ChevronRight" size={20} />
-            </button>
-
-            {/* Трек: looped массив, активный всегда по центру */}
-            <div className="overflow-hidden mx-6"
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}>
-              <div
-                className="flex gap-4"
-                style={{
-                  transition: "transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94)",
-                  // Смещаем так, чтобы loopedIdx оказался в центре видимой области
-                  transform: `translateX(calc(
-                    -${loopedIdx * (100 / perView)}%
-                    - ${loopedIdx * 16}px
-                    + ${(perView - 1) / 2 * (100 / perView)}%
-                    + ${(perView - 1) / 2 * 16}px
-                  ))`,
-                }}
-              >
-                {looped.map((slide, i) => {
-                  const isActive = i === loopedIdx;
-                  return (
-                    <div
-                      key={i}
-                      onClick={() => {
-                        const delta = i - loopedIdx;
-                        setRealIdx(prev => (prev + delta + n) % n);
-                      }}
-                      className={`shrink-0 cursor-pointer rounded-2xl overflow-hidden transition-all duration-500 ${
-                        isActive
-                          ? "shadow-2xl scale-100 opacity-100"
-                          : "shadow-md scale-95 opacity-70 hover:opacity-90 hover:scale-[0.97]"
-                      }`}
-                      style={{ width: slideWidth }}
-                    >
-                      <div className="relative" style={{ height: isActive ? (isMobile ? "220px" : "300px") : (isMobile ? "190px" : "260px"), transition: "height 0.4s ease" }}>
-                        <img
-                          src={slide.img}
-                          alt={slide.title || `Фото ${i + 1}`}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                        {slide.title && (
-                          <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
-                            <p className={`font-oswald font-bold text-white leading-tight transition-all duration-300 ${isActive ? (isMobile ? "text-sm" : "text-base") : "text-xs sm:text-sm"}`}>
-                              {slide.title}
-                            </p>
-                            {isActive && !isMobile && <p className="text-white/70 text-xs mt-1 leading-snug line-clamp-2">{slide.desc}</p>}
+              {looped.map((slide, i) => {
+                const isActive = i === loopedIdx;
+                const cardHeight = isMobile ? "220px" : "300px";
+                return (
+                  <div
+                    key={i}
+                    onClick={() => {
+                      const delta = i - loopedIdx;
+                      setRealIdx(prev => (prev + delta + n) % n);
+                    }}
+                    className={`shrink-0 cursor-pointer rounded-2xl overflow-hidden transition-all duration-500 ${
+                      isActive
+                        ? "shadow-2xl scale-100 opacity-100"
+                        : "shadow-md scale-95 opacity-60 hover:opacity-80 hover:scale-[0.97]"
+                    }`}
+                    style={{ width: slideWidth }}
+                  >
+                    <div className="relative" style={{ height: cardHeight }}>
+                      <img
+                        src={slide.img}
+                        alt={slide.title || `Фото ${i + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      {slide.title && (
+                        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
+                          <p className={`font-oswald font-bold text-white leading-tight ${isMobile ? "text-sm" : "text-base"}`}>
+                            {slide.title}
+                          </p>
+                          {isActive && !isMobile && <p className="text-white/70 text-xs mt-1 leading-snug line-clamp-2">{slide.desc}</p>}
+                          {isActive && (
                             <button
                               onClick={e => {
                                 e.stopPropagation();
                                 if (onQuickOrder) onQuickOrder(slide.title || "");
                                 else onScrollTo("Контакты");
                               }}
-                              className={`mt-1.5 sm:mt-2 flex items-center gap-1.5 bg-[#3ca615] hover:bg-[#2d8a10] text-white font-bold rounded-xl transition-all shadow-lg w-fit ${isActive ? "text-xs px-3 py-1.5 sm:px-4 sm:py-2" : "text-[10px] px-2 py-1"}`}
+                              className="mt-1.5 sm:mt-2 flex items-center gap-1.5 bg-[#3ca615] hover:bg-[#2d8a10] text-white text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all shadow-lg w-fit"
                             >
-                              <Icon name="Zap" size={isActive ? 12 : 10} />
+                              <Icon name="Zap" size={12} />
                               Заказать в 1 клик
                             </button>
-                          </div>
-                        )}
-                        {isActive && (
-                          <div className="absolute inset-0 rounded-2xl ring-2 ring-[#3ca615] ring-inset pointer-events-none" />
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
+                      {isActive && (
+                        <div className="absolute inset-0 rounded-2xl ring-2 ring-[#3ca615] ring-inset pointer-events-none" />
+                      )}
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Точки — по реальным слайдам */}
+            {/* Точки */}
             <div className="flex justify-center gap-1.5 mt-5">
               {slides.map((_, i) => (
                 <button
