@@ -169,6 +169,7 @@ export function OnecEditor({ content, onChange }: { content: ContentMap; onChang
 
   return (
     <div className="space-y-4">
+      <Field label="Подпись под заголовком раздела 1С" value={content["onec.subtitle"] || ""} onChange={v => onChange("onec.subtitle", v)} textarea />
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="text-xs font-semibold text-gray-500">Услуги 1С ({items.length})</label>

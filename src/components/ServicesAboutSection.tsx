@@ -156,7 +156,9 @@ const ServicesAboutSection = () => {
             <p className="text-[#3ca615] text-sm font-semibold uppercase tracking-widest mb-3">Автоматизация бизнеса</p>
             <h2 className="font-oswald text-4xl font-bold text-[#0D1B2A]">УСЛУГИ ПО 1С</h2>
             <div className="w-16 h-1 bg-[#3ca615] mx-auto mt-4 rounded-full" />
-            <p className="text-[#4B5563] mt-4 max-w-xl mx-auto text-sm">Официальный партнёр 1С. Помогаем автоматизировать учёт и бизнес-процессы под ключ.</p>
+            <p className="text-[#4B5563] mt-4 max-w-2xl mx-auto text-sm leading-relaxed">
+              {str("onec.subtitle", "Официальная поддержка программ 1С — настроим и обновим программы вовремя, никаких сбоев в сдаче отчётности, проконсультируем по работе в обновлённых версиях.")}
+            </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayOnecItems.map((s, i) => (
