@@ -172,7 +172,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
     if (it.type === "section") {
       return (
         <button key={it.id} onClick={() => handleNavClick(it.section || it.label)}
-          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
             isOnMain && activeSection === (it.section || it.label)
               ? "bg-[#3ca615] text-white"
               : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
