@@ -240,9 +240,9 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
                       const delta = i - loopedIdx;
                       setRealIdx(prev => (prev + delta + n) % n);
                     }}
-                    className={`shrink-0 cursor-pointer rounded-2xl overflow-hidden transition-opacity transition-shadow duration-300 ${
+                    className={`shrink-0 cursor-pointer overflow-hidden transition-opacity transition-shadow duration-300 ${
                       isActive
-                        ? "shadow-2xl opacity-100"
+                        ? "shadow-2xl opacity-100 ring-2 ring-[#3ca615]"
                         : "shadow-md opacity-60 hover:opacity-80"
                     }`}
                     style={{ width: slideWidth }}
