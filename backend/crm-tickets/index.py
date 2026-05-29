@@ -4,10 +4,7 @@ CRM заявки: создание, просмотр, смена статуса,
 import json
 import os
 import psycopg2
-import smtplib
-from email.mime.text import MIMEText
 from datetime import datetime
-from urllib.request import urlopen, Request as URequest
 
 
 CORS = {
@@ -136,6 +133,7 @@ def award_fixies_for_ticket(cur, ticket_id: int, new_status: str, old_status: st
 
 
 def send_tg(chat_id: int, text: str) -> None:
+    from urllib.request import urlopen, Request as URequest
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     if not token or not chat_id:
         return
@@ -149,6 +147,8 @@ def send_tg(chat_id: int, text: str) -> None:
 
 
 def send_email_status(to_email: str, client_name: str, title: str, status_label: str, emoji: str, ticket_id: int) -> None:
+    import smtplib
+    from email.mime.text import MIMEText
     host = os.environ.get("SMTP_HOST", "")
     port = int(os.environ.get("SMTP_PORT", "465"))
     user = os.environ.get("SMTP_USER", "")

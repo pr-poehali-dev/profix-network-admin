@@ -4,19 +4,16 @@
 import json
 import os
 import base64
-import csv
-import io
-import smtplib
 import psycopg2
 import uuid
 from datetime import datetime
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from urllib.request import urlopen, Request as URequest
 
 
 def _send_email_order(ticket_id: int, name: str, phone: str, email: str,
                       payment_method: str, total: float, items_html: str) -> None:
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
     smtp_host     = os.environ.get("SMTP_HOST", "")
     smtp_port_str = os.environ.get("SMTP_PORT", "465")
     smtp_user     = os.environ.get("SMTP_USER", "")
@@ -70,6 +67,7 @@ def _send_email_order(ticket_id: int, name: str, phone: str, email: str,
 
 
 def _send_tg(chat_id: str, text: str) -> None:
+    from urllib.request import urlopen, Request as URequest
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     if not token or not chat_id:
         return
@@ -348,6 +346,7 @@ def handler(event: dict, context) -> dict:
                 if body.get("action") == "import_csv":
                     csv_b64 = body.get("csv_data", "")
                     csv_text = base64.b64decode(csv_b64).decode("utf-8-sig")
+                    import csv, io
                     reader = csv.DictReader(io.StringIO(csv_text), delimiter=";")
                     imported = 0
                     for row in reader:

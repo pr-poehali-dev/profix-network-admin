@@ -5,10 +5,7 @@ import json
 import os
 import secrets
 import hashlib
-import smtplib
-from email.mime.text import MIMEText
 from datetime import datetime, timedelta
-from urllib.request import urlopen, Request
 import psycopg2
 
 
@@ -73,6 +70,7 @@ def verify_turnstile(token: str) -> bool:
     if token in ("1x0000000000000000000000000000000AA", "XXXX.DUMMY.TOKEN.XXXX") or secret in ("1x0000000000000000000000000000000AA", ""):
         return True
     try:
+        from urllib.request import urlopen, Request
         data = json.dumps({"secret": secret, "response": token}).encode()
         req = Request(
             "https://challenges.cloudflare.com/turnstile/v0/siteverify",
@@ -86,6 +84,8 @@ def verify_turnstile(token: str) -> bool:
 
 
 def send_email_otp(to_email: str, code: str, phone: str):
+    import smtplib
+    from email.mime.text import MIMEText
     host = os.environ["SMTP_HOST"]
     port = int(os.environ["SMTP_PORT"])
     user = os.environ["SMTP_USER"]
@@ -114,6 +114,8 @@ def send_email_otp(to_email: str, code: str, phone: str):
 
 
 def send_email_2fa(to_email: str, code: str, name: str):
+    import smtplib
+    from email.mime.text import MIMEText
     host = os.environ["SMTP_HOST"]
     port = int(os.environ["SMTP_PORT"])
     user = os.environ["SMTP_USER"]
@@ -138,6 +140,8 @@ def send_email_2fa(to_email: str, code: str, name: str):
 
 
 def send_email_reset(to_email: str, token: str, role: str):
+    import smtplib
+    from email.mime.text import MIMEText
     host = os.environ["SMTP_HOST"]
     port = int(os.environ["SMTP_PORT"])
     user = os.environ["SMTP_USER"]
@@ -162,6 +166,7 @@ def send_email_reset(to_email: str, token: str, role: str):
 
 
 def send_telegram_otp(chat_id: int, code: str):
+    from urllib.request import urlopen, Request
     token = os.environ["TELEGRAM_BOT_TOKEN"]
     text = (f"🔑 <b>Код входа в кабинет ProFiX</b>\n\n"
             f"Ваш код: <b>{code}</b>\n\n"
