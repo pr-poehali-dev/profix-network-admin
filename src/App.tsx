@@ -43,6 +43,20 @@ function ThemeSync() {
   return null;
 }
 
+// Не даёт функциям засыпать — пингует каждые 4 минуты
+const KEEP_ALIVE_URLS = [
+  "https://functions.poehali.dev/1f14f246-0908-4c88-86de-62840b1d4e1c",
+  "https://functions.poehali.dev/5fbf0da4-59e1-4a4d-b9d1-c44efe46c9b7",
+  "https://functions.poehali.dev/c21176bb-34b5-4c32-aa88-89ebe97868ce",
+  "https://functions.poehali.dev/80771697-657a-4565-8f5f-b8553431f806",
+  "https://functions.poehali.dev/f1f45bf4-6a46-4561-abf6-fedd584fbeec",
+];
+function keepAlive() {
+  KEEP_ALIVE_URLS.forEach(url => fetch(url, { method: "OPTIONS" }).catch(() => {}));
+}
+keepAlive();
+setInterval(keepAlive, 4 * 60 * 1000);
+
 const App = () => (
   <HelmetProvider>
   <QueryClientProvider client={queryClient}>
