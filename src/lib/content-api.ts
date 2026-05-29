@@ -2,18 +2,36 @@ const CONTENT_URL = "https://functions.poehali.dev/c21176bb-34b5-4c32-aa88-89ebe
 
 type ContentMap = Record<string, string>;
 
-// Без кэша — всегда свежий контент
+// Кэш в памяти + дедупликация одновременных запросов.
+// Решает проблему десятков параллельных запросов при загрузке страницы.
+let _cache: ContentMap | null = null;
+let _inflight: Promise<ContentMap> | null = null;
+let _cacheTime = 0;
+const CACHE_TTL = 60 * 1000; // 60 секунд
+
 export async function fetchContent(): Promise<ContentMap> {
-  try {
-    const res = await fetch(`${CONTENT_URL}?t=${Date.now()}`);
-    const d = await res.json();
-    return d.content || {};
-  } catch {
-    return {};
-  }
+  // Свежий кэш — отдаём сразу, без запроса
+  if (_cache && Date.now() - _cacheTime < CACHE_TTL) return _cache;
+  // Запрос уже летит — ждём его, не плодим дубли
+  if (_inflight) return _inflight;
+
+  _inflight = (async () => {
+    try {
+      const res = await fetch(CONTENT_URL);
+      const d = await res.json();
+      _cache = d.content || {};
+      _cacheTime = Date.now();
+      return _cache;
+    } catch {
+      return _cache || {};
+    } finally {
+      _inflight = null;
+    }
+  })();
+  return _inflight;
 }
 
-export function invalidateContent() { /* no-op */ }
+export function invalidateContent() { _cache = null; _cacheTime = 0; }
 
 export async function saveContent(updates: Record<string, unknown>): Promise<boolean> {
   const token = localStorage.getItem("crm_manager_token") || "";
