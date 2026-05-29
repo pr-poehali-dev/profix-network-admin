@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import { onPhoneChange } from "@/lib/phone";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Icon from "@/components/ui/icon";
-import TurnstileWidget from "@/components/TurnstileWidget";
 import {
   clientApi, clientSession,
   managerApi, managerSession,
@@ -10,39 +8,18 @@ import {
   authApi, totpApi,
 } from "@/lib/crm-api";
 
-type Role = "manager" | "client" | "tech";
-type AuthMethod = "otp" | "password";
-type Screen = "roles" | "form" | "mfa" | "totp" | "register" | "register_done" | "forgot" | "reset_sent" | "reset_confirm" | "reset_done";
-
-const ROLES = [
-  {
-    key: "client" as Role,
-    label: "Личный кабинет",
-    desc: "Клиент — заявки, чат с менеджером",
-    icon: "User",
-    grad: "from-blue-500 to-blue-600",
-    accent: "border-blue-400 bg-blue-50 text-blue-700",
-    btn: "bg-blue-600 hover:bg-blue-700",
-  },
-  {
-    key: "tech" as Role,
-    label: "Портал специалиста",
-    desc: "Технический специалист — управление заявками",
-    icon: "Wrench",
-    grad: "from-[#3ca615] to-[#2d8a10]",
-    accent: "border-green-400 bg-green-50 text-green-700",
-    btn: "bg-[#3ca615] hover:bg-[#2d8a10]",
-  },
-  {
-    key: "manager" as Role,
-    label: "Панель управления",
-    desc: "Менеджер или администратор — полный CRM",
-    icon: "LayoutDashboard",
-    grad: "from-gray-700 to-gray-900",
-    accent: "border-gray-400 bg-gray-50 text-gray-700",
-    btn: "bg-gray-800 hover:bg-gray-900",
-  },
-];
+import { Role, AuthMethod, Screen, ROLES } from "./login/LoginTypes";
+import { LoginFormScreen } from "./login/LoginFormScreen";
+import {
+  LoginMfaScreen,
+  LoginTotpScreen,
+  LoginRegisterScreen,
+  LoginRegisterDoneScreen,
+  LoginForgotScreen,
+  LoginResetSentScreen,
+  LoginResetConfirmScreen,
+  LoginResetDoneScreen,
+} from "./login/LoginSecondaryScreens";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -50,7 +27,6 @@ export default function Login() {
   const resetToken = params.get("reset");
   const resetRole  = (params.get("role") || "client") as Role;
 
-  // Сохраняем токен в state чтобы не потерять при навигации
   const [savedResetToken] = useState<string | null>(resetToken);
   const [savedResetRole] = useState<Role>(resetRole);
 
@@ -64,7 +40,6 @@ export default function Login() {
   // Менеджер
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
-  const [managerEmail, setManagerEmail] = useState("");
 
   // Клиент OTP
   const [phone, setPhone] = useState("");
@@ -115,7 +90,7 @@ export default function Login() {
 
   // Проверяем существующие сессии
   useEffect(() => {
-    if (resetToken) return; // не редиректим если пришли сбросить пароль
+    if (resetToken) return;
     const mt = managerSession.get();
     const ct = clientSession.get();
     const tt = techSession.get();
@@ -378,616 +353,103 @@ export default function Login() {
 
         {/* ── Форма входа ── */}
         {screen === "form" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
-            {/* Шапка */}
-            <div className="flex items-center gap-3 mb-5">
-              <button onClick={back} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
-                <Icon name="ChevronLeft" size={18} />
-              </button>
-              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${cr.grad} flex items-center justify-center shrink-0`}>
-                <Icon name={cr.icon as "User"} size={17} className="text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900 text-sm">{cr.label}</p>
-              </div>
-            </div>
-
-            {error && (
-              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
-                <Icon name="AlertCircle" size={15} className="shrink-0" />
-                {error}
-              </div>
-            )}
-
-            {/* ── МЕНЕДЖЕР ── */}
-            {role === "manager" && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                    Логин или Email
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text" value={login} onChange={e => setLogin(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && (login.includes("@") ? handleManagerEmailLogin() : handleManagerLogin())}
-                      placeholder="Логин или email" autoFocus
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 pr-10" />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">
-                      <Icon name={login.includes("@") ? "Mail" : "User"} size={16} />
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {login.includes("@") ? "Будет выполнен вход по email" : "Будет выполнен вход по логину"}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">Пароль</label>
-                  <div className="relative">
-                    <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && (login.includes("@") ? handleManagerEmailLogin() : handleManagerLogin())}
-                      placeholder="Введите пароль"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 pr-10" />
-                    <button type="button" onClick={() => setShowPass(!showPass)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      <Icon name={showPass ? "EyeOff" : "Eye"} size={16} />
-                    </button>
-                  </div>
-                </div>
-                <TurnstileWidget onVerify={setCfToken} onExpire={() => setCfToken("")} />
-                <button
-                  onClick={() => login.includes("@") ? handleManagerEmailLogin() : handleManagerLogin()}
-                  disabled={loading || !cfToken}
-                  className={`w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${cr.btn}`}>
-                  {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
-                  {loading ? "Вход..." : "Войти"}
-                </button>
-                <button onClick={() => { setScreen("forgot"); setError(""); }}
-                  className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors">
-                  Забыли пароль?
-                </button>
-              </div>
-            )}
-
-            {/* ── КЛИЕНТ ── */}
-            {role === "client" && (
-              <div className="space-y-4">
-                {/* Переключатель метода */}
-                <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
-                  {[{v:"otp",l:"Код по SMS/Email"},{v:"password",l:"Пароль"}].map(m => (
-                    <button key={m.v} onClick={() => { setMethod(m.v as AuthMethod); setError(""); setOtpStep("phone"); }}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${method === m.v ? "bg-white shadow text-gray-900" : "text-gray-500"}`}>
-                      {m.l}
-                    </button>
-                  ))}
-                </div>
-
-                {method === "otp" && otpStep === "phone" && (
-                  <>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Телефон</label>
-                      <input type="tel" value={phone}
-                        onFocus={e => { if (!e.target.value) setPhone("+7"); }}
-                        onChange={e => onPhoneChange(e.target.value, setPhone)}
-                        onKeyDown={e => e.key === "Enter" && handleRequestOtp()}
-                        placeholder="+7 (999) 000-00-00" autoFocus
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-2">Способ получения кода</label>
-                      <div className="flex gap-2">
-                        {(["email","telegram"] as const).map(ch => (
-                          <button key={ch} onClick={() => setChannel(ch)}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-sm font-medium transition ${channel === ch ? "border-blue-400 bg-blue-50 text-blue-600" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}>
-                            <Icon name={ch === "email" ? "Mail" : "Send"} size={15} />
-                            {ch === "email" ? "Email" : "Telegram"}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    {channel === "email" && (
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-1.5">Email</label>
-                        <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                          placeholder="your@email.com"
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-                      </div>
-                    )}
-                    <TurnstileWidget onVerify={setCfToken} onExpire={() => setCfToken("")} />
-                    <button onClick={handleRequestOtp} disabled={loading || !cfToken}
-                      className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                      {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="Send" size={16} />}
-                      {loading ? "Отправка..." : "Получить код"}
-                    </button>
-                  </>
-                )}
-
-                {method === "otp" && otpStep === "code" && (
-                  <>
-                    <p className="text-sm text-gray-500">Код отправлен {channel === "email" ? `на ${email}` : "в Telegram"}</p>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Код подтверждения</label>
-                      <input type="text" value={code} onChange={e => setCode(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && handleVerifyOtp()}
-                        placeholder="Введите код" autoFocus maxLength={6}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-center text-xl tracking-[0.3em] font-mono focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-                    </div>
-                    <button onClick={handleVerifyOtp} disabled={loading}
-                      className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                      {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
-                      {loading ? "Проверка..." : "Войти"}
-                    </button>
-                    <button onClick={() => { setOtpStep("phone"); setCode(""); setError(""); }}
-                      className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors">
-                      ← Изменить номер
-                    </button>
-                  </>
-                )}
-
-                {method === "password" && (
-                  <>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Телефон</label>
-                      <input type="tel" value={clientPasswordPhone}
-                        onFocus={e => { if (!e.target.value) setClientPasswordPhone("+7"); }}
-                        onChange={e => onPhoneChange(e.target.value, setClientPasswordPhone)}
-                        placeholder="+7 (999) 000-00-00" autoFocus
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Пароль</label>
-                      <div className="relative">
-                        <input type={showPass ? "text" : "password"} value={clientPassword} onChange={e => setClientPassword(e.target.value)}
-                          onKeyDown={e => e.key === "Enter" && handleClientPasswordLogin()}
-                          placeholder="Введите пароль"
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 pr-10" />
-                        <button type="button" onClick={() => setShowPass(!showPass)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                          <Icon name={showPass ? "EyeOff" : "Eye"} size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    <button onClick={handleClientPasswordLogin} disabled={loading}
-                      className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                      {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
-                      {loading ? "Вход..." : "Войти"}
-                    </button>
-                    <button onClick={() => { setScreen("forgot"); setError(""); }}
-                      className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors">
-                      Забыли пароль?
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* ── ТЕХНИК ── */}
-            {role === "tech" && (
-              <div className="space-y-4">
-                {/* Переключатель метода */}
-                <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
-                  {[{v:"otp",l:"PIN-код"},{v:"password",l:"Пароль"}].map(m => (
-                    <button key={m.v} onClick={() => { setMethod(m.v as AuthMethod); setError(""); setTechStep("select"); }}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${method === m.v ? "bg-white shadow text-gray-900" : "text-gray-500"}`}>
-                      {m.l}
-                    </button>
-                  ))}
-                </div>
-
-                {method === "otp" && techStep === "select" && (
-                  <>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Выберите себя</p>
-                    {techList.length === 0 && (
-                      <div className="py-8 text-center text-gray-400 text-sm">
-                        <Icon name="Loader2" size={24} className="animate-spin mx-auto mb-2" />
-                        Загрузка...
-                      </div>
-                    )}
-                    {techList.map(t => (
-                      <button key={t.id}
-                        onClick={() => { setSelectedTechId(t.id); setTechStep("pin"); setError(""); }}
-                        className="w-full text-left flex items-center gap-3 p-3.5 rounded-xl border border-gray-100 hover:border-[#3ca615] hover:bg-[#edf7e8] transition-all">
-                        <div className="w-10 h-10 bg-[#edf7e8] rounded-xl flex items-center justify-center shrink-0">
-                          <Icon name="UserCheck" size={18} className="text-[#3ca615]" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm text-gray-900">{t.name}</p>
-                          <p className="text-xs text-gray-400">{t.specialization || "Специалист"}</p>
-                        </div>
-                        <Icon name="ChevronRight" size={16} className="text-gray-300 ml-auto" />
-                      </button>
-                    ))}
-                  </>
-                )}
-
-                {method === "otp" && techStep === "pin" && (
-                  <>
-                    <button onClick={() => { setTechStep("select"); setPin(""); setError(""); }}
-                      className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                      <Icon name="ChevronLeft" size={16} /> Назад к выбору
-                    </button>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">PIN-код</label>
-                      <input type="password" value={pin} onChange={e => setPin(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && handleTechLogin()}
-                        placeholder="••••••" maxLength={6} autoFocus
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-[#3ca615] focus:ring-2 focus:ring-[#3ca615]/20" />
-                    </div>
-                    <TurnstileWidget onVerify={setCfToken} onExpire={() => {}} />
-                    <button onClick={handleTechLogin} disabled={loading || !pin.trim() || !cfToken}
-                      className={`w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${cr.btn}`}>
-                      {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
-                      {loading ? "Вход..." : "Войти"}
-                    </button>
-                  </>
-                )}
-
-                {method === "password" && (
-                  <>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Email</label>
-                      <input type="email" value={techEmail} onChange={e => setTechEmail(e.target.value)}
-                        placeholder="your@email.com" autoFocus
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/20 focus:border-[#3ca615]" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Пароль</label>
-                      <div className="relative">
-                        <input type={showPass ? "text" : "password"} value={techPassword} onChange={e => setTechPassword(e.target.value)}
-                          onKeyDown={e => e.key === "Enter" && handleTechPasswordLogin()}
-                          placeholder="Введите пароль"
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/20 focus:border-[#3ca615] pr-10" />
-                        <button type="button" onClick={() => setShowPass(!showPass)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                          <Icon name={showPass ? "EyeOff" : "Eye"} size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    <TurnstileWidget onVerify={setCfToken} onExpire={() => {}} />
-                    <button onClick={handleTechPasswordLogin} disabled={loading || !cfToken}
-                      className={`w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${cr.btn}`}>
-                      {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
-                      {loading ? "Вход..." : "Войти"}
-                    </button>
-                    <button onClick={() => { setScreen("forgot"); setError(""); }}
-                      className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors">
-                      Забыли пароль?
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+          <LoginFormScreen
+            role={role} method={method} setMethod={setMethod}
+            error={error} loading={loading} showPass={showPass} setShowPass={setShowPass}
+            cfToken={cfToken} setCfToken={setCfToken} cr={cr}
+            login={login} setLogin={setLogin} password={password} setPassword={setPassword}
+            handleManagerLogin={handleManagerLogin} handleManagerEmailLogin={handleManagerEmailLogin}
+            phone={phone} setPhone={setPhone} channel={channel} setChannel={setChannel}
+            email={email} setEmail={setEmail} otpStep={otpStep} setOtpStep={setOtpStep}
+            code={code} setCode={setCode} handleRequestOtp={handleRequestOtp} handleVerifyOtp={handleVerifyOtp}
+            clientPasswordPhone={clientPasswordPhone} setClientPasswordPhone={setClientPasswordPhone}
+            clientPassword={clientPassword} setClientPassword={setClientPassword}
+            handleClientPasswordLogin={handleClientPasswordLogin}
+            techList={techList} selectedTechId={selectedTechId} setSelectedTechId={setSelectedTechId}
+            pin={pin} setPin={setPin} techStep={techStep} setTechStep={setTechStep}
+            techEmail={techEmail} setTechEmail={setTechEmail}
+            techPassword={techPassword} setTechPassword={setTechPassword}
+            handleTechLogin={handleTechLogin} handleTechPasswordLogin={handleTechPasswordLogin}
+            setError={setError} setScreen={setScreen} back={back}
+          />
         )}
 
         {/* ── 2FA менеджер ── */}
         {screen === "mfa" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <button onClick={() => { setScreen("form"); setMfaCode(""); setMfaError(""); }}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
-                <Icon name="ChevronLeft" size={18} />
-              </button>
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center shrink-0">
-                <Icon name="ShieldCheck" size={17} className="text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900 text-sm">Подтверждение входа</p>
-                <p className="text-xs text-gray-400">Двухфакторная аутентификация</p>
-              </div>
-            </div>
-
-            <div className="mb-5 p-4 bg-gray-50 rounded-xl flex items-start gap-3">
-              <Icon name="Mail" size={18} className="text-gray-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-700">Код подтверждения отправлен на</p>
-                <p className="text-sm font-semibold text-gray-900">{mfaEmailMasked}</p>
-                <p className="text-xs text-gray-400 mt-1">Код действует 10 минут</p>
-              </div>
-            </div>
-
-            {mfaError && (
-              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
-                <Icon name="AlertCircle" size={15} className="shrink-0" />
-                {mfaError}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Код из письма</label>
-                <input
-                  type="text" value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/\D/g, ""))}
-                  onKeyDown={e => e.key === "Enter" && handleMfaVerify()}
-                  placeholder="000000" maxLength={6} autoFocus
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400"
-                />
-              </div>
-              <button onClick={handleMfaVerify} disabled={mfaLoading || mfaCode.length < 6}
-                className="w-full py-3 rounded-xl bg-gray-800 hover:bg-gray-900 text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                {mfaLoading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
-                {mfaLoading ? "Проверка..." : "Подтвердить и войти"}
-              </button>
-              <button onClick={() => { setScreen("form"); setMfaCode(""); setMfaError(""); }}
-                className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors">
-                ← Вернуться к вводу пароля
-              </button>
-            </div>
-          </div>
+          <LoginMfaScreen
+            mfaEmailMasked={mfaEmailMasked}
+            mfaCode={mfaCode} setMfaCode={setMfaCode}
+            mfaError={mfaError} mfaLoading={mfaLoading}
+            handleMfaVerify={handleMfaVerify}
+            setScreen={setScreen}
+          />
         )}
 
         {/* ── TOTP верификация ── */}
         {screen === "totp" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <button onClick={() => { setScreen("form"); setTotpCode(""); setTotpError(""); }}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
-                <Icon name="ChevronLeft" size={18} />
-              </button>
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3ca615] to-[#2d8a10] flex items-center justify-center shrink-0">
-                <Icon name="Shield" size={17} className="text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900 text-sm">Двухфакторная аутентификация</p>
-                <p className="text-xs text-gray-400">Google Authenticator</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 bg-[#edf7e8] border border-green-100 rounded-xl px-4 py-3 mb-5">
-              <Icon name="Smartphone" size={18} className="text-[#3ca615] shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-700">Откройте приложение аутентификатор</p>
-                <p className="text-xs text-gray-400 mt-0.5">и введите 6-значный код для ProFiX</p>
-              </div>
-            </div>
-
-            {totpError && (
-              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
-                <Icon name="AlertCircle" size={15} className="shrink-0" />
-                {totpError}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Код из приложения</label>
-                <input
-                  type="text" value={totpCode}
-                  onChange={e => { setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6)); setTotpError(""); }}
-                  onKeyDown={e => e.key === "Enter" && handleTotpVerify()}
-                  placeholder="000000" maxLength={6} autoFocus
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-[#3ca615]/30 focus:border-[#3ca615]"
-                />
-              </div>
-              <button onClick={handleTotpVerify} disabled={totpLoading || totpCode.length < 6}
-                className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                style={{ background: "#3ca615" }}>
-                {totpLoading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="LogIn" size={16} />}
-                {totpLoading ? "Проверка..." : "Войти"}
-              </button>
-              <button onClick={() => { setScreen("form"); setTotpCode(""); setTotpError(""); }}
-                className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors">
-                ← Вернуться к вводу пароля
-              </button>
-            </div>
-          </div>
+          <LoginTotpScreen
+            totpCode={totpCode} setTotpCode={setTotpCode}
+            totpError={totpError} setTotpError={setTotpError}
+            totpLoading={totpLoading}
+            handleTotpVerify={handleTotpVerify}
+            setScreen={setScreen}
+          />
         )}
 
         {/* ── Регистрация клиента ── */}
         {screen === "register" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <button onClick={() => { setScreen("roles"); setRegError(""); }}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
-                <Icon name="ChevronLeft" size={18} />
-              </button>
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shrink-0">
-                <Icon name="UserPlus" size={17} className="text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900 text-sm">Регистрация</p>
-                <p className="text-xs text-gray-400">Личный кабинет клиента</p>
-              </div>
-            </div>
-
-            {regError && (
-              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
-                <Icon name="AlertCircle" size={15} className="shrink-0" />
-                {regError}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Имя *</label>
-                <input type="text" value={regName} onChange={e => setRegName(e.target.value)}
-                  placeholder="Иван Иванов" autoFocus
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Телефон *</label>
-                <input type="tel" value={regPhone}
-                  onFocus={e => { if (!e.target.value) setRegPhone("+7"); }}
-                  onChange={e => onPhoneChange(e.target.value, setRegPhone)}
-                  placeholder="+7 (999) 000-00-00"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Email (необязательно)</label>
-                <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-              </div>
-
-              {/* Согласие на обработку ПД */}
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <div className="relative mt-0.5 shrink-0">
-                  <input type="checkbox" checked={regPdConsent} onChange={e => setRegPdConsent(e.target.checked)}
-                    className="sr-only" />
-                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${regPdConsent ? "bg-blue-600 border-blue-600" : "border-gray-300 group-hover:border-blue-400"}`}>
-                    {regPdConsent && <Icon name="Check" size={12} className="text-white" />}
-                  </div>
-                </div>
-                <span className="text-xs text-gray-500 leading-relaxed">
-                  Я согласен(а) на{" "}
-                  <a href="/privacy" target="_blank" className="text-blue-600 underline hover:text-blue-800">
-                    обработку персональных данных
-                  </a>{" "}
-                  в соответствии с Федеральным законом №152-ФЗ
-                </span>
-              </label>
-
-              <TurnstileWidget onVerify={setCfToken} onExpire={() => setCfToken("")} />
-
-              <button onClick={handleRegister} disabled={regLoading || !cfToken || !regPdConsent}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                {regLoading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="UserPlus" size={16} />}
-                {regLoading ? "Регистрация..." : "Создать аккаунт"}
-              </button>
-
-              <p className="text-center text-xs text-gray-400">
-                Уже есть аккаунт?{" "}
-                <button onClick={() => { setRole("client"); setScreen("form"); setRegError(""); }}
-                  className="text-blue-600 hover:underline">Войти</button>
-              </p>
-            </div>
-          </div>
+          <LoginRegisterScreen
+            regName={regName} setRegName={setRegName}
+            regPhone={regPhone} setRegPhone={setRegPhone}
+            regEmail={regEmail} setRegEmail={setRegEmail}
+            regPdConsent={regPdConsent} setRegPdConsent={setRegPdConsent}
+            regLoading={regLoading} regError={regError} setRegError={setRegError}
+            cfToken={cfToken} setCfToken={setCfToken}
+            handleRegister={handleRegister}
+            setScreen={setScreen}
+          />
         )}
 
         {/* ── Успешная регистрация ── */}
         {screen === "register_done" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-8 text-center">
-            <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Icon name="CheckCircle" size={28} className="text-blue-600" />
-            </div>
-            <h2 className="font-bold text-gray-900 text-lg mb-2">Заявка принята!</h2>
-            <p className="text-gray-500 text-sm mb-6">
-              Ваша заявка на регистрацию отправлена. Менеджер свяжется с вами для подтверждения доступа.
-            </p>
-            <button onClick={() => setScreen("roles")}
-              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2">
-              <Icon name="LogIn" size={16} /> Перейти ко входу
-            </button>
-          </div>
+          <LoginRegisterDoneScreen setScreen={setScreen} />
         )}
 
         {/* ── Восстановление пароля ── */}
         {screen === "forgot" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <button onClick={() => { setScreen("form"); setError(""); }}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
-                <Icon name="ChevronLeft" size={18} />
-              </button>
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">Восстановление пароля</p>
-                <p className="text-xs text-gray-400">Ссылка придёт на email</p>
-              </div>
-            </div>
-            {error && (
-              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
-                <Icon name="AlertCircle" size={15} className="shrink-0" />{error}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Email аккаунта</label>
-                <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleForgot()}
-                  placeholder="your@email.com" autoFocus
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/20 focus:border-[#3ca615]" />
-              </div>
-              <button onClick={handleForgot} disabled={loading}
-                className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2" style={{background:"#3ca615"}}>
-                {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="Mail" size={16} />}
-                {loading ? "Отправка..." : "Отправить ссылку"}
-              </button>
-            </div>
-          </div>
+          <LoginForgotScreen
+            forgotEmail={forgotEmail} setForgotEmail={setForgotEmail}
+            error={error} loading={loading}
+            handleForgot={handleForgot}
+            setScreen={setScreen} setError={setError}
+          />
         )}
 
         {/* ── Письмо отправлено ── */}
         {screen === "reset_sent" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-8 text-center">
-            <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Icon name="Mail" size={28} className="text-[#3ca615]" />
-            </div>
-            <h2 className="font-bold text-gray-900 text-lg mb-2">Письмо отправлено</h2>
-            <p className="text-gray-500 text-sm mb-6">Проверьте почту и перейдите по ссылке для сброса пароля. Ссылка действует 30 минут.</p>
-            <button onClick={() => { setScreen("form"); setError(""); }}
-              className="text-sm text-[#3ca615] hover:underline">
-              ← Вернуться ко входу
-            </button>
-          </div>
+          <LoginResetSentScreen setScreen={setScreen} setError={setError} />
         )}
 
         {/* ── Новый пароль (по ссылке из письма) ── */}
         {screen === "reset_confirm" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 rounded-xl bg-[#3ca615] flex items-center justify-center shrink-0">
-                <Icon name="KeyRound" size={17} className="text-white" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">Новый пароль</p>
-                <p className="text-xs text-gray-400">Придумайте надёжный пароль</p>
-              </div>
-            </div>
-            {error && (
-              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
-                <Icon name="AlertCircle" size={15} className="shrink-0" />{error}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Новый пароль</label>
-                <div className="relative">
-                  <input type={showPass ? "text" : "password"} value={newPassword} onChange={e => setNewPassword(e.target.value)}
-                    placeholder="Минимум 6 символов" autoFocus
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/20 focus:border-[#3ca615] pr-10" />
-                  <button type="button" onClick={() => setShowPass(!showPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    <Icon name={showPass ? "EyeOff" : "Eye"} size={16} />
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Повторите пароль</label>
-                <input type={showPass ? "text" : "password"} value={newPasswordConfirm} onChange={e => setNewPasswordConfirm(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleResetConfirm()}
-                  placeholder="Повторите пароль"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#3ca615]/20 focus:border-[#3ca615]" />
-              </div>
-              {newPassword && newPasswordConfirm && newPassword !== newPasswordConfirm && (
-                <p className="text-xs text-red-500">Пароли не совпадают</p>
-              )}
-              <button onClick={handleResetConfirm} disabled={loading || newPassword !== newPasswordConfirm || newPassword.length < 6}
-                className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2" style={{background:"#3ca615"}}>
-                {loading ? <Icon name="Loader2" size={16} className="animate-spin" /> : <Icon name="Check" size={16} />}
-                {loading ? "Сохранение..." : "Установить пароль"}
-              </button>
-            </div>
-          </div>
+          <LoginResetConfirmScreen
+            newPassword={newPassword} setNewPassword={setNewPassword}
+            newPasswordConfirm={newPasswordConfirm} setNewPasswordConfirm={setNewPasswordConfirm}
+            showPass={showPass} setShowPass={setShowPass}
+            error={error} loading={loading}
+            handleResetConfirm={handleResetConfirm}
+          />
         )}
 
         {/* ── Пароль сброшен ── */}
         {screen === "reset_done" && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-8 text-center">
-            <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Icon name="CheckCircle" size={28} className="text-[#3ca615]" />
-            </div>
-            <h2 className="font-bold text-gray-900 text-lg mb-2">Пароль установлен!</h2>
-            <p className="text-gray-500 text-sm mb-6">Теперь вы можете войти используя новый пароль.</p>
-            <button onClick={() => {
-                setScreen("form");
-                setRole(savedResetRole);
-                setMethod("password");
-                setError("");
-              }}
-              className="w-full py-3 rounded-xl text-white font-semibold text-sm" style={{background:"#3ca615"}}>
-              Войти с новым паролем
-            </button>
-          </div>
+          <LoginResetDoneScreen
+            savedResetRole={savedResetRole}
+            setScreen={setScreen} setRole={setRole}
+            setMethod={setMethod} setError={setError}
+          />
         )}
+
       </div>
     </div>
   );
