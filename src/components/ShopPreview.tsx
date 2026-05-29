@@ -68,6 +68,7 @@ export default function ShopPreview() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [cartCount, setCartCount] = useState(cart.count());
 
@@ -80,10 +81,26 @@ export default function ShopPreview() {
   useEffect(() => {
     shopApi.getProducts({ limit: 8 }).then(res => {
       if (res.products) setProducts(res.products.filter((p: Product) => p.is_active && p.in_stock).slice(0, 8));
-    }).finally(() => setLoading(false));
+      else setLoadError(true);
+    }).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, []);
 
-  if (!loading && products.length === 0) return null;
+  if (!loading && loadError) {
+    return (
+      <section className="bg-[#F7F9FC] py-16 border-t border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#3ca615] mb-2">Интернет-магазин</p>
+          <h2 className="font-oswald text-3xl font-bold text-[#0D1B2A] mb-6">ПОПУЛЯРНЫЕ ТОВАРЫ</h2>
+          <button onClick={() => navigate("/shop")}
+            className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-opacity"
+            style={{ background: "#3ca615" }}>
+            <Icon name="Store" size={18} />
+            Перейти в магазин
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="bg-[#F7F9FC] py-16 border-t border-gray-100">
