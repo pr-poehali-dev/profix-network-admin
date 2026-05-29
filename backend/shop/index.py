@@ -8,7 +8,6 @@ import csv
 import io
 import smtplib
 import psycopg2
-import boto3
 import uuid
 from datetime import datetime
 from email.mime.text import MIMEText
@@ -139,6 +138,7 @@ def ensure_tables(conn):
 
 
 def upload_image(b64data: str, content_type: str = "image/jpeg") -> str:
+    import boto3
     s3 = boto3.client(
         "s3",
         endpoint_url="https://bucket.poehali.dev",

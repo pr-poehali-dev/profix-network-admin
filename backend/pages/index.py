@@ -6,7 +6,6 @@ import os
 import base64
 import uuid
 import psycopg2
-import boto3
 
 SC = os.environ.get("MAIN_DB_SCHEMA") or "t_p83689144_profix_network_admin"
 CORS = {
@@ -31,6 +30,7 @@ def err(msg, code=400):
 
 
 def upload_image(b64: str, content_type: str = "image/jpeg") -> str:
+    import boto3
     s3 = boto3.client("s3",
         endpoint_url="https://bucket.poehali.dev",
         aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
