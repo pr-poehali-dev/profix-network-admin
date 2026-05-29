@@ -55,7 +55,7 @@ function keepAlive() {
   KEEP_ALIVE_URLS.forEach(url => fetch(url, { method: "OPTIONS" }).catch(() => {}));
 }
 keepAlive();
-setInterval(keepAlive, 4 * 60 * 1000);
+setInterval(keepAlive, 2.5 * 60 * 1000);
 
 const App = () => (
   <HelmetProvider>

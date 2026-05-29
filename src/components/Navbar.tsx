@@ -175,7 +175,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
     if (it.type === "section") {
       return (
         <button key={it.id} onClick={() => handleNavClick(it.section || it.label)}
-          className={`px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap ${
+          className={`px-2 py-1.5 rounded-lg text-[12px] font-medium transition-colors whitespace-nowrap ${
             isOnMain && activeSection === (it.section || it.label)
               ? "bg-[#3ca615] text-white"
               : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
@@ -187,7 +187,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
     if (it.type === "page") {
       return (
         <button key={it.id} onClick={() => navigate(`/p/${it.slug}`)}
-          className={`px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap ${
+          className={`px-2 py-1.5 rounded-lg text-[12px] font-medium transition-colors whitespace-nowrap ${
             location.pathname === `/p/${it.slug}` ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
           }`}>
           {it.label}
@@ -197,8 +197,8 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
     if (it.type === "link") {
       return (
         <a key={it.id} href={it.href}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors">
-          {it.icon && <Icon name={it.icon as "Star"} size={14} fallback="Link" />}
+          className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[12px] font-medium text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615] transition-colors whitespace-nowrap">
+          {it.icon && <Icon name={it.icon as "Star"} size={13} fallback="Link" />}
           {it.label}
         </a>
       );
@@ -209,8 +209,8 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
   function renderDesktopBtnItem(it: NavItem) {
     if (it.type === "shop") return (
       <button key={it.id} onClick={() => navigate("/shop")}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
-        <Icon name={it.icon as "Star" || "ShoppingCart"} size={15} fallback="ShoppingCart" />
+        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors whitespace-nowrap">
+        <Icon name={it.icon as "Star" || "ShoppingCart"} size={14} fallback="ShoppingCart" />
         {it.label}
       </button>
     );
@@ -221,7 +221,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         const roleColor = managerRole === "admin" ? "#e53e3e" : "#3ca615";
         return (
           <button key={it.id} onClick={() => navigate("/admin")}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors bg-[#edf7e8]"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-medium border transition-colors bg-[#edf7e8]"
             style={{ borderColor: `${roleColor}40` }}>
             {managerAvatar
               ? <img src={managerAvatar} alt="" className="w-6 h-6 rounded-full object-cover border border-white" />
@@ -238,7 +238,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
       if (clientName) {
         return (
           <button key={it.id} onClick={() => navigate("/cabinet")}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-[#3ca615]/30 hover:border-[#3ca615] transition-colors bg-[#edf7e8]">
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-medium border border-[#3ca615]/30 hover:border-[#3ca615] transition-colors bg-[#edf7e8]">
             {clientAvatar
               ? <img src={clientAvatar} alt="" className="w-5 h-5 rounded-full object-cover" />
               : <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold" style={{ background: "#3ca615" }}>
@@ -256,7 +256,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
       }
       return (
         <button key={it.id} onClick={() => navigate("/login")}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[#374151] border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] transition-colors">
           <Icon name={it.icon as "Star" || "User"} size={15} fallback="User" />
           {it.label}
         </button>
@@ -275,30 +275,30 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
   return (
     <>
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white shadow-md" : "bg-white/80 backdrop-blur"}`}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 flex items-center justify-between h-16 gap-3">
         {/* Логотип */}
-        <button onClick={() => navigate("/")} className="flex items-center gap-2 shrink-0 mr-4">
+        <button onClick={() => navigate("/")} className="flex items-center gap-1.5 shrink-0 mr-6">
           <img
             src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
-            alt="ProFiX логотип" className="h-9 w-9 object-contain"
+            alt="ProFiX логотип" className="h-8 w-8 object-contain"
           />
-          <span className="font-oswald text-xl font-bold tracking-wide">
+          <span className="font-oswald text-lg font-bold tracking-wide">
             <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
           </span>
         </button>
 
         {/* Десктоп — меню */}
-        <nav className="hidden md:flex items-center gap-0.5 justify-center flex-1 min-w-0">
+        <nav className="hidden md:flex items-center gap-0 justify-center flex-1 min-w-0 overflow-hidden">
           {menuItems.map(it => renderDesktopMenuItem(it))}
 
           {/* Партнёры */}
           <div ref={dropdownRef} className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <button onClick={() => setPartnersOpen(v => !v)}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-0.5 px-2 py-1.5 rounded-lg text-[12px] font-medium transition-colors whitespace-nowrap ${
                 partnersOpen ? "bg-[#3ca615] text-white" : "text-[#374151] hover:bg-[#edf7e8] hover:text-[#3ca615]"
               }`}>
               Партнёры
-              <Icon name="ChevronDown" size={14} className={`transition-transform ${partnersOpen ? "rotate-180" : ""}`} />
+              <Icon name="ChevronDown" size={13} className={`transition-transform ${partnersOpen ? "rotate-180" : ""}`} />
             </button>
             {partnersOpen && (
               <div className="absolute top-full left-0 bg-white rounded-xl shadow-xl border border-gray-100 z-50"
@@ -319,11 +319,11 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         </nav>
 
         {/* Десктоп — кнопки справа */}
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-1.5 shrink-0">
           {btnItems.map(it => renderDesktopBtnItem(it))}
           {/* Корзина */}
-          <button onClick={() => setCartOpen(true)} className="relative flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] text-[#374151] transition-colors">
-            <Icon name="ShoppingCart" size={17} />
+          <button onClick={() => setCartOpen(true)} className="relative flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:border-[#3ca615] hover:text-[#3ca615] text-[#374151] transition-colors">
+            <Icon name="ShoppingCart" size={15} />
             {cartCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
                 {cartCount > 9 ? "9+" : cartCount}
@@ -331,9 +331,9 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
             )}
           </button>
           <a href={phoneHref} title={phone}
-            className="flex items-center gap-1.5 bg-[#3ca615] text-white px-3 py-2 rounded-lg hover:bg-[#2d8a10] transition-colors shrink-0">
-            <Icon name="Phone" size={14} />
-            <span className="text-sm font-semibold tracking-wide whitespace-nowrap">{phone}</span>
+            className="flex items-center gap-1 bg-[#3ca615] text-white px-2.5 py-1.5 rounded-lg hover:bg-[#2d8a10] transition-colors shrink-0">
+            <Icon name="Phone" size={13} />
+            <span className="text-[12px] font-semibold tracking-wide whitespace-nowrap">{phone}</span>
           </a>
         </div>
 
