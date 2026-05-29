@@ -84,8 +84,12 @@ export default function CabinetProfile({ client, onBack, onClientUpdate }: Props
         if (res.avatar_url) {
           setAvatarUrl(res.avatar_url);
           onClientUpdate({ ...client, avatar_url: res.avatar_url });
+        } else {
+          setSaveError(res.error || "Ошибка загрузки аватара");
         }
-      } catch { /* ignore */ }
+      } catch {
+        setSaveError("Ошибка соединения при загрузке аватара");
+      }
       finally { setAvatarUploading(false); }
     };
     reader.readAsDataURL(file);
