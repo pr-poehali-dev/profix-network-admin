@@ -85,7 +85,7 @@ export default function AdminTgChat() {
     pollRef.current = setInterval(() => {
       loadHistory(activeTech.id, lastMsgIdRef.current);
       loadTechs(); // обновляем счётчики
-    }, 4000);
+    }, 10000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [activeTech, loadHistory, loadTechs]);
 

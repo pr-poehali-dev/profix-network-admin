@@ -223,7 +223,7 @@ export default function TechPortal() {
           }
         }
       } catch { /* ignore */ }
-    }, 10000);
+    }, 20000);
     return () => { if (pollTicketRef.current) clearInterval(pollTicketRef.current); };
   }, [selectedTicket?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

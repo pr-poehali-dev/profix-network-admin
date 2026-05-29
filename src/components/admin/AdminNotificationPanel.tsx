@@ -102,7 +102,7 @@ export default function AdminNotificationPanel({ token, role, userId, userName }
 
   useEffect(() => {
     pollCount();
-    pollRef.current = setInterval(pollCount, 10000);
+    pollRef.current = setInterval(pollCount, 20000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [pollCount]);
 
@@ -165,7 +165,7 @@ export default function AdminNotificationPanel({ token, role, userId, userName }
           scrollBottom();
         }
       } catch { /* ignore */ }
-    }, 5000);
+    }, 8000);
     return () => clearInterval(t);
   }, [activeContact, token]);
 
@@ -181,7 +181,7 @@ export default function AdminNotificationPanel({ token, role, userId, userName }
           scrollBottom();
         }
       } catch { /* ignore */ }
-    }, 4000);
+    }, 8000);
     return () => clearInterval(t);
   }, [activeSession, token]);
 

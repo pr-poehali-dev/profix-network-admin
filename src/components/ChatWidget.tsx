@@ -83,9 +83,10 @@ const ChatWidget = () => {
   }, [open]);
 
   useEffect(() => {
-    pollRef.current = setInterval(pollMessages, 4000);
+    // Чат открыт — опрашиваем чаще (8с), закрыт — редко (30с), чтобы экономить вычисления
+    pollRef.current = setInterval(pollMessages, open ? 8000 : 30000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [pollMessages]);
+  }, [pollMessages, open]);
 
   useEffect(() => {
     if (open) setHasNew(false);

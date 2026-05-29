@@ -338,9 +338,10 @@ export default function Cabinet() {
 
   useEffect(() => {
     if (step !== "cabinet") return;
-    chatPollRef.current = setInterval(pollChat, 4000);
+    // Чат открыт — чаще (8с), в других разделах — реже (30с)
+    chatPollRef.current = setInterval(pollChat, view === "chat" ? 8000 : 30000);
     return () => { if (chatPollRef.current) clearInterval(chatPollRef.current); };
-  }, [step, pollChat]);
+  }, [step, pollChat, view]);
 
   useEffect(() => {
     if (view === "chat") {

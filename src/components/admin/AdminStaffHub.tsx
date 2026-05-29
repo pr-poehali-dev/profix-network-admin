@@ -153,7 +153,7 @@ export default function AdminStaffHub() {
       const techId = chatMode === "group" ? null : activeTech?.id ?? null;
       if (techId !== null || chatMode === "group") loadHistory(techId, lastMsgIdRef.current);
       loadTechs();
-    }, 4000);
+    }, 10000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [activeTech, chatMode, activeTab, loadHistory, loadTechs]);
 
