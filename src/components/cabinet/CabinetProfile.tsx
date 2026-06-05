@@ -13,6 +13,7 @@ type Client = {
   email?: string;
   telegram_id?: number | null;
   avatar_url?: string | null;
+  cover_url?: string | null;
   delivery_address?: string | null;
   socials?: Record<string, string>;
 };
@@ -32,6 +33,9 @@ const SOCIAL_OPTIONS = [
 
 export default function CabinetProfile({ client, onBack, onClientUpdate }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverUrl, setCoverUrl] = useState(client.cover_url || "");
 
   // Основные данные
   const [name, setName] = useState(client.name || "");
@@ -94,6 +98,39 @@ export default function CabinetProfile({ client, onBack, onClientUpdate }: Props
     };
     reader.readAsDataURL(file);
     e.target.value = "";
+  }
+
+  // ── Обложка (шапка профиля) ───────────────────────────────────────────────
+  async function handleCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverUploading(true);
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const dataUrl = ev.target?.result as string;
+      try {
+        const res = await clientApi.updateProfile({ cover_url: dataUrl });
+        if (res.client?.cover_url) {
+          setCoverUrl(res.client.cover_url);
+          onClientUpdate({ ...client, cover_url: res.client.cover_url });
+        } else setSaveError(res.error || "Ошибка загрузки шапки");
+      } catch { setSaveError("Ошибка соединения при загрузке шапки"); }
+      finally { setCoverUploading(false); }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  async function handleCoverReset() {
+    setCoverUploading(true);
+    try {
+      const res = await clientApi.updateProfile({ cover_url: "" });
+      if (res.client) {
+        setCoverUrl("");
+        onClientUpdate({ ...client, cover_url: null });
+      }
+    } catch { setSaveError("Ошибка соединения"); }
+    finally { setCoverUploading(false); }
   }
 
   // ── Сохранение основных данных ───────────────────────────────────────────
@@ -202,32 +239,56 @@ export default function CabinetProfile({ client, onBack, onClientUpdate }: Props
         <h2 className="font-oswald text-xl font-bold text-[#111827]">Мой профиль</h2>
       </div>
 
-      {/* ── Аватар ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <div className="flex items-center gap-4">
-          <div className="relative shrink-0">
-            <div className="w-20 h-20 rounded-2xl bg-[#edf7e8] overflow-hidden flex items-center justify-center border-2 border-[#3ca615]/20">
-              {avatarUrl
-                ? <img src={avatarUrl} alt="Аватар" className="w-full h-full object-cover" />
-                : <Icon name="User" size={32} className="text-[#3ca615]" />
-              }
-            </div>
-            {avatarUploading && (
-              <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
-                <Icon name="Loader2" size={20} className="animate-spin text-white" />
-              </div>
+      {/* ── Шапка профиля с обложкой + аватар ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* Обложка */}
+        <div className="relative h-28"
+          style={coverUrl
+            ? { backgroundImage: `url(${coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
+            : { background: "linear-gradient(135deg,#3ca615,#2d8a10)" }}>
+          {coverUrl && <div className="absolute inset-0 bg-black/20" />}
+          <div className="absolute top-3 right-3 flex items-center gap-2">
+            <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverFile} className="hidden" />
+            <button onClick={() => coverRef.current?.click()} disabled={coverUploading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-medium transition-colors disabled:opacity-50">
+              <Icon name={coverUploading ? "Loader2" : "Image"} size={13} className={coverUploading ? "animate-spin" : ""} />
+              {coverUrl ? "Сменить фон" : "Фон"}
+            </button>
+            {coverUrl && (
+              <button onClick={handleCoverReset} disabled={coverUploading} title="Убрать картинку"
+                className="flex items-center justify-center w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50">
+                <Icon name="X" size={14} />
+              </button>
             )}
           </div>
-          <div>
-            <p className="font-semibold text-gray-900">{client.name || "Без имени"}</p>
-            <p className="text-sm text-gray-400">{client.phone}</p>
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarFile} className="hidden" />
-            <button onClick={() => fileRef.current?.click()} disabled={avatarUploading}
-              className="mt-2 flex items-center gap-1.5 text-xs text-[#3ca615] hover:underline transition-colors disabled:opacity-50">
-              <Icon name="Upload" size={13} />
-              {avatarUrl ? "Сменить фото" : "Загрузить фото"}
-            </button>
+        </div>
+        {/* Аватар + имя */}
+        <div className="px-5 pb-5">
+          <div className="flex items-end gap-4 -mt-10">
+            <div className="relative shrink-0">
+              <div className="w-20 h-20 rounded-2xl bg-[#edf7e8] overflow-hidden flex items-center justify-center border-4 border-white shadow-lg">
+                {avatarUrl
+                  ? <img src={avatarUrl} alt="Аватар" className="w-full h-full object-cover" />
+                  : <Icon name="User" size={32} className="text-[#3ca615]" />
+                }
+              </div>
+              {avatarUploading && (
+                <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
+                  <Icon name="Loader2" size={20} className="animate-spin text-white" />
+                </div>
+              )}
+            </div>
+            <div className="pb-1">
+              <p className="font-semibold text-gray-900">{client.name || "Без имени"}</p>
+              <p className="text-sm text-gray-400">{client.phone}</p>
+            </div>
           </div>
+          <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarFile} className="hidden" />
+          <button onClick={() => fileRef.current?.click()} disabled={avatarUploading}
+            className="mt-3 flex items-center gap-1.5 text-xs text-[#3ca615] hover:underline transition-colors disabled:opacity-50">
+            <Icon name="Upload" size={13} />
+            {avatarUrl ? "Сменить фото" : "Загрузить фото"}
+          </button>
         </div>
       </div>
 

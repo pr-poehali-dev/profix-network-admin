@@ -106,6 +106,7 @@ export const clientApi = {
     delivery_address?: string | null;
     socials?: Record<string, string>;
     avatar_url?: string | null;
+    cover_url?: string | null;
   }) => postAuthWithToken({ action: "client_update_profile", ...data }, clientSession.get()!),
 
   uploadAvatar: (imageB64: string, imageType: string) =>
@@ -207,7 +208,7 @@ export const managerApi = {
   createManager: (data: { login: string; password: string; name: string; role: string }) =>
     postAuthWithToken({ action: "manager_create", ...data }, managerSession.get()!),
 
-  updateProfile: (data: { name?: string; login?: string; email?: string; phone?: string; address?: string; avatar_url?: string; password?: string; current_password?: string }) =>
+  updateProfile: (data: { name?: string; login?: string; email?: string; phone?: string; address?: string; avatar_url?: string; cover_url?: string; password?: string; current_password?: string }) =>
     postAuthWithToken({ action: "manager_update_profile", ...data }, managerSession.get()!),
 
   getTickets: (status?: string, source?: string) =>

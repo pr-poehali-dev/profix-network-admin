@@ -5,7 +5,7 @@ import { tgStaffApi } from "@/lib/tg-staff-api";
 
 interface Profile {
   id: number; role: string; name: string; login: string;
-  email?: string; phone?: string; address?: string; avatar_url?: string;
+  email?: string; phone?: string; address?: string; avatar_url?: string; cover_url?: string;
   fixies_balance: number; tariff_name?: string;
   penalties: number; done_tickets: number;
 }
@@ -43,8 +43,10 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
   const [editOpen, setEditOpen]   = useState(false);
   const [saving, setSaving]       = useState(false);
   const [avatarUploading, setAU]  = useState(false);
+  const [coverUploading, setCU]   = useState(false);
   const [msg, setMsg]             = useState<{ text: string; ok: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
 
   // Быстрое создание заявки
   const [showQuickTicket, setShowQuickTicket] = useState(false);
@@ -109,6 +111,33 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
     };
     reader.readAsDataURL(file);
     e.target.value = "";
+  }
+
+  async function handleCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setCU(true);
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const dataUrl = ev.target?.result as string;
+      const res = await managerApi.updateProfile({ cover_url: dataUrl });
+      if (res.updated && res.manager?.cover_url) {
+        setProfile(p => p ? { ...p, cover_url: res.manager.cover_url } : p);
+        flash("Шапка обновлена");
+      } else flash(res.error || "Ошибка загрузки", false);
+      setCU(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  async function handleCoverReset() {
+    setCU(true);
+    const res = await managerApi.updateProfile({ cover_url: "" });
+    if (res.updated) {
+      setProfile(p => p ? { ...p, cover_url: undefined } : p);
+      flash("Шапка сброшена");
+    } else flash(res.error || "Ошибка", false);
+    setCU(false);
   }
 
   async function handleSave() {
@@ -204,27 +233,49 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
 
       {/* ── Карточка профиля ─────────────────────────────────────────────── */}
       <div className="rounded-2xl overflow-hidden shadow-sm mb-5">
-        {/* Шапка с градиентом */}
+        {/* Шапка с градиентом или картинкой */}
         <div className="relative px-6 pt-6 pb-16"
-          style={{ background: isAdmin ? "linear-gradient(135deg,#e53e3e,#c53030)" : "linear-gradient(135deg,#3ca615,#2d8a10)" }}>
-          <div className="flex items-start justify-between">
+          style={profile?.cover_url
+            ? { backgroundImage: `url(${profile.cover_url})`, backgroundSize: "cover", backgroundPosition: "center" }
+            : { background: isAdmin ? "linear-gradient(135deg,#e53e3e,#c53030)" : "linear-gradient(135deg,#3ca615,#2d8a10)" }}>
+          {/* Затемнение поверх картинки для читаемости текста */}
+          {profile?.cover_url && <div className="absolute inset-0 bg-black/35" />}
+
+          <div className="relative flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 mb-0.5">
-                <h2 className="text-xl font-bold text-white">{profile?.name}</h2>
+                <h2 className="text-xl font-bold text-white drop-shadow">{profile?.name}</h2>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">
                   {ROLE_LABEL[profile?.role || ""] || profile?.role}
                 </span>
               </div>
-              <p className="text-white/60 text-sm">@{profile?.login}</p>
+              <p className="text-white/70 text-sm drop-shadow">@{profile?.login}</p>
             </div>
-            <button onClick={() => setEditOpen(v => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors">
-              <Icon name="Pencil" size={13} />Изменить
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Загрузка/смена шапки */}
+              <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverFile} className="hidden" />
+              <button onClick={() => coverRef.current?.click()} disabled={coverUploading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors disabled:opacity-50">
+                <Icon name={coverUploading ? "Loader2" : "Image"} size={13} className={coverUploading ? "animate-spin" : ""} />
+                {profile?.cover_url ? "Сменить фон" : "Фон"}
+              </button>
+              {profile?.cover_url && (
+                <button onClick={handleCoverReset} disabled={coverUploading} title="Убрать картинку"
+                  className="flex items-center justify-center w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 text-white transition-colors disabled:opacity-50">
+                  <Icon name="X" size={14} />
+                </button>
+              )}
+              <button onClick={() => setEditOpen(v => !v)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors">
+                <Icon name="Pencil" size={13} />Изменить
+              </button>
+            </div>
           </div>
-          {/* Декоративные круги */}
-          <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/3" />
-          <div className="absolute bottom-0 right-20 w-24 h-24 rounded-full bg-white/5 translate-y-1/2" />
+          {/* Декоративные круги (только без картинки) */}
+          {!profile?.cover_url && <>
+            <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/3" />
+            <div className="absolute bottom-0 right-20 w-24 h-24 rounded-full bg-white/5 translate-y-1/2" />
+          </>}
         </div>
 
         {/* Аватар поверх */}

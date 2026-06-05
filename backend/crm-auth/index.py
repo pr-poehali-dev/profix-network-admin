@@ -1,5 +1,5 @@
 """
-CRM авторизация: клиенты, менеджеры, техники — OTP, пароль, восстановление пароля. v5
+CRM авторизация: клиенты, менеджеры, техники — OTP, пароль, восстановление пароля, обложка профиля. v6
 """
 import json
 import os
@@ -536,7 +536,7 @@ def handler(event: dict, context) -> dict:
         if role == "client":
             cur.execute(
                 f"""SELECT c.id, c.name, c.phone, c.email,
-                          c.avatar_url, c.delivery_address, c.socials, c.telegram_id
+                          c.avatar_url, c.delivery_address, c.socials, c.telegram_id, c.cover_url
                    FROM {SC}.client_sessions cs
                    JOIN {SC}.clients c ON c.id = cs.client_id
                    WHERE cs.token=%s AND cs.expires_at > NOW()""",
@@ -550,7 +550,7 @@ def handler(event: dict, context) -> dict:
                 "id": row[0], "name": row[1], "phone": row[2], "email": row[3],
                 "avatar_url": row[4], "delivery_address": row[5],
                 "socials": json.loads(row[6]) if row[6] else {},
-                "telegram_id": row[7]
+                "telegram_id": row[7], "cover_url": row[8]
             }})
         elif role == "technician":
             cur.execute(
@@ -603,6 +603,7 @@ def handler(event: dict, context) -> dict:
         delivery_address = body.get("delivery_address")
         socials          = body.get("socials")          # dict {"vk":"...", "tg":"..."}
         avatar_url       = body.get("avatar_url")
+        cover_url        = body.get("cover_url")
 
         sets, vals = [], []
         if name is not None and name != "":
@@ -615,6 +616,27 @@ def handler(event: dict, context) -> dict:
             sets.append("socials = %s"); vals.append(json.dumps(socials, ensure_ascii=False))
         if avatar_url is not None:
             sets.append("avatar_url = %s"); vals.append(avatar_url or None)
+        # Обложка профиля — data-URL (загружаем в S3), https URL или пустая строка (сброс)
+        if cover_url is not None:
+            if cover_url == "":
+                sets.append("cover_url = %s"); vals.append(None)
+            elif cover_url.startswith("data:"):
+                import base64 as _b64cl, boto3 as _boto3cl, uuid as _uuidcl
+                try:
+                    header, b64data = cover_url.split(",", 1)
+                    mime = header.split(":")[1].split(";")[0]
+                    ext = "jpg" if "jpeg" in mime else mime.split("/")[-1]
+                    key = f"covers/client_{client_id}_{_uuidcl.uuid4().hex[:8]}.{ext}"
+                    s3 = _boto3cl.client("s3", endpoint_url="https://bucket.poehali.dev",
+                        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+                        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+                    s3.put_object(Bucket="files", Key=key, Body=_b64cl.b64decode(b64data), ContentType=mime)
+                    saved_cover = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+                    sets.append("cover_url = %s"); vals.append(saved_cover)
+                except Exception as e:
+                    print(f"[COVER ERROR] {e}")
+            elif cover_url.startswith("https://"):
+                sets.append("cover_url = %s"); vals.append(cover_url)
         sets.append("updated_at = NOW()")
         vals.append(client_id)
 
@@ -623,7 +645,7 @@ def handler(event: dict, context) -> dict:
             conn.commit()
 
         cur.execute(
-            f"SELECT id, name, phone, email, avatar_url, delivery_address, socials FROM {SC}.clients WHERE id = %s",
+            f"SELECT id, name, phone, email, avatar_url, delivery_address, socials, cover_url FROM {SC}.clients WHERE id = %s",
             (client_id,)
         )
         c = cur.fetchone()
@@ -631,7 +653,7 @@ def handler(event: dict, context) -> dict:
         return ok({"client": {
             "id": c[0], "name": c[1], "phone": c[2], "email": c[3],
             "avatar_url": c[4], "delivery_address": c[5],
-            "socials": json.loads(c[6]) if c[6] else {}
+            "socials": json.loads(c[6]) if c[6] else {}, "cover_url": c[7]
         }})
 
     # ── КЛИЕНТ: загрузка аватара ─────────────────────────────────────────────
@@ -749,6 +771,29 @@ def handler(event: dict, context) -> dict:
             elif raw_avatar.startswith("https://"):
                 sets += ["avatar_url=%s"]; vals += [raw_avatar]
 
+        # Обложка профиля (картинка шапки) — data-URL, https URL или пустая строка (сброс)
+        raw_cover = body.get("cover_url", None)
+        if raw_cover is not None:
+            if raw_cover == "":
+                sets += ["cover_url=%s"]; vals += [None]
+            elif raw_cover.startswith("data:"):
+                import base64 as _b64c, boto3 as _boto3c, uuid as _uuidc
+                try:
+                    header, b64data = raw_cover.split(",", 1)
+                    mime = header.split(":")[1].split(";")[0]
+                    ext = "jpg" if "jpeg" in mime else mime.split("/")[-1]
+                    key = f"covers/mgr_{mgr_id}_{_uuidc.uuid4().hex[:8]}.{ext}"
+                    s3 = _boto3c.client("s3", endpoint_url="https://bucket.poehali.dev",
+                        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+                        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+                    s3.put_object(Bucket="files", Key=key, Body=_b64c.b64decode(b64data), ContentType=mime)
+                    cover_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+                    sets += ["cover_url=%s"]; vals += [cover_url]
+                except Exception as e:
+                    print(f"[COVER ERROR] {e}")
+            elif raw_cover.startswith("https://"):
+                sets += ["cover_url=%s"]; vals += [raw_cover]
+
         if not sets:
             conn.close(); return err("Нечего обновлять")
 
@@ -764,10 +809,10 @@ def handler(event: dict, context) -> dict:
             )
             conn.commit()
 
-        cur.execute(f"SELECT id, COALESCE(name, full_name), role, login, email, avatar_url FROM {SC}.managers WHERE id=%s", (mgr_id,))
+        cur.execute(f"SELECT id, COALESCE(name, full_name), role, login, email, avatar_url, cover_url FROM {SC}.managers WHERE id=%s", (mgr_id,))
         m = cur.fetchone()
         cur.close(); conn.close()
-        return ok({"updated": True, "manager": {"id": m[0], "name": m[1], "role": m[2], "login": m[3], "email": m[4], "avatar_url": m[5]}})
+        return ok({"updated": True, "manager": {"id": m[0], "name": m[1], "role": m[2], "login": m[3], "email": m[4], "avatar_url": m[5], "cover_url": m[6]}})
 
     # ── КЛИЕНТ: запрос смены пароля (код на email) ──────────────────────────
     if action == "client_change_password_request":
@@ -1397,7 +1442,8 @@ def handler(event: dict, context) -> dict:
         conn = get_conn(); cur = conn.cursor()
         cur.execute(f"""
             SELECT ms.manager_id, m.role, COALESCE(m.name,m.full_name), m.login, m.email,
-                   m.phone, m.address, m.avatar_url, m.fixies_balance, tp.name AS tariff_name
+                   m.phone, m.address, m.avatar_url, m.fixies_balance, tp.name AS tariff_name,
+                   m.cover_url
             FROM {SC}.manager_sessions ms
             JOIN {SC}.managers m ON m.id=ms.manager_id
             LEFT JOIN {SC}.tariff_plans tp ON tp.id=m.tariff_plan_id
@@ -1418,7 +1464,7 @@ def handler(event: dict, context) -> dict:
         return ok({"profile": {
             "id": r[0], "role": r[1], "name": r[2], "login": r[3], "email": r[4],
             "phone": r[5], "address": r[6], "avatar_url": r[7],
-            "fixies_balance": r[8] or 0, "tariff_name": r[9],
+            "fixies_balance": r[8] or 0, "tariff_name": r[9], "cover_url": r[10],
             "penalties": int(penalties), "done_tickets": int(done_tickets),
         }})
 

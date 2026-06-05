@@ -30,7 +30,7 @@ export default function Cabinet() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [client, setClient] = useState<{ id: number; name?: string; phone: string; email?: string; telegram_id?: number | null; avatar_url?: string | null; delivery_address?: string | null; socials?: Record<string, string> } | null>(null);
+  const [client, setClient] = useState<{ id: number; name?: string; phone: string; email?: string; telegram_id?: number | null; avatar_url?: string | null; cover_url?: string | null; delivery_address?: string | null; socials?: Record<string, string> } | null>(null);
   const [profileName, setProfileName] = useState("");
   const [profileTgId, setProfileTgId] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
