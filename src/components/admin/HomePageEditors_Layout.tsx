@@ -6,6 +6,7 @@ import { ContentMap } from "./editor-shared";
 
 const HOME_BLOCKS = [
   { key: "hero",     label: "Главный экран",    icon: "Home" },
+  { key: "news",     label: "Новости IT",       icon: "Newspaper" },
   { key: "carousel", label: "Карусель услуг",   icon: "Images" },
   { key: "services", label: "Услуги",           icon: "Wrench" },
   { key: "onec",     label: "Услуги 1С",        icon: "Monitor" },

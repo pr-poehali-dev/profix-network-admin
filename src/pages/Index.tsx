@@ -11,9 +11,11 @@ import MapSection from "@/components/MapSection";
 import ShopPreview from "@/components/ShopPreview";
 import QuickOrderModal from "@/components/QuickOrderModal";
 import { useSiteContent } from "@/hooks/useSiteContent";
+import NewsPreview from "@/components/NewsPreview";
 
 const DEFAULT_ORDER = [
   { key: "hero",     visible: true },
+  { key: "news",     visible: true },
   { key: "carousel", visible: true },
   { key: "services", visible: true },
   { key: "onec",     visible: true },
@@ -109,6 +111,8 @@ const Index = () => {
         return <ReviewsSection key="reviews" />;
       case "map":
         return <MapSection key="map" />;
+      case "news":
+        return <NewsPreview key="news" />;
       default:
         return null;
     }
@@ -137,7 +141,7 @@ const Index = () => {
         .filter(b => b.visible)
         .map(b => {
           // ServicesAboutSection рендерится один раз для группы carousel/services/onec/about
-          const renderKey = ["carousel","services","onec","about"].includes(b.key) ? "services" : b.key;
+          const renderKey = ["carousel","services","onec","about"].includes(b.key) ? "services" : b.key === "news" ? "news" : b.key;
           if (rendered.has(renderKey)) return null;
           rendered.add(renderKey);
           return renderBlock(renderKey);
