@@ -125,8 +125,8 @@ export default function AdminSidebar({
           <button onClick={() => onSectionChange("dashboard")} className="flex items-center gap-2">
             <img
               src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
-              alt="ProFiX" className="w-7 h-7 object-contain" />
-            <span className="text-white font-bold text-base">ProFiX</span>
+              alt="ПРОФИКС" className="w-7 h-7 object-contain" />
+            <span className="text-white font-bold text-base">ПРОФИКС</span>
           </button>
           <div className="flex-1" />
           {manager && managerSession.get() && (
@@ -199,13 +199,13 @@ export default function AdminSidebar({
           {collapsed
             ? <Icon name="PanelLeftOpen" size={17} className="text-white" />
             : <img src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
-                alt="ProFiX" className="w-6 h-6 object-contain" />
+                alt="ПРОФИКС" className="w-6 h-6 object-contain" />
           }
         </button>
         {!collapsed && (
           <button onClick={() => navigate("/")}
             className="text-white font-bold text-base tracking-tight whitespace-nowrap flex-1 text-left hover:text-green-400 transition-colors">
-            ProFiX <span className="text-green-400 text-xs font-normal ml-1">Admin</span>
+            ПРОФИКС <span className="text-green-400 text-xs font-normal ml-1">Admin</span>
           </button>
         )}
         {manager && managerSession.get() && (

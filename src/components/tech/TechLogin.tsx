@@ -34,7 +34,7 @@ export default function TechLogin({
           <div className="w-14 h-14 bg-[#edf7e8] rounded-2xl flex items-center justify-center mx-auto mb-3">
             <Icon name="Wrench" size={28} className="text-[#3ca615]" />
           </div>
-          <p className="text-[#3ca615] text-sm font-semibold uppercase tracking-widest mb-2">ProFiX</p>
+          <p className="text-[#3ca615] text-sm font-semibold uppercase tracking-widest mb-2">ПРОФИКС</p>
           <h1 className="font-oswald text-3xl font-bold text-[#0D1B2A]">Портал специалиста</h1>
         </div>
 

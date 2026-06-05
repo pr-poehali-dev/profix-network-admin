@@ -142,7 +142,7 @@ export default function ShopProduct() {
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos">
       <Helmet>
-        <title>{product.name} — ProFiX</title>
+        <title>{product.name} — ПРОФИКС</title>
         <meta name="description" content={product.description?.slice(0, 160) || product.name} />
       </Helmet>
 
@@ -150,7 +150,7 @@ export default function ShopProduct() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
           <button onClick={() => navigate("/")} className="shrink-0">
             <img src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
-              alt="ProFiX" className="h-8 w-8 object-contain" />
+              alt="ПРОФИКС" className="h-8 w-8 object-contain" />
           </button>
           <button onClick={() => navigate("/shop")}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors">

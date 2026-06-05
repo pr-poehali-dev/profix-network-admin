@@ -116,8 +116,8 @@ export default function Shop() {
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos">
       <Helmet>
-        <title>Магазин — ProFiX</title>
-        <meta name="description" content="Интернет-магазин ProFiX: кассовое оборудование, сканеры, ПО и расходные материалы" />
+        <title>Магазин — ПРОФИКС</title>
+        <meta name="description" content="Интернет-магазин ПРОФИКС: кассовое оборудование, сканеры, ПО и расходные материалы" />
       </Helmet>
 
       {/* Шапка */}
@@ -125,8 +125,8 @@ export default function Shop() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
           <button onClick={() => navigate("/")} className="flex items-center gap-2 shrink-0">
             <img src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
-              alt="ProFiX" className="h-8 w-8 object-contain" />
-            <span className="font-bold text-[#0D1B2A] hidden sm:block">ProFiX</span>
+              alt="ПРОФИКС" className="h-8 w-8 object-contain" />
+            <span className="font-bold text-[#0D1B2A] hidden sm:block">ПРОФИКС</span>
           </button>
           <span className="text-gray-300 hidden sm:block">|</span>
           <span className="font-semibold text-gray-700 hidden sm:block">Магазин</span>

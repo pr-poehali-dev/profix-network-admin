@@ -106,7 +106,7 @@ export function LoginTotpScreen({ totpCode, setTotpCode, totpError, totpLoading,
         <Icon name="Smartphone" size={18} className="text-[#3ca615] shrink-0 mt-0.5" />
         <div>
           <p className="text-sm text-gray-700">Откройте приложение аутентификатор</p>
-          <p className="text-xs text-gray-400 mt-0.5">и введите 6-значный код для ProFiX</p>
+          <p className="text-xs text-gray-400 mt-0.5">и введите 6-значный код для ПРОФИКС</p>
         </div>
       </div>
 

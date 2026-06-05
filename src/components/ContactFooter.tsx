@@ -191,7 +191,7 @@ const ContactFooter = ({
           <div className="flex items-center gap-2">
             <img
               src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/0d49a1e8-95c3-4e50-aa1e-2cd26763371f.png"
-              alt="ProFiX логотип"
+              alt="ПРОФИКС логотип"
               className="h-8 w-8 object-contain"
             />
             <span className="font-oswald text-lg font-bold tracking-wide">
@@ -200,7 +200,7 @@ const ContactFooter = ({
           </div>
           <div className="text-center text-gray-500 text-sm">
             <p>{str("contacts.address", "г. Якутск, ул. Халтурина, 6")}</p>
-            <p className="mt-1">© 2026 ProFiX. Все права защищены.</p>
+            <p className="mt-1">© 2026 ПРОФИКС. Все права защищены.</p>
             <div className="mt-1 flex items-center justify-center gap-3 flex-wrap">
               <a href="/blog" className="text-xs text-gray-400 hover:text-[#3ca615] transition-colors underline underline-offset-2">
                 Блог

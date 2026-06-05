@@ -153,7 +153,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
           <div className="hidden md:flex justify-center animate-fade-in">
             <div className="relative">
               <div className={`${imgClass} rounded-3xl overflow-hidden shadow-2xl border-4 border-white`}>
-                <img src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/ad49d25f-c346-44dc-a332-4aa4552ce177.jpg" alt="ProFiX специалист" className="w-full h-full object-cover" />
+                <img src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/ad49d25f-c346-44dc-a332-4aa4552ce177.jpg" alt="ПРОФИКС специалист" className="w-full h-full object-cover" />
               </div>
               {heroSize !== "compact" && (
                 <>

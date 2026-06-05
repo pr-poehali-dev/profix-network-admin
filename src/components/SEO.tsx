@@ -11,7 +11,7 @@ interface SEOProps {
   schema?: object;
 }
 
-const BASE = "ProFiX — IT-сервис в Якутске";
+const BASE = "ПРОФИКС — IT-сервис в Якутске";
 const SITE_URL = "https://pfx.su";
 const DEFAULT_IMAGE = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png";
 
@@ -76,7 +76,7 @@ const SEO = ({ title, description, keywords, canonical, image, type = "website",
       <meta name="description" content={description} />
       {keywords && <meta name="keywords" content={keywords} />}
       <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-      <meta name="author" content="ProFiX" />
+      <meta name="author" content="ПРОФИКС" />
       <meta name="geo.region" content="RU-SA" />
       <meta name="geo.placename" content="Якутск" />
       <meta name="geo.position" content="62.0286;129.7325" />
@@ -94,7 +94,7 @@ const SEO = ({ title, description, keywords, canonical, image, type = "website",
       <meta property="og:image" content={ogImage} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
-      <meta property="og:site_name" content="ProFiX" />
+      <meta property="og:site_name" content="ПРОФИКС" />
       {publishedTime && <meta property="article:published_time" content={publishedTime} />}
 
       {/* Twitter */}

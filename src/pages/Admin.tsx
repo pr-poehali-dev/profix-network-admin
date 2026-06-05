@@ -233,7 +233,7 @@ export default function Admin() {
         playSound("ticket");
         if (Notification.permission === "granted") {
           const last = added[added.length - 1];
-          new Notification("ProFiX — новая заявка", {
+          new Notification("ПРОФИКС — новая заявка", {
             body: `#${last.id} ${last.title}`,
             icon: "https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png",
           });
@@ -271,7 +271,7 @@ export default function Admin() {
         setNewCommentCount(prev => prev + newComments);
         playSound("comment");
         if (Notification.permission === "granted") {
-          new Notification("ProFiX — новый комментарий", {
+          new Notification("ПРОФИКС — новый комментарий", {
             body: `${lastAuthor}: заявка «${lastTicketTitle}»`,
             icon: "https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png",
           });
@@ -295,7 +295,7 @@ export default function Admin() {
             if (added.length > 0) {
               playSound("ticket");
               if (Notification.permission === "granted") {
-                new Notification("ProFiX — новый отзыв", {
+                new Notification("ПРОФИКС — новый отзыв", {
                   body: `${added.length} новый отзыв ждёт модерации`,
                   icon: "https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png",
                 });

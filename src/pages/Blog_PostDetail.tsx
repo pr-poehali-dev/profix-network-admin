@@ -29,7 +29,7 @@ export function BlogPostDetail({
   return (
     <div className="min-h-screen font-golos" style={{ backgroundColor: blogPageBg }}>
       <SEO
-        title={`${post.title} — ProFiX`}
+        title={`${post.title} — ПРОФИКС`}
         description={post.excerpt || post.title}
         image={post.cover_url || (ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : undefined)}
         type="article"
@@ -95,7 +95,7 @@ export function BlogPostDetail({
                 <Icon name="Wrench" size={14} className="text-white" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">ProFiX</p>
+                <p className="text-sm font-semibold text-white">ПРОФИКС</p>
                 {subscribersCount && <p className="text-xs text-gray-400">{subscribersCount} подписчиков</p>}
               </div>
               {youtubeChannel && (
@@ -166,7 +166,7 @@ export function BlogPostDetail({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-white line-clamp-2 leading-snug group-hover:text-[#3ca615] transition-colors">{p.title}</p>
-                      <p className="text-[10px] text-gray-500 mt-1">ProFiX · {formatCount(p.views || 0)} просм.</p>
+                      <p className="text-[10px] text-gray-500 mt-1">ПРОФИКС · {formatCount(p.views || 0)} просм.</p>
                     </div>
                   </button>
                 );

@@ -309,7 +309,7 @@ export default function Login() {
       <div className="mb-6 text-center">
         <div className="flex items-center justify-center gap-2 mb-1">
           <img src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
-            alt="ProFiX" className="h-10 w-10 object-contain" />
+            alt="ПРОФИКС" className="h-10 w-10 object-contain" />
           <span className="font-oswald text-2xl font-bold tracking-wide">
             <span className="text-[#3ca615]">ПРО</span><span className="text-gray-900">ФИКС</span>
           </span>

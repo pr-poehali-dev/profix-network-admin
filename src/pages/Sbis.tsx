@@ -61,7 +61,7 @@ const SbisPage = () => {
           <button onClick={() => navigate("/")} className="flex items-center gap-1.5">
             <img
               src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
-              alt="ProFiX"
+              alt="ПРОФИКС"
               className="h-8 w-8 object-contain"
             />
             <span className="font-oswald text-lg font-bold tracking-wide hidden sm:block">
@@ -150,7 +150,7 @@ const SbisPage = () => {
       {/* Почему через ProFiX */}
       <section className="bg-white py-14 border-y border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-          <h2 className="text-2xl font-bold mb-8">Почему подключать СБИС через ProFiX</h2>
+          <h2 className="text-2xl font-bold mb-8">Почему подключать СБИС через ПРОФИКС</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
               { icon: "Headphones", title: "Настройка и обучение", desc: "Поможем настроить СБИС под ваши процессы и обучим сотрудников работе в системе." },

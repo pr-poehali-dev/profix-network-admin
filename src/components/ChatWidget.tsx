@@ -144,7 +144,7 @@ const ChatWidget = () => {
               <Icon name="MessageCircle" size={20} className="text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-white font-semibold text-sm">Чат поддержки ProFiX</p>
+              <p className="text-white font-semibold text-sm">Чат поддержки ПРОФИКС</p>
               <p className="text-blue-200 text-xs">Обычно отвечаем за 5 минут</p>
             </div>
             <button onClick={() => setOpen(false)} className="text-white/70 hover:text-white">

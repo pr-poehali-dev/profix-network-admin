@@ -301,7 +301,7 @@ export default function AdminTheme() {
               <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-100 shadow-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs" style={{ background: draft.primaryHex }}>P</div>
-                  <span className="font-bold text-gray-900 text-sm">ProFiX</span>
+                  <span className="font-bold text-gray-900 text-sm">ПРОФИКС</span>
                 </div>
                 <div className="flex gap-4 text-gray-600 text-xs">
                   {["Услуги","Магазин","О нас","Контакты"].map(l => <span key={l}>{l}</span>)}

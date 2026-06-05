@@ -256,7 +256,7 @@ export default function ApiDocs() {
           <p className="text-[#3ca615] text-xs font-semibold uppercase tracking-widest mb-2">Интеграция</p>
           <h1 className="font-oswald text-3xl sm:text-4xl font-bold text-[#0D1B2A] mb-3">Публичный API</h1>
           <p className="text-gray-500 max-w-2xl">
-            Интегрируйте вашу систему с ProFiX CRM — создавайте заявки, отслеживайте статусы напрямую из своего приложения.
+            Интегрируйте вашу систему с ПРОФИКС CRM — создавайте заявки, отслеживайте статусы напрямую из своего приложения.
           </p>
           <div className="w-14 h-1 bg-[#3ca615] rounded-full mt-4" />
         </div>

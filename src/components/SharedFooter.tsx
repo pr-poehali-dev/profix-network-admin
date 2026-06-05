@@ -7,7 +7,7 @@ const SharedFooter = () => {
   const phoneHref = str("contacts.phone_href","tel:+79142727187");
   const email     = str("contacts.email",     "727187@it-profix.ru");
   const address   = str("contacts.address",   "г. Якутск, ул. Халтурина, 6");
-  const copyright = str("footer.copyright",   `© ${new Date().getFullYear()} ProFiX. Все права защищены.`);
+  const copyright = str("footer.copyright",   `© ${new Date().getFullYear()} ПРОФИКС. Все права защищены.`);
   const vk        = str("contacts.vk",        "");
   const tg        = str("contacts.telegram",  "");
   const wa        = str("contacts.whatsapp",  "");
@@ -19,7 +19,7 @@ const SharedFooter = () => {
           <div className="flex items-center gap-2">
             <img
               src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/0d49a1e8-95c3-4e50-aa1e-2cd26763371f.png"
-              alt="ProFiX логотип"
+              alt="ПРОФИКС логотип"
               className="h-8 w-8 object-contain"
             />
             <span className="font-oswald text-lg font-bold tracking-wide">

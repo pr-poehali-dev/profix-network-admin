@@ -280,7 +280,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         <button onClick={() => navigate("/")} className="flex items-center gap-1.5 shrink-0 mr-6">
           <img
             src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
-            alt="ProFiX логотип" className="h-8 w-8 object-contain"
+            alt="ПРОФИКС логотип" className="h-8 w-8 object-contain"
           />
           <span className="font-oswald text-lg font-bold tracking-wide">
             <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>

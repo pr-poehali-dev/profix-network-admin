@@ -28,7 +28,7 @@ export function CabinetChat({ chatMessages, chatInput, setChatInput, chatSending
           <Icon name="MessageCircle" size={18} className="text-white" />
         </div>
         <div className="flex-1">
-          <p className="text-white font-semibold text-sm">Поддержка ProFiX</p>
+          <p className="text-white font-semibold text-sm">Поддержка ПРОФИКС</p>
           <p className="text-gray-400 text-xs flex items-center gap-1">
             <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block" />
             Онлайн — отвечаем за 5 минут

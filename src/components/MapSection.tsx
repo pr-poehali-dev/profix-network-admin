@@ -27,7 +27,7 @@ export default function MapSection() {
             height="100%"
             frameBorder="0"
             allowFullScreen
-            title="Офис ProFiX на карте"
+            title="Офис ПРОФИКС на карте"
             style={{ display: "block" }}
           />
         </div>

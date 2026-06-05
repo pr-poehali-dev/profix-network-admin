@@ -17,7 +17,7 @@ export default function AdminLogin({ loginForm, loading, error, onChangeForm, on
             <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
           </span>
         </div>
-        <p className="text-[#3ca615] text-sm font-semibold uppercase tracking-widest mb-2">ProFiX Admin</p>
+        <p className="text-[#3ca615] text-sm font-semibold uppercase tracking-widest mb-2">ПРОФИКС Admin</p>
         <h1 className="font-oswald text-3xl font-bold text-[#0D1B2A] mb-6">Панель управления</h1>
 
         {error && (

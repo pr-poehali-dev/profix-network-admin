@@ -236,7 +236,7 @@ export function ContactsEditor({ content, onChange }: { content: ContentMap; onC
       <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Футер сайта</p>
         <Field label="Текст копирайта" value={content["footer.copyright"] || ""} onChange={v => onChange("footer.copyright", v)}
-          hint={`По умолчанию: © ${new Date().getFullYear()} ProFiX. Все права защищены.`} />
+          hint={`По умолчанию: © ${new Date().getFullYear()} ПРОФИКС. Все права защищены.`} />
         <ImageUpload label="Логотип в футере" value={content["footer.logo"] || ""} onChange={v => onChange("footer.logo", v)} />
       </div>
     </div>

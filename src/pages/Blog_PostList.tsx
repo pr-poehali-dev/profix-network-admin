@@ -49,8 +49,8 @@ export function BlogPostList({
   return (
     <div className="min-h-screen font-golos" style={{ backgroundColor: blogPageBg }}>
       <SEO
-        title="Блог ProFiX — IT-советы, новости и видео из Якутска"
-        description="Полезные статьи, новости IT-рынка Якутска, видео о ремонте оборудования и автоматизации бизнеса от компании ProFiX. Советы по 1С, кассам, сетям."
+        title="Блог ПРОФИКС — IT-советы, новости и видео из Якутска"
+        description="Полезные статьи, новости IT-рынка Якутска, видео о ремонте оборудования и автоматизации бизнеса от компании ПРОФИКС. Советы по 1С, кассам, сетям."
         keywords="IT блог Якутск, новости IT Якутия, ремонт компьютеров советы Якутск, 1С статьи Якутск, видео ккт"
         canonical="/blog"
       />
@@ -93,7 +93,7 @@ export function BlogPostList({
               <Icon name="Wrench" size={36} className="text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className={`font-oswald text-2xl sm:text-3xl font-bold mb-1 ${textPrimary}`}>ProFiX</h1>
+              <h1 className={`font-oswald text-2xl sm:text-3xl font-bold mb-1 ${textPrimary}`}>ПРОФИКС</h1>
               <p className={`text-sm ${textSecondary}`}>{channelDesc}</p>
               <div className={`flex items-center gap-4 mt-2 text-xs ${textMuted}`}>
                 {subscribersCount && <span className="flex items-center gap-1"><Icon name="Users" size={11} />{subscribersCount} подписчиков</span>}

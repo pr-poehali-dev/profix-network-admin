@@ -272,7 +272,7 @@ export default function ManagerApp() {
         setNotifBadge(p => p + added.length);
         const last = added[added.length - 1];
         playBeep("ticket");
-        notify("ProFiX — новая заявка", `#${last.id} ${last.title}`);
+        notify("ПРОФИКС — новая заявка", `#${last.id} ${last.title}`);
       }
 
       let maxCid = lastCommentIdRef.current;
@@ -288,7 +288,7 @@ export default function ManagerApp() {
         lastCommentIdRef.current = maxCid;
         setNotifBadge(p => p + newCmts);
         playBeep("comment");
-        notify("ProFiX — новый комментарий", `${lastAuthor}: ${lastTitle}`);
+        notify("ПРОФИКС — новый комментарий", `${lastAuthor}: ${lastTitle}`);
       }
     } catch { /* ignore */ }
   }, []);
@@ -358,12 +358,12 @@ export default function ManagerApp() {
   // Экран входа
   if (!loggedIn) return (
     <div className="min-h-screen bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8] flex items-center justify-center px-4">
-      <Helmet><title>ProFiX Manager</title></Helmet>
+      <Helmet><title>ПРОФИКС Manager</title></Helmet>
       <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 w-full max-w-sm">
         <div className="text-center mb-7">
           <img src="https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png"
-            alt="ProFiX" className="w-14 h-14 mx-auto mb-3 object-contain" />
-          <p className="text-[#3ca615] text-xs font-semibold uppercase tracking-widest mb-1">ProFiX</p>
+            alt="ПРОФИКС" className="w-14 h-14 mx-auto mb-3 object-contain" />
+          <p className="text-[#3ca615] text-xs font-semibold uppercase tracking-widest mb-1">ПРОФИКС</p>
           <h1 className="font-oswald text-2xl font-bold text-[#0D1B2A]">Менеджер</h1>
         </div>
         <form onSubmit={handleLogin} className="space-y-4">
@@ -386,7 +386,7 @@ export default function ManagerApp() {
   // Детали заявки
   if (selectedTicket) return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos flex flex-col max-w-lg mx-auto">
-      <Helmet><title>Заявка #{selectedTicket.id} — ProFiX</title></Helmet>
+      <Helmet><title>Заявка #{selectedTicket.id} — ПРОФИКС</title></Helmet>
       <TicketDetail
         ticket={selectedTicket}
         onBack={() => setSelectedTicket(null)}
@@ -398,7 +398,7 @@ export default function ManagerApp() {
   // Главный экран
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos flex flex-col max-w-lg mx-auto">
-      <Helmet><title>ProFiX Менеджер</title></Helmet>
+      <Helmet><title>ПРОФИКС Менеджер</title></Helmet>
 
       {/* Шапка */}
       <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-30">

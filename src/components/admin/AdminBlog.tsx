@@ -320,7 +320,7 @@ export default function AdminBlog() {
                 <h4 className="font-bold text-gray-900 text-sm mb-1">{editing.title || "Заголовок поста"}</h4>
                 {editing.excerpt && <p className="text-xs text-gray-500 line-clamp-2">{editing.excerpt}</p>}
                 <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                  <span>ProFiX</span>
+                  <span>ПРОФИКС</span>
                   <span>· 0 просм.</span>
                   <span>· {new Date().toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}</span>
                 </div>

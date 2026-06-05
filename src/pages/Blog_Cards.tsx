@@ -76,7 +76,7 @@ export function VideoCard({ post, onClick }: { post: Post; onClick: () => void }
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug group-hover:text-[#3ca615] transition-colors">{post.title}</h3>
-          <p className="text-xs text-gray-500 mt-1">ProFiX · {formatCount(post.views || 0)} просм. · {new Date(post.created_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}</p>
+          <p className="text-xs text-gray-500 mt-1">ПРОФИКС · {formatCount(post.views || 0)} просм. · {new Date(post.created_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}</p>
           {post.excerpt && <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{post.excerpt}</p>}
         </div>
       </div>
