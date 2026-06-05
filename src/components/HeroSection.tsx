@@ -25,7 +25,7 @@ interface HeroSectionProps {
   carouselIdx: number;
   onSetCarouselIdx: (idx: number) => void;
   onScrollTo: (section: string) => void;
-  onQuickOrder?: (serviceName: string) => void;
+  onQuickOrder?: (serviceName: string, img?: string, desc?: string) => void;
 }
 
 const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }: HeroSectionProps) => {
@@ -217,7 +217,7 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
             {[...slides, ...slides].map((slide, i) => (
               <div
                 key={i}
-                onClick={() => { if (onQuickOrder) onQuickOrder(slide.title || ""); else onScrollTo("Контакты"); }}
+                onClick={() => { if (onQuickOrder) onQuickOrder(slide.title || "", slide.img, slide.desc); else onScrollTo("Контакты"); }}
                 className="shrink-0 cursor-pointer shadow-md hover:shadow-xl transition-shadow duration-300"
                 style={{ width: isMobile ? "240px" : "320px", marginRight: "16px" }}
               >

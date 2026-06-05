@@ -13,10 +13,12 @@ const PAYMENT_METHODS = [
 interface Props {
   open: boolean;
   serviceName?: string;
+  slideImage?: string;
+  slideDesc?: string;
   onClose: () => void;
 }
 
-export default function QuickOrderModal({ open, serviceName, onClose }: Props) {
+export default function QuickOrderModal({ open, serviceName, slideImage, slideDesc, onClose }: Props) {
   const [form, setForm] = useState({ name: "", phone: "", comment: "" });
   const [payment, setPayment] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -95,6 +97,23 @@ export default function QuickOrderModal({ open, serviceName, onClose }: Props) {
             <Icon name="X" size={18} />
           </button>
         </div>
+
+        {/* Картинка слайда */}
+        {slideImage && (
+          <div className="relative">
+            <img
+              src={slideImage}
+              alt={serviceName || "Услуга"}
+              className="w-full object-cover"
+              style={{ maxHeight: "220px" }}
+            />
+            {slideDesc && (
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end">
+                <p className="px-5 py-4 text-white text-sm leading-snug">{slideDesc}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {done ? (
           <div className="px-6 py-12 text-center">

@@ -34,6 +34,8 @@ const Index = () => {
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [quickOrderOpen, setQuickOrderOpen] = useState(false);
   const [quickOrderService, setQuickOrderService] = useState("");
+  const [quickOrderImage, setQuickOrderImage] = useState<string | undefined>();
+  const [quickOrderDesc, setQuickOrderDesc] = useState<string | undefined>();
 
   const { json } = useSiteContent();
   const blocksOrder = json<{key:string;visible:boolean}[]>("home.blocks_order", DEFAULT_ORDER);
@@ -93,7 +95,7 @@ const Index = () => {
             carouselIdx={carouselIdx}
             onSetCarouselIdx={setCarouselIdx}
             onScrollTo={scrollTo}
-            onQuickOrder={(service) => { setQuickOrderService(service); setQuickOrderOpen(true); }}
+            onQuickOrder={(service, img, desc) => { setQuickOrderService(service); setQuickOrderImage(img); setQuickOrderDesc(desc); setQuickOrderOpen(true); }}
           />
         );
       case "carousel":
@@ -160,6 +162,8 @@ const Index = () => {
       <QuickOrderModal
         open={quickOrderOpen}
         serviceName={quickOrderService}
+        slideImage={quickOrderImage}
+        slideDesc={quickOrderDesc}
         onClose={() => setQuickOrderOpen(false)}
       />
     </div>
