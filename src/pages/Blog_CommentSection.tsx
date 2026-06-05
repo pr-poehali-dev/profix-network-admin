@@ -5,9 +5,10 @@ import { blogApi, Comment } from "@/lib/blog-api";
 import { clientSession, clientApi } from "@/lib/crm-api";
 import { EMOJI_LIST } from "./Blog_Cards";
 
-export function CommentSection({ postId, comments: initialComments, onCommentAdded }: {
+export function CommentSection({ postId, comments: initialComments, commentsMode = "users", onCommentAdded }: {
   postId: number;
   comments: Comment[];
+  commentsMode?: "open" | "users" | "closed";
   onCommentAdded: (c: Comment) => void;
 }) {
   const navigate = useNavigate();
@@ -106,11 +107,16 @@ export function CommentSection({ postId, comments: initialComments, onCommentAdd
         ))}
       </div>
 
-      {clientLoading ? (
+      {commentsMode === "closed" ? (
+        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl p-4 text-gray-400 text-sm">
+          <Icon name="MessageSquareOff" size={18} className="shrink-0" />
+          Комментарии к этой публикации отключены
+        </div>
+      ) : clientLoading ? (
         <div className="flex items-center justify-center py-4">
           <Icon name="Loader2" size={20} className="animate-spin text-gray-300" />
         </div>
-      ) : !clientName ? (
+      ) : commentsMode === "users" && !clientName ? (
         <div className="bg-gradient-to-br from-[#edf7e8] to-white border border-green-200 rounded-2xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-[#3ca615] rounded-full flex items-center justify-center shrink-0">
@@ -135,7 +141,11 @@ export function CommentSection({ postId, comments: initialComments, onCommentAdd
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
-          <p className="text-xs text-gray-500">Комментируете как: <b className="text-[#3ca615]">{clientName}</b></p>
+          <p className="text-xs text-gray-500">
+            {clientName
+              ? <>Комментируете как: <b className="text-[#3ca615]">{clientName}</b></>
+              : "Комментировать может любой посетитель"}
+          </p>
           <div className="relative">
             <textarea ref={textRef} value={text} onChange={e => setText(e.target.value)}
               placeholder="Напишите комментарий..."

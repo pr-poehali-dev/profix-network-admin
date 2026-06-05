@@ -80,7 +80,8 @@ def handler(event: dict, context) -> dict:
                 )
                 cur.execute(
                     f"""SELECT id, type, title, slug, content, excerpt, cover_url,
-                               video_url, author_name, tags, views, created_at, updated_at
+                               video_url, author_name, tags, views, created_at, updated_at,
+                               comments_mode
                         FROM {SC}.posts WHERE id=%s AND is_published=TRUE""",
                     (post_id,)
                 )
@@ -107,6 +108,7 @@ def handler(event: dict, context) -> dict:
                         "video_url": row[7], "author_name": row[8], "tags": row[9],
                         "views": row[10],
                         "created_at": str(row[11]), "updated_at": str(row[12]),
+                        "comments_mode": row[13] or "users",
                         "comments": comments, "reactions": reactions}
                 return ok({"post": post})
             else:
@@ -169,13 +171,14 @@ def handler(event: dict, context) -> dict:
             cur.execute(
                 f"""INSERT INTO {SC}.posts
                     (type, title, slug, content, excerpt, cover_url, video_url,
-                     author_id, author_name, tags, is_published)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
+                     author_id, author_name, tags, is_published, comments_mode)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
                 (body.get("type", "news"), title, slug,
                  body.get("content", ""), body.get("excerpt", ""),
                  body.get("cover_url", ""), body.get("video_url", ""),
                  mgr[0], mgr[1], body.get("tags", ""),
-                 body.get("is_published", False))
+                 body.get("is_published", False),
+                 body.get("comments_mode", "users"))
             )
             new_id = cur.fetchone()[0]
             conn.commit()
@@ -188,7 +191,7 @@ def handler(event: dict, context) -> dict:
             post_id = body.get("id")
             sets, vals = [], []
             for field in ["title", "content", "excerpt", "cover_url", "video_url",
-                          "tags", "type", "is_published"]:
+                          "tags", "type", "is_published", "comments_mode"]:
                 if field in body:
                     sets.append(f"{field}=%s"); vals.append(body[field])
             sets.append("updated_at=NOW()")
@@ -210,30 +213,63 @@ def handler(event: dict, context) -> dict:
         # КОММЕНТАРИИ — только авторизованные клиенты
         # ══════════════════════════════════════════════════════════════════════
         if resource == "comments" and method == "POST":
-            # Проверяем авторизацию клиента
-            headers  = event.get("headers") or {}
-            auth_hdr = headers.get("X-Authorization", "") or headers.get("Authorization", "")
-            token    = auth_hdr.replace("Bearer ", "").strip()
-            if not token:
-                return err("Для комментирования необходимо войти в личный кабинет", 401)
-            cur.execute(
-                f"SELECT c.id, c.name, c.phone FROM {SC}.client_sessions cs "
-                f"JOIN {SC}.clients c ON c.id=cs.client_id "
-                f"WHERE cs.token=%s AND cs.expires_at>NOW()",
-                (token,)
-            )
-            client_row = cur.fetchone()
-            if not client_row:
-                return err("Сессия истекла. Пожалуйста, войдите снова.", 401)
-            client_id  = client_row[0]
-            author     = client_row[1] or client_row[2] or "Клиент"
-
             post_id = body.get("post_id")
             text    = body.get("text", "").strip()
             if not post_id or not text:
                 return err("Укажите пост и текст комментария")
             if len(text) > 2000:
                 return err("Комментарий слишком длинный")
+
+            # Проверяем режим комментариев поста
+            cur.execute(
+                f"SELECT comments_mode FROM {SC}.posts WHERE id=%s AND is_published=TRUE",
+                (post_id,)
+            )
+            post_row = cur.fetchone()
+            if not post_row:
+                return err("Пост не найден", 404)
+            comments_mode = post_row[0] or "users"
+
+            if comments_mode == "closed":
+                return err("Комментарии к этой публикации отключены", 403)
+
+            headers  = event.get("headers") or {}
+            auth_hdr = headers.get("X-Authorization", "") or headers.get("Authorization", "")
+            token    = auth_hdr.replace("Bearer ", "").strip()
+
+            client_id = None
+            if comments_mode == "users":
+                # Требуем авторизацию
+                if not token:
+                    return err("Для комментирования необходимо войти в личный кабинет", 401)
+                cur.execute(
+                    f"SELECT c.id, c.name, c.phone FROM {SC}.client_sessions cs "
+                    f"JOIN {SC}.clients c ON c.id=cs.client_id "
+                    f"WHERE cs.token=%s AND cs.expires_at>NOW()",
+                    (token,)
+                )
+                client_row = cur.fetchone()
+                if not client_row:
+                    return err("Сессия истекла. Пожалуйста, войдите снова.", 401)
+                client_id = client_row[0]
+                author    = client_row[1] or client_row[2] or "Клиент"
+            else:
+                # open — пробуем взять имя из токена, иначе "Гость"
+                author = "Гость"
+                if token:
+                    cur.execute(
+                        f"SELECT c.id, c.name, c.phone FROM {SC}.client_sessions cs "
+                        f"JOIN {SC}.clients c ON c.id=cs.client_id "
+                        f"WHERE cs.token=%s AND cs.expires_at>NOW()",
+                        (token,)
+                    )
+                    client_row = cur.fetchone()
+                    if client_row:
+                        client_id = client_row[0]
+                        author    = client_row[1] or client_row[2] or "Клиент"
+                # Имя из тела (для анонимов)
+                author = body.get("author_name", "").strip() or author
+
             cur.execute(
                 f"""INSERT INTO {SC}.post_comments (post_id, client_id, author_name, text)
                     VALUES (%s,%s,%s,%s) RETURNING id, created_at""",

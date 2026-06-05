@@ -13,7 +13,14 @@ const POST_TYPES = [
 const EMPTY: Partial<Post> = {
   type: "news", title: "", content: "", excerpt: "",
   cover_url: "", video_url: "", tags: "", is_published: false,
+  comments_mode: "users",
 };
+
+const COMMENT_MODES = [
+  { v: "open",   l: "Открытые",        icon: "MessageCircle", hint: "Все посетители" },
+  { v: "users",  l: "Только клиенты",  icon: "UserCheck",     hint: "Нужна авторизация" },
+  { v: "closed", l: "Отключены",       icon: "MessageSquareOff", hint: "Комментарии закрыты" },
+] as const;
 
 function getYouTubeId(url: string): string | null {
   if (!url) return null;
@@ -433,16 +440,38 @@ export default function AdminBlog() {
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer">
-                <div className="relative shrink-0">
-                  <input type="checkbox" checked={!!editing.is_published}
-                    onChange={e => setEditing(p => ({ ...p, is_published: e.target.checked }))} className="sr-only" />
-                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition ${editing.is_published ? "bg-[#3ca615] border-[#3ca615]" : "border-gray-300"}`}>
-                    {editing.is_published && <Icon name="Check" size={12} className="text-white" />}
+              {/* Публикация + комментарии в одной строке */}
+              <div className="flex flex-col sm:flex-row gap-4 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <div className="relative shrink-0">
+                    <input type="checkbox" checked={!!editing.is_published}
+                      onChange={e => setEditing(p => ({ ...p, is_published: e.target.checked }))} className="sr-only" />
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition ${editing.is_published ? "bg-[#3ca615] border-[#3ca615]" : "border-gray-300"}`}>
+                      {editing.is_published && <Icon name="Check" size={12} className="text-white" />}
+                    </div>
                   </div>
+                  <span className="text-sm text-gray-700">Опубликовать</span>
+                </label>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-semibold text-gray-500">Комментарии:</span>
+                  {COMMENT_MODES.map(m => (
+                    <button key={m.v} type="button"
+                      title={m.hint}
+                      onClick={() => setEditing(p => ({ ...p, comments_mode: m.v }))}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
+                        (editing.comments_mode || "users") === m.v
+                          ? m.v === "closed"
+                            ? "bg-red-500 text-white border-red-500"
+                            : "bg-[#3ca615] text-white border-[#3ca615]"
+                          : "border-gray-200 text-gray-600 hover:border-gray-300"
+                      }`}>
+                      <Icon name={m.icon as "MessageCircle"} size={12} />
+                      {m.l}
+                    </button>
+                  ))}
                 </div>
-                <span className="text-sm text-gray-700">Опубликовать</span>
-              </label>
+              </div>
             </div>
           )}
 
@@ -498,6 +527,10 @@ export default function AdminBlog() {
                       </span>
                       <span className={`text-[10px] font-semibold ${p.is_published ? "text-green-600" : "text-amber-500"}`}>
                         {p.is_published ? "Опубликован" : "Черновик"}
+                      </span>
+                      <span className="text-[10px] text-gray-400 flex items-center gap-0.5" title={COMMENT_MODES.find(m => m.v === (p.comments_mode || "users"))?.hint}>
+                        <Icon name={COMMENT_MODES.find(m => m.v === (p.comments_mode || "users"))?.icon as "MessageCircle"} size={10} />
+                        {COMMENT_MODES.find(m => m.v === (p.comments_mode || "users"))?.l}
                       </span>
                     </div>
                     <p className="text-sm font-medium text-gray-900 truncate">{p.title}</p>

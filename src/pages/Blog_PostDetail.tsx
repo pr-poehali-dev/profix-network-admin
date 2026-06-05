@@ -143,6 +143,7 @@ export function BlogPostDetail({
             <CommentSection
               postId={post.id}
               comments={post.comments || []}
+              commentsMode={post.comments_mode || "users"}
               onCommentAdded={() => {}}
             />
           </div>

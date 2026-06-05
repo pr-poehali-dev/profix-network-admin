@@ -48,6 +48,7 @@ export interface Post {
   comments?: Comment[];
   reactions?: Record<string, number>;
   is_published?: boolean;
+  comments_mode?: "open" | "users" | "closed";
 }
 
 export interface Comment {
