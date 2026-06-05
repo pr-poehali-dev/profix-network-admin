@@ -54,6 +54,15 @@ def slugify(text):
     return text[:100] or "post"
 
 
+def strip_html(text):
+    """Убирает HTML-теги из строки."""
+    if not text:
+        return text
+    clean = re.sub(r'<[^>]+>', ' ', text)
+    clean = re.sub(r'\s+', ' ', clean).strip()
+    return clean
+
+
 def handler(event: dict, context) -> dict:
     """Блог: посты, комментарии, реакции (лайки/дизлайки)."""
     if event.get("httpMethod") == "OPTIONS":
@@ -174,7 +183,7 @@ def handler(event: dict, context) -> dict:
                      author_id, author_name, tags, is_published, comments_mode)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
                 (body.get("type", "news"), title, slug,
-                 body.get("content", ""), body.get("excerpt", ""),
+                 body.get("content", ""), strip_html(body.get("excerpt", "")),
                  body.get("cover_url", ""), body.get("video_url", ""),
                  mgr[0], mgr[1], body.get("tags", ""),
                  body.get("is_published", False),
@@ -193,7 +202,8 @@ def handler(event: dict, context) -> dict:
             for field in ["title", "content", "excerpt", "cover_url", "video_url",
                           "tags", "type", "is_published", "comments_mode"]:
                 if field in body:
-                    sets.append(f"{field}=%s"); vals.append(body[field])
+                    val = strip_html(body[field]) if field == "excerpt" else body[field]
+                    sets.append(f"{field}=%s"); vals.append(val)
             sets.append("updated_at=NOW()")
             vals.append(post_id)
             cur.execute(f"UPDATE {SC}.posts SET {', '.join(sets)} WHERE id=%s", vals)
@@ -356,12 +366,17 @@ def handler(event: dict, context) -> dict:
             if not mgr:
                 return err("Необходима авторизация", 401)
             cur.execute(
-                f"""SELECT id, type, title, is_published, views, created_at
+                f"""SELECT id, type, title, slug, content, excerpt, cover_url,
+                           video_url, author_name, tags, is_published, views,
+                           created_at, comments_mode
                     FROM {SC}.posts ORDER BY created_at DESC LIMIT 100"""
             )
-            posts = [{"id": r[0], "type": r[1], "title": r[2],
-                      "is_published": r[3], "views": r[4],
-                      "created_at": str(r[5])} for r in cur.fetchall()]
+            posts = [{"id": r[0], "type": r[1], "title": r[2], "slug": r[3],
+                      "content": r[4], "excerpt": r[5], "cover_url": r[6],
+                      "video_url": r[7], "author_name": r[8], "tags": r[9],
+                      "is_published": r[10], "views": r[11],
+                      "created_at": str(r[12]),
+                      "comments_mode": r[13] or "users"} for r in cur.fetchall()]
             return ok({"posts": posts})
 
         return err("Not found", 404)
