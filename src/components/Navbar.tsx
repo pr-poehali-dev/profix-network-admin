@@ -355,7 +355,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
 
       {/* Мобильное меню */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-1 animate-fade-in">
+        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-1 animate-fade-in overflow-y-auto" style={{ maxHeight: "calc(100vh - 64px)" }}>
           {menuItems.map(it => {
             if (it.type === "section") return (
               <button key={it.id} onClick={() => { handleNavClick(it.section || it.label); onMenuToggle(); }}
