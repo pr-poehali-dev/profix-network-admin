@@ -20,14 +20,26 @@ interface Stats {
 
 const ROLE_LABEL: Record<string, string> = { admin: "Администратор", manager: "Менеджер" };
 
-function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: string; color: string }) {
+function StatCard({
+  label,
+  value,
+  color,
+  borderColor,
+  onClick,
+}: {
+  label: string;
+  value: string | number;
+  color: string;
+  borderColor: string;
+  onClick?: () => void;
+}) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2 ${color}`}>
-        <Icon name={icon as "Eye"} size={17} />
-      </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 border-l-4 ${borderColor} transition-transform duration-150 hover:scale-[1.02] ${onClick ? "cursor-pointer" : ""}`}
+    >
+      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+      <p className="text-xs text-gray-400 mt-1 leading-tight">{label}</p>
     </div>
   );
 }
@@ -184,7 +196,6 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
   async function createQuickClient() {
     if (!quickClient.name || !quickClient.phone) return;
     setCreatingClient(true);
-    // Создаём клиента через создание заявки с пустым заголовком — или используем существующий API
     const res = await managerApi.createTicket({
       title: "Регистрация клиента",
       description: "Клиент добавлен из дашборда",
@@ -223,6 +234,15 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
   const initials = profile?.name?.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "??";
   const isAdmin  = profile?.role === "admin";
 
+  // Мини-диаграмма статусов
+  const statusBars = stats ? [
+    { key: "new",         label: "Новые",      color: "bg-blue-400",   value: stats.by_status?.new ?? 0 },
+    { key: "in_progress", label: "В работе",   color: "bg-yellow-400", value: stats.by_status?.in_progress ?? 0 },
+    { key: "done",        label: "Выполнено",  color: "bg-green-400",  value: stats.by_status?.done ?? 0 },
+    { key: "cancelled",   label: "Отменено",   color: "bg-gray-300",   value: stats.by_status?.cancelled ?? 0 },
+  ] : [];
+  const statusTotal = statusBars.reduce((s, b) => s + b.value, 0) || 1;
+
   return (
     <div className="p-4 sm:p-6 max-w-4xl">
       {msg && (
@@ -238,7 +258,6 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
           style={profile?.cover_url
             ? { backgroundImage: `url(${profile.cover_url})`, backgroundSize: "cover", backgroundPosition: "center" }
             : { background: isAdmin ? "linear-gradient(135deg,#e53e3e,#c53030)" : "linear-gradient(135deg,#3ca615,#2d8a10)" }}>
-          {/* Затемнение поверх картинки для читаемости текста */}
           {profile?.cover_url && <div className="absolute inset-0 bg-black/35" />}
 
           <div className="relative flex items-start justify-between">
@@ -252,7 +271,6 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
               <p className="text-white/70 text-sm drop-shadow">@{profile?.login}</p>
             </div>
             <div className="flex items-center gap-2">
-              {/* Загрузка/смена шапки */}
               <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverFile} className="hidden" />
               <button onClick={() => coverRef.current?.click()} disabled={coverUploading}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors disabled:opacity-50">
@@ -271,7 +289,6 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
               </button>
             </div>
           </div>
-          {/* Декоративные круги (только без картинки) */}
           {!profile?.cover_url && <>
             <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/3" />
             <div className="absolute bottom-0 right-20 w-24 h-24 rounded-full bg-white/5 translate-y-1/2" />
@@ -300,26 +317,49 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
                 <Icon name="Camera" size={11} className="text-gray-600" />
               </button>
             </div>
-            <div className="flex flex-wrap gap-3 pb-1 text-xs text-gray-500">
-              {profile?.email && <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-lg"><Icon name="Mail" size={11} />{profile.email}</span>}
-              {profile?.phone && <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-lg"><Icon name="Phone" size={11} />{profile.phone}</span>}
-              {profile?.tariff_name && <span className="flex items-center gap-1 bg-yellow-50 text-yellow-700 px-2 py-1 rounded-lg"><Icon name="Star" size={11} />{profile.tariff_name}</span>}
+
+            {/* Контакты — таблетки */}
+            <div className="flex flex-wrap gap-2 pb-1">
+              {profile?.email && (
+                <span className="flex items-center gap-1.5 bg-gray-50 border border-gray-100 text-gray-600 text-xs font-medium px-3 py-1.5 rounded-xl transition-all duration-300 hover:bg-gray-100">
+                  <Icon name="Mail" size={12} className="text-gray-400" />{profile.email}
+                </span>
+              )}
+              {profile?.phone && (
+                <span className="flex items-center gap-1.5 bg-gray-50 border border-gray-100 text-gray-600 text-xs font-medium px-3 py-1.5 rounded-xl transition-all duration-300 hover:bg-gray-100">
+                  <Icon name="Phone" size={12} className="text-gray-400" />{profile.phone}
+                </span>
+              )}
+              {profile?.tariff_name && (
+                <span className="flex items-center gap-1.5 bg-yellow-50 border border-yellow-100 text-yellow-700 text-xs font-medium px-3 py-1.5 rounded-xl transition-all duration-300 hover:bg-yellow-100">
+                  <Icon name="Star" size={12} className="text-yellow-500" />{profile.tariff_name}
+                </span>
+              )}
             </div>
           </div>
 
           {/* Фиксики и штрафы */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="text-center bg-green-50 rounded-2xl py-3 px-2">
-              <p className="text-2xl font-bold text-[#3ca615]">{profile?.fixies_balance ?? 0}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">💰 Фиксиков</p>
+            <div className="text-center bg-green-50 rounded-2xl py-4 px-2">
+              <div className="flex justify-center mb-1">
+                <Icon name="Coins" size={16} className="text-[#3ca615]" />
+              </div>
+              <p className="text-3xl font-bold text-[#3ca615]">{profile?.fixies_balance ?? 0}</p>
+              <p className="text-[10px] text-gray-500 mt-1">Фиксиков</p>
             </div>
-            <div className="text-center bg-red-50 rounded-2xl py-3 px-2">
-              <p className="text-2xl font-bold text-red-500">{profile?.penalties ?? 0}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">⚠️ Штрафов</p>
+            <div className="text-center bg-red-50 rounded-2xl py-4 px-2">
+              <div className="flex justify-center mb-1">
+                <Icon name="AlertTriangle" size={16} className="text-red-400" />
+              </div>
+              <p className="text-3xl font-bold text-red-500">{profile?.penalties ?? 0}</p>
+              <p className="text-[10px] text-gray-500 mt-1">Штрафов</p>
             </div>
-            <div className="text-center bg-gray-50 rounded-2xl py-3 px-2">
-              <p className="text-2xl font-bold text-gray-800">{profile?.done_tickets ?? 0}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">✅ Закрыто</p>
+            <div className="text-center bg-gray-50 rounded-2xl py-4 px-2">
+              <div className="flex justify-center mb-1">
+                <Icon name="CheckCircle2" size={16} className="text-gray-500" />
+              </div>
+              <p className="text-3xl font-bold text-gray-800">{profile?.done_tickets ?? 0}</p>
+              <p className="text-[10px] text-gray-500 mt-1">Закрыто</p>
             </div>
           </div>
         </div>
@@ -356,7 +396,10 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
               style={{ background: "#3ca615" }}>
               {saving ? <Icon name="Loader2" size={15} className="animate-spin" /> : <Icon name="Save" size={15} />}Сохранить
             </button>
-            <button onClick={() => setEditOpen(false)} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm">Отмена</button>
+            <button onClick={() => setEditOpen(false)}
+              className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">
+              Отмена
+            </button>
           </div>
         </div>
       )}
@@ -364,31 +407,94 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
       {/* ── Быстрая статистика ───────────────────────────────────────────── */}
       {stats && (
         <>
-          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Общая статистика CRM</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-            <StatCard label="Всего заявок" value={stats.total} icon="Ticket" color="bg-blue-50 text-blue-600" />
-            <StatCard label="Клиентов" value={stats.clients} icon="Users" color="bg-purple-50 text-purple-600" />
-            <StatCard label="Выполнено" value={stats.by_status?.done ?? 0} icon="CheckCircle" color="bg-green-50 text-green-600" />
-            <StatCard label="Выручка" value={`${(stats.revenue || 0).toLocaleString("ru-RU")} ₽`} icon="Banknote" color="bg-yellow-50 text-yellow-600" />
+          {/* StatCard-сетка 2x3 */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+            <StatCard
+              label="Всего заявок"
+              value={stats.total}
+              color="text-blue-600"
+              borderColor="border-l-blue-400"
+              onClick={() => onSectionChange("tickets")}
+            />
+            <StatCard
+              label="Клиентов"
+              value={stats.clients}
+              color="text-purple-600"
+              borderColor="border-l-purple-400"
+              onClick={() => onSectionChange("clients")}
+            />
+            <StatCard
+              label="Выполнено"
+              value={stats.by_status?.done ?? 0}
+              color="text-green-600"
+              borderColor="border-l-green-400"
+              onClick={() => onSectionChange("tickets")}
+            />
+            <StatCard
+              label="Выручка"
+              value={`${(stats.revenue || 0).toLocaleString("ru-RU")} ₽`}
+              color="text-yellow-600"
+              borderColor="border-l-yellow-400"
+            />
+            <StatCard
+              label="В работе"
+              value={stats.by_status?.in_progress ?? 0}
+              color="text-orange-500"
+              borderColor="border-l-orange-400"
+              onClick={() => onSectionChange("tickets")}
+            />
+            <StatCard
+              label="Новых"
+              value={stats.by_status?.new ?? 0}
+              color="text-indigo-600"
+              borderColor="border-l-indigo-400"
+              onClick={() => onSectionChange("tickets")}
+            />
+          </div>
+
+          {/* Мини-диаграмма статусов */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
+            <p className="text-sm font-bold text-gray-700 mb-4">Распределение заявок</p>
+            <div className="space-y-3">
+              {statusBars.map(bar => (
+                <div key={bar.key} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500 w-20 shrink-0">{bar.label}</span>
+                  <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${bar.color} transition-all duration-500`}
+                      style={{ width: `${Math.round((bar.value / statusTotal) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-semibold text-gray-700 w-6 text-right shrink-0">{bar.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Быстрые ссылки */}
           <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Перейти в раздел</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-            {[
-              { label: "Заявки", icon: "Ticket", section: "tickets", color: "bg-blue-500" },
-              { label: "Клиенты", icon: "Users", section: "clients", color: "bg-purple-500" },
-              { label: "Сотрудники", icon: "Users2", section: "tg-chat", color: "bg-[#3ca615]" },
-              { label: "Тарификация", icon: "Star", section: "tariffs", color: "bg-yellow-500" },
-            ].map(item => (
-              <button key={item.section} onClick={() => onSectionChange(item.section)}
-                className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.color}`}>
-                  <Icon name={item.icon as "Ticket"} size={18} className="text-white" />
-                </div>
-                <span className="text-xs font-semibold text-gray-700 group-hover:text-gray-900">{item.label}</span>
-              </button>
-            ))}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 mb-5">
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-1">
+              {[
+                { label: "Заявки",      icon: "Ticket",      section: "tickets",   bg: "hover:bg-blue-50",   text: "text-blue-600" },
+                { label: "Клиенты",     icon: "Users",       section: "clients",   bg: "hover:bg-purple-50", text: "text-purple-600" },
+                { label: "Сотрудники",  icon: "Users2",      section: "tg-chat",   bg: "hover:bg-green-50",  text: "text-green-600" },
+                { label: "Тарифы",      icon: "Star",        section: "tariffs",   bg: "hover:bg-yellow-50", text: "text-yellow-600" },
+                { label: "Магазин",     icon: "ShoppingBag", section: "shop",      bg: "hover:bg-orange-50", text: "text-orange-500" },
+                { label: "Блог",        icon: "BookOpen",    section: "blog",      bg: "hover:bg-indigo-50", text: "text-indigo-600" },
+                { label: "Отзывы",      icon: "Star",        section: "reviews",   bg: "hover:bg-pink-50",   text: "text-pink-500" },
+                { label: "Контент",     icon: "LayoutGrid",  section: "content",   bg: "hover:bg-teal-50",   text: "text-teal-600" },
+              ].map(item => (
+                <button
+                  key={item.section}
+                  onClick={() => onSectionChange(item.section)}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors ${item.bg} group`}
+                >
+                  <Icon name={item.icon as "Ticket"} size={18} className={`${item.text} transition-transform duration-150 group-hover:scale-110`} />
+                  <span className="text-[10px] font-medium text-gray-500 group-hover:text-gray-700 leading-tight text-center">{item.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Быстрые действия */}
@@ -477,15 +583,14 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
                 <div>
                   <label className="text-xs text-gray-500 block mb-1">Email</label>
                   <input value={quickClient.email} onChange={e => setQuickClient(p => ({...p, email: e.target.value}))}
-                    placeholder="ivan@mail.ru"
+                    placeholder="ivan@example.com"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
                 </div>
               </div>
               <div className="flex gap-2">
                 <button onClick={createQuickClient} disabled={creatingClient || !quickClient.name || !quickClient.phone}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold disabled:opacity-50"
-                  style={{ background: "#7c3aed" }}>
-                  {creatingClient ? <Icon name="Loader2" size={14} className="animate-spin" /> : <Icon name="UserPlus" size={14} />}Добавить клиента
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold disabled:opacity-50 bg-purple-500 hover:bg-purple-600 transition-colors">
+                  {creatingClient ? <Icon name="Loader2" size={14} className="animate-spin" /> : <Icon name="UserPlus" size={14} />}Добавить
                 </button>
                 <button onClick={() => setShowQuickClient(false)} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm">Отмена</button>
               </div>

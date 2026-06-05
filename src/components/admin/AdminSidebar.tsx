@@ -276,19 +276,22 @@ export default function AdminSidebar({
         <button
           onClick={() => onSectionChange("dashboard")}
           title={collapsed ? (manager?.name || "Профиль") : undefined}
-          className="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-white/5 transition-colors group">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-            style={{ background: roleColor }}>
+          className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-white/8 transition-all group">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-lg ring-2 ring-white/10 group-hover:ring-white/20 transition-all"
+            style={{ background: `linear-gradient(135deg, ${roleColor}, ${roleColor}cc)` }}>
             {initials}
           </div>
           {!collapsed && (
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-white text-xs font-semibold truncate">{manager?.name}</p>
-              <p className="text-gray-500 text-[10px]">{ROLE_LABEL[manager?.role || ""] || manager?.role}</p>
-            </div>
-          )}
-          {!collapsed && (
-            <Icon name="ChevronRight" size={14} className="text-gray-600 group-hover:text-gray-400 shrink-0" />
+            <>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-white text-xs font-semibold truncate leading-tight">{manager?.name}</p>
+                <p className="text-[10px] leading-tight mt-0.5 font-medium px-1.5 py-0.5 rounded-full inline-block"
+                  style={{ background: `${roleColor}25`, color: roleColor }}>
+                  {ROLE_LABEL[manager?.role || ""] || manager?.role}
+                </p>
+              </div>
+              <Icon name="Settings" size={13} className="text-gray-600 group-hover:text-gray-400 shrink-0 transition-colors" />
+            </>
           )}
         </button>
 
