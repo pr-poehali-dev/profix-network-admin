@@ -57,7 +57,7 @@ HEADERS = {
     "Accept": "application/rss+xml, application/xml, text/xml, */*",
 }
 
-MAX_POSTS_PER_RUN = 2
+MAX_POSTS_PER_RUN = 1
 MAX_EXCERPT_LEN = 400
 MAX_TITLE_LEN = 280
 
