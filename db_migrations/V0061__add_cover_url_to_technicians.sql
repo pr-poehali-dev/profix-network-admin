@@ -1,0 +1,1 @@
+ALTER TABLE t_p83689144_profix_network_admin.technicians ADD COLUMN IF NOT EXISTS cover_url text NULL;

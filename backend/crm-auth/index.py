@@ -1,5 +1,5 @@
 """
-CRM авторизация: клиенты, менеджеры, техники — OTP, пароль, восстановление пароля, обложка профиля. v6
+CRM авторизация: клиенты, менеджеры, техники — OTP, пароль, восстановление пароля, обложка профиля. v7
 """
 import json
 import os
@@ -554,7 +554,7 @@ def handler(event: dict, context) -> dict:
             }})
         elif role == "technician":
             cur.execute(
-                f"""SELECT t.id, t.name, t.phone, t.specialization FROM {SC}.technician_sessions ts
+                f"""SELECT t.id, t.name, t.phone, t.specialization, t.cover_url FROM {SC}.technician_sessions ts
                    JOIN {SC}.technicians t ON t.id = ts.technician_id
                    WHERE ts.token=%s AND ts.expires_at > NOW()""",
                 (token,)
@@ -563,7 +563,7 @@ def handler(event: dict, context) -> dict:
             conn.close()
             if not row:
                 return err("Сессия истекла", 401)
-            return ok({"valid": True, "technician": {"id": row[0], "name": row[1], "phone": row[2], "specialization": row[3]}})
+            return ok({"valid": True, "technician": {"id": row[0], "name": row[1], "phone": row[2], "specialization": row[3], "cover_url": row[4]}})
         else:
             cur.execute(
                 f"""SELECT m.id, COALESCE(m.name, m.full_name), m.role, m.avatar_url
@@ -1476,7 +1476,7 @@ def handler(event: dict, context) -> dict:
         conn = get_conn(); cur = conn.cursor()
         cur.execute(f"""
             SELECT ts.technician_id, t.name, t.phone, t.email, t.specialization,
-                   t.avatar_url, t.fixies_balance, tp.name AS tariff_name
+                   t.avatar_url, t.fixies_balance, tp.name AS tariff_name, t.cover_url
             FROM {SC}.technician_sessions ts
             JOIN {SC}.technicians t ON t.id=ts.technician_id
             LEFT JOIN {SC}.tariff_plans tp ON tp.id=t.tariff_plan_id
@@ -1495,9 +1495,55 @@ def handler(event: dict, context) -> dict:
         return ok({"profile": {
             "id": r[0], "name": r[1], "phone": r[2], "email": r[3],
             "specialization": r[4], "avatar_url": r[5],
-            "fixies_balance": r[6] or 0, "tariff_name": r[7],
+            "fixies_balance": r[6] or 0, "tariff_name": r[7], "cover_url": r[8],
             "penalties": int(penalties), "done_tickets": int(done_tickets),
         }})
+
+    # ── ТЕХНИК: обновление обложки профиля ───────────────────────────────────
+    if action == "technician_update_cover":
+        auth = (event.get("headers") or {}).get("X-Authorization", "") or \
+               (event.get("headers") or {}).get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        if not token:
+            return err("Необходима авторизация", 401)
+        conn = get_conn(); cur = conn.cursor()
+        cur.execute(
+            f"SELECT technician_id FROM {SC}.technician_sessions WHERE token=%s AND expires_at>NOW()",
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            conn.close(); return err("Сессия истекла", 401)
+        tech_id = row[0]
+        raw_cover = body.get("cover_url", None)
+        if raw_cover is None:
+            conn.close(); return err("Не передан cover_url")
+        if raw_cover == "":
+            cur.execute(f"UPDATE {SC}.technicians SET cover_url=NULL WHERE id=%s", (tech_id,))
+            conn.commit(); cur.close(); conn.close()
+            return ok({"updated": True, "cover_url": None})
+        elif raw_cover.startswith("data:"):
+            import base64 as _b64t, boto3 as _boto3t, uuid as _uuidt
+            try:
+                header, b64data = raw_cover.split(",", 1)
+                mime = header.split(":")[1].split(";")[0]
+                ext = "jpg" if "jpeg" in mime else mime.split("/")[-1]
+                key = f"covers/tech_{tech_id}_{_uuidt.uuid4().hex[:8]}.{ext}"
+                s3 = _boto3t.client("s3", endpoint_url="https://bucket.poehali.dev",
+                    aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+                    aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+                s3.put_object(Bucket="files", Key=key, Body=_b64t.b64decode(b64data), ContentType=mime)
+                cover_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+                cur.execute(f"UPDATE {SC}.technicians SET cover_url=%s WHERE id=%s", (cover_url, tech_id))
+                conn.commit(); cur.close(); conn.close()
+                return ok({"updated": True, "cover_url": cover_url})
+            except Exception as e:
+                conn.close(); return err(f"Ошибка загрузки: {str(e)}")
+        elif raw_cover.startswith("https://"):
+            cur.execute(f"UPDATE {SC}.technicians SET cover_url=%s WHERE id=%s", (raw_cover, tech_id))
+            conn.commit(); cur.close(); conn.close()
+            return ok({"updated": True, "cover_url": raw_cover})
+        conn.close(); return err("Неверный формат cover_url")
 
     # ══════════════════════════════════════════════════════════════════════════
     # TOTP / Google Authenticator — для всех ролей

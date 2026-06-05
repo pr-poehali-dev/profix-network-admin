@@ -21,7 +21,7 @@ const STATUS_OPTIONS = [
   { value: "cancelled", label: "Отменена" },
 ];
 
-type TechInfo = { id: number; name: string; phone?: string; specialization?: string };
+type TechInfo = { id: number; name: string; phone?: string; specialization?: string; cover_url?: string | null };
 type TechListItem = { id: number; name: string; specialization?: string };
 
 export default function TechPortal() {
@@ -48,6 +48,8 @@ export default function TechPortal() {
   const [showSecurity, setShowSecurity] = useState(false);
   const [fixiesHistory, setFixiesHistory] = useState<{amount:number;reason:string;created_at:string}[]>([]);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const coverRef = useRef<HTMLInputElement>(null);
   const pollTicketRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const selectedTicketIdRef = useRef<number | null>(null);
 
@@ -237,6 +239,41 @@ export default function TechPortal() {
     loadTechList();
   }
 
+  async function handleCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setCoverUploading(true);
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const dataUrl = ev.target?.result as string;
+      try {
+        const token = techSession.get()!;
+        const res = await fetch("https://functions.poehali.dev/1f14f246-0908-4c88-86de-62840b1d4e1c", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify({ action: "technician_update_cover", cover_url: dataUrl }),
+        }).then(r => r.json());
+        if (res.updated) setTech(t => t ? { ...t, cover_url: res.cover_url } : t);
+      } catch { /* ignore */ }
+      finally { setCoverUploading(false); }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  async function handleCoverReset() {
+    setCoverUploading(true);
+    try {
+      const token = techSession.get()!;
+      await fetch("https://functions.poehali.dev/1f14f246-0908-4c88-86de-62840b1d4e1c", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ action: "technician_update_cover", cover_url: "" }),
+      });
+      setTech(t => t ? { ...t, cover_url: null } : t);
+    } catch { /* ignore */ }
+    finally { setCoverUploading(false); }
+  }
+
   // ── ЭКРАН ЗАГРУЗКИ ───────────────────────────────────────────────────────
   if (loading && step !== "portal") {
     return (
@@ -271,15 +308,23 @@ export default function TechPortal() {
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos">
       {/* Шапка */}
-      <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-40">
-        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#edf7e8] rounded-xl flex items-center justify-center">
-            <Icon name="Wrench" size={18} className="text-[#3ca615]" />
+      <header className="sticky top-0 z-40 shadow-sm">
+        {/* Обложка (если есть) */}
+        {tech?.cover_url && (
+          <div className="relative h-20 overflow-hidden"
+            style={{ backgroundImage: `url(${tech.cover_url})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+            <div className="absolute inset-0 bg-black/30" />
           </div>
-          <div className="flex-1">
-            <p className="font-semibold text-sm text-[#111827]">{tech?.name}</p>
-            <p className="text-xs text-gray-400">{tech?.specialization || "Технический специалист"}</p>
-          </div>
+        )}
+        <div className={`${tech?.cover_url ? "bg-white/95 backdrop-blur" : "bg-white"} border-b border-gray-100`}>
+          <div className="max-w-3xl mx-auto px-4 h-16 flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#edf7e8] rounded-xl flex items-center justify-center shrink-0">
+              <Icon name="Wrench" size={18} className="text-[#3ca615]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-[#111827] truncate">{tech?.name}</p>
+              <p className="text-xs text-gray-400">{tech?.specialization || "Технический специалист"}</p>
+            </div>
           {/* Баланс фиксиков */}
           {fixiesBalance !== null && (
             <button onClick={() => setShowFixies(v => !v)}
@@ -307,6 +352,18 @@ export default function TechPortal() {
               />
             </div>
           )}
+          {/* Смена/сброс обложки */}
+          <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverFile} className="hidden" />
+          <button onClick={() => coverRef.current?.click()} disabled={coverUploading} title="Фон шапки"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-[#3ca615] hover:bg-[#edf7e8] transition-colors disabled:opacity-50">
+            <Icon name={coverUploading ? "Loader2" : "Image"} size={15} className={coverUploading ? "animate-spin" : ""} />
+          </button>
+          {tech?.cover_url && (
+            <button onClick={handleCoverReset} disabled={coverUploading} title="Убрать фон"
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
+              <Icon name="X" size={15} />
+            </button>
+          )}
           <button
             onClick={() => { setShowSecurity(v => !v); setShowFixies(false); }}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors ${showSecurity ? "bg-[#edf7e8] text-[#3ca615]" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"}`}
@@ -319,6 +376,7 @@ export default function TechPortal() {
           >
             <Icon name="LogOut" size={15} />
           </button>
+        </div>
         </div>
       </header>
 
