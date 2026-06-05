@@ -29,7 +29,7 @@ export default function Admin() {
   const navigate = useNavigate();
 
   const [loggedIn, setLoggedIn] = useState(false);
-  const [manager, setManager] = useState<{ id: number; name: string; role: string } | null>(null);
+  const [manager, setManager] = useState<{ id: number; name: string; role: string; avatar_url?: string } | null>(null);
   const [section, setSection] = useState("dashboard");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -162,7 +162,9 @@ export default function Admin() {
           setLoading(true);
           const res = await managerApi.verifyToken(token);
           if (res.valid && res.manager) {
-            setManager(res.manager);
+            // Подгружаем профиль с аватаром
+            const profileRes = await managerApi.getManagerProfile();
+            setManager({ ...res.manager, avatar_url: profileRes.profile?.avatar_url });
             setLoggedIn(true);
             await loadDashboard();
           } else {
@@ -344,7 +346,8 @@ export default function Admin() {
       const res = await managerApi.login(loginForm.login.trim(), loginForm.password.trim());
       if (res.token) {
         managerSession.set(res.token);
-        setManager(res.manager);
+        const profileRes = await managerApi.getManagerProfile();
+        setManager({ ...res.manager, avatar_url: profileRes.profile?.avatar_url });
         setLoggedIn(true);
         await loadDashboard();
       } else {

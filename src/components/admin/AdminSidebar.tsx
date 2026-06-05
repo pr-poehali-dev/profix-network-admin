@@ -16,7 +16,7 @@ interface MenuGroup {
 }
 
 interface Props {
-  manager: { id: number; name: string; role: string } | null;
+  manager: { id: number; name: string; role: string; avatar_url?: string } | null;
   activeSection: string;
   onSectionChange: (s: string) => void;
   onLogout: () => void;
@@ -139,9 +139,11 @@ export default function AdminSidebar({
           )}
           <button
             onClick={() => onSectionChange("dashboard")}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-            style={{ background: roleColor }}>
-            {initials}
+            className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-white text-xs font-bold shrink-0"
+            style={manager?.avatar_url ? {} : { background: roleColor }}>
+            {manager?.avatar_url
+              ? <img src={manager.avatar_url} alt="" className="w-full h-full object-cover" />
+              : initials}
           </button>
         </div>
 
@@ -277,9 +279,11 @@ export default function AdminSidebar({
           onClick={() => onSectionChange("dashboard")}
           title={collapsed ? (manager?.name || "Профиль") : undefined}
           className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-white/8 transition-all group">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-lg ring-2 ring-white/10 group-hover:ring-white/20 transition-all"
-            style={{ background: `linear-gradient(135deg, ${roleColor}, ${roleColor}cc)` }}>
-            {initials}
+          <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-lg ring-2 ring-white/10 group-hover:ring-white/20 transition-all"
+            style={manager?.avatar_url ? {} : { background: `linear-gradient(135deg, ${roleColor}, ${roleColor}cc)` }}>
+            {manager?.avatar_url
+              ? <img src={manager.avatar_url} alt="" className="w-full h-full object-cover" />
+              : initials}
           </div>
           {!collapsed && (
             <>

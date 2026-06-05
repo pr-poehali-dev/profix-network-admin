@@ -46,7 +46,7 @@ function StatCard({
 
 export default function AdminDashboardProfile({ manager, onManagerUpdate, onSectionChange }: {
   manager: { id: number; name: string; role: string } | null;
-  onManagerUpdate: (m: { id: number; name: string; role: string }) => void;
+  onManagerUpdate: (m: { id: number; name: string; role: string; avatar_url?: string }) => void;
   onSectionChange: (s: string) => void;
 }) {
   const [profile, setProfile]     = useState<Profile | null>(null);
@@ -117,6 +117,7 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
       const res = await managerApi.updateProfile({ avatar_url: `data:${file.type};base64,${b64}` });
       if (res.updated && res.manager?.avatar_url) {
         setProfile(p => p ? { ...p, avatar_url: res.manager.avatar_url } : p);
+        if (res.manager) onManagerUpdate(res.manager);
         flash("Фото обновлено");
       }
       setAU(false);
