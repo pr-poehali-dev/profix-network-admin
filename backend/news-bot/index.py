@@ -305,6 +305,7 @@ def handler(event: dict, context) -> dict:
 
     params = event.get("queryStringParameters") or {}
     run = params.get("run", "0")
+    limit = min(int(params.get("limit", str(MAX_POSTS_PER_RUN))), 20)
 
     # Статус — просто проверка что бот жив
     if run != "1":
@@ -332,7 +333,7 @@ def handler(event: dict, context) -> dict:
     skipped = 0
 
     for article in all_articles:
-        if len(published) >= MAX_POSTS_PER_RUN:
+        if len(published) >= limit:
             break
         if not article["title"]:
             continue

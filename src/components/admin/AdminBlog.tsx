@@ -43,8 +43,10 @@ export default function AdminBlog() {
   const [headerBgImg, setHeaderBgImg] = useState("");
   const [pageBg, setPageBg] = useState("#F7F9FC");
   const [bgImgUploading, setBgImgUploading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
   const [ytSaving, setYtSaving] = useState(false);
   const bgImgRef = useRef<HTMLInputElement>(null);
+  const coverImgRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadPosts();
@@ -375,12 +377,35 @@ export default function AdminBlog() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Обложка (URL картинки)</label>
-                  <input value={editing.cover_url || ""} onChange={e => setEditing(p => ({ ...p, cover_url: e.target.value }))}
-                    placeholder="https://..."
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Обложка</label>
+                  <div className="flex gap-2">
+                    <input value={editing.cover_url || ""} onChange={e => setEditing(p => ({ ...p, cover_url: e.target.value }))}
+                      placeholder="https://... или загрузи файл →"
+                      className="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3ca615]" />
+                    <button type="button" onClick={() => coverImgRef.current?.click()}
+                      disabled={coverUploading}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:border-[#3ca615] hover:text-[#3ca615] transition-colors disabled:opacity-50">
+                      {coverUploading
+                        ? <Icon name="Loader2" size={13} className="animate-spin" />
+                        : <Icon name="Upload" size={13} />}
+                      Файл
+                    </button>
+                    <input ref={coverImgRef} type="file" accept="image/*" className="hidden" onChange={async e => {
+                      const file = e.target.files?.[0]; if (!file) return;
+                      setCoverUploading(true);
+                      const reader = new FileReader();
+                      reader.onload = async ev => {
+                        const b64 = (ev.target?.result as string).split(",")[1];
+                        const url = await uploadContentImage(b64, file.type);
+                        setEditing(p => ({ ...p, cover_url: url }));
+                        setCoverUploading(false);
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = "";
+                    }} />
+                  </div>
                   {editing.cover_url && !ytId && (
-                    <div className="mt-2 h-20 rounded-lg overflow-hidden border border-gray-100">
+                    <div className="mt-2 h-24 rounded-xl overflow-hidden border border-gray-100">
                       <img src={editing.cover_url} alt="preview" className="w-full h-full object-cover" />
                     </div>
                   )}
