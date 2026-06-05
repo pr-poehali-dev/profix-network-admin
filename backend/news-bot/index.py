@@ -251,6 +251,53 @@ def publish_post(conn, article: dict) -> int:
     return new_id
 
 
+def send_tg_report(published: list, skipped: int, errors: list) -> None:
+    """Отправляет отчёт о публикации новостей в Telegram."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        return
+
+    today = datetime.now(timezone.utc).strftime("%d.%m.%Y")
+
+    if published:
+        lines = [f"📰 *Новостной бот — отчёт за {today}*\n"]
+        lines.append(f"✅ Опубликовано: *{len(published)}* новости")
+        for i, p in enumerate(published, 1):
+            img = "🖼" if p.get("has_image") else "📄"
+            lines.append(f"{img} {i}\\. [{p['tag']}] {p['title'][:80]}")
+        if skipped:
+            lines.append(f"\n⏭ Пропущено дублей: {skipped}")
+        if errors:
+            lines.append(f"⚠️ Ошибок RSS: {len(errors)}")
+    else:
+        lines = [
+            f"📰 *Новостной бот — отчёт за {today}*\n",
+            "ℹ️ Новых новостей не найдено — всё уже опубликовано.",
+        ]
+        if skipped:
+            lines.append(f"⏭ Дублей пропущено: {skipped}")
+        if errors:
+            lines.append(f"⚠️ Ошибок RSS: {len(errors)}")
+
+    text = "\n".join(lines)
+    payload = json.dumps({
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "MarkdownV2",
+    }).encode()
+    try:
+        req = urllib.request.Request(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=10)
+    except Exception:
+        pass
+
+
 def handler(event: dict, context) -> dict:
     """Новостной бот: парсит RSS IT/бухгалтерских источников и публикует 1–2 новости в день."""
     if event.get("httpMethod") == "OPTIONS":
@@ -305,6 +352,9 @@ def handler(event: dict, context) -> dict:
             errors.append(f"publish error: {str(e)}")
 
     conn.close()
+
+    # ── Отчёт в Telegram ──────────────────────────────────────────────────────
+    send_tg_report(published, skipped, errors)
 
     return ok({
         "ok": True,
