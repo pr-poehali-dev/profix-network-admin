@@ -18,6 +18,8 @@ export default function Blog() {
   const [reactions, setReactions] = useState<Record<string, number>>({});
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [reactionsMap, setReactionsMap] = useState<Record<number, Record<string, number>>>({});
+  const [myReactionsMap, setMyReactionsMap] = useState<Record<number, string>>({});
 
   const youtubeChannel  = str("blog.youtube_channel", "");
   const subscribersCount = str("blog.subscribers", "");
@@ -65,6 +67,14 @@ export default function Blog() {
     if (res.ok) { setReactions(res.reactions); setMyReaction(reaction); }
   }
 
+  async function handleListReact(postId: number, reaction: "like" | "dislike") {
+    const res = await blogApi.react(postId, reaction);
+    if (res.ok) {
+      setReactionsMap(m => ({ ...m, [postId]: res.reactions }));
+      setMyReactionsMap(m => ({ ...m, [postId]: reaction }));
+    }
+  }
+
   // ── Детальный просмотр поста ───────────────────────────────────────────────
   if (id && post) {
     return (
@@ -98,6 +108,9 @@ export default function Blog() {
       posts={posts}
       isLoggedIn={isLoggedIn}
       changeFilter={changeFilter}
+      reactionsMap={reactionsMap}
+      myReactionsMap={myReactionsMap}
+      onReact={handleListReact}
     />
   );
 }

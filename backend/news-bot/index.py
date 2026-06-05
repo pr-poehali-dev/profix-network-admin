@@ -336,6 +336,9 @@ def handler(event: dict, context) -> dict:
             break
         if not article["title"]:
             continue
+        if not article.get("image_url"):
+            skipped += 1
+            continue
         if already_published(conn, article["title"], article.get("link", "")):
             skipped += 1
             continue

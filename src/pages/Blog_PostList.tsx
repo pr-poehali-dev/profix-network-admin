@@ -19,12 +19,16 @@ interface BannerProps {
   posts: Post[];
   isLoggedIn: boolean;
   changeFilter: (f: string) => void;
+  reactionsMap?: Record<number, Record<string, number>>;
+  myReactionsMap?: Record<number, string>;
+  onReact?: (postId: number, r: "like" | "dislike") => void;
 }
 
 export function BlogPostList({
   blogBannerBg, blogBannerImg, blogBannerDark,
   blogPageBg, youtubeChannel, subscribersCount, channelDesc,
   postsCount, filter, loading, posts, isLoggedIn, changeFilter,
+  reactionsMap = {}, myReactionsMap = {}, onReact,
 }: BannerProps) {
   const navigate = useNavigate();
 
@@ -157,9 +161,11 @@ export function BlogPostList({
                   <h2 className="font-oswald text-xl font-bold text-gray-900">Новости и статьи</h2>
                   <button onClick={() => changeFilter("news")} className="text-xs text-[#3ca615] hover:underline font-medium">Смотреть все</button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-4 max-w-2xl">
                   {otherPosts.filter(p => p.type !== "forum").slice(0, 9).map(p => (
-                    <ArticleCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)} />
+                    <ArticleCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)}
+                      reactions={reactionsMap[p.id]} myReaction={myReactionsMap[p.id]}
+                      onReact={onReact ? (r) => onReact(p.id, r) : undefined} />
                   ))}
                 </div>
               </section>
@@ -231,8 +237,12 @@ export function BlogPostList({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {posts.map(p => <ArticleCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)} />)}
+          <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+            {posts.map(p => (
+              <ArticleCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)}
+                reactions={reactionsMap[p.id]} myReaction={myReactionsMap[p.id]}
+                onReact={onReact ? (r) => onReact(p.id, r) : undefined} />
+            ))}
           </div>
         )}
       </main>

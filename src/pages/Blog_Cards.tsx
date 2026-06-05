@@ -84,32 +84,89 @@ export function VideoCard({ post, onClick }: { post: Post; onClick: () => void }
   );
 }
 
-// ── Карточка для новостей/статей ──────────────────────────────────────────────
-export function ArticleCard({ post, onClick }: { post: Post; onClick: () => void }) {
+// ── Карточка для новостей/статей — лента в одну колонку ──────────────────────
+export function ArticleCard({
+  post, onClick,
+  reactions, myReaction, onReact,
+}: {
+  post: Post;
+  onClick: () => void;
+  reactions?: Record<string, number>;
+  myReaction?: string | null;
+  onReact?: (r: "like" | "dislike") => void;
+}) {
   const cleanExcerpt = post.excerpt ? post.excerpt.replace(/<[^>]+>/g, "").trim() : "";
+  const likes = reactions?.like || 0;
+  const dislikes = reactions?.dislike || 0;
+
   return (
-    <button onClick={onClick}
-      className="w-full text-left bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md hover:border-[#3ca615]/20 transition-all group">
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      {/* Картинка */}
       {post.cover_url && (
-        <div className="w-full h-40 overflow-hidden bg-gray-100">
-          <img src={post.cover_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        </div>
+        <button onClick={onClick} className="block w-full">
+          <div className="w-full overflow-hidden bg-gray-100" style={{ height: "220px" }}>
+            <img src={post.cover_url} alt={post.title}
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+          </div>
+        </button>
       )}
-      <div className="p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-[10px] font-bold text-[#3ca615] uppercase tracking-wide bg-[#edf7e8] px-2 py-0.5 rounded-full">{TYPE_LABELS[post.type]}</span>
-          <span className="text-xs text-gray-400">{new Date(post.created_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" })}</span>
+
+      {/* Контент */}
+      <div className="p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[10px] font-bold text-[#3ca615] uppercase tracking-wide bg-[#edf7e8] px-2 py-0.5 rounded-full">
+            {TYPE_LABELS[post.type]}
+          </span>
+          {post.tags && (
+            <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full truncate max-w-[120px]">
+              {post.tags.split(",")[0].trim()}
+            </span>
+          )}
+          <span className="text-xs text-gray-400 ml-auto shrink-0">
+            {new Date(post.created_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" })}
+          </span>
         </div>
-        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug group-hover:text-[#3ca615] transition-colors mb-1">{post.title}</h3>
+
+        <button onClick={onClick} className="block text-left w-full group mb-2">
+          <h3 className="font-oswald text-lg font-bold text-gray-900 leading-snug group-hover:text-[#3ca615] transition-colors">
+            {post.title}
+          </h3>
+        </button>
+
         {cleanExcerpt && (
-          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{cleanExcerpt}</p>
+          <p className="text-sm text-gray-500 leading-relaxed line-clamp-3 mb-4">{cleanExcerpt}</p>
         )}
-        <div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
-          <span className="flex items-center gap-1"><Icon name="Eye" size={10} />{post.views}</span>
-          <span className="flex items-center gap-1"><Icon name="MessageCircle" size={10} />{post.comment_count || 0}</span>
+
+        {/* Лайки + комменты + просмотры */}
+        <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+          {onReact ? (
+            <div className="flex items-center gap-1 bg-gray-50 rounded-xl px-1">
+              <button
+                onClick={e => { e.stopPropagation(); onReact("like"); }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${myReaction === "like" ? "text-[#3ca615]" : "text-gray-500 hover:text-[#3ca615]"}`}>
+                <Icon name="ThumbsUp" size={14} />{likes > 0 && likes}
+              </button>
+              <div className="w-px h-4 bg-gray-200" />
+              <button
+                onClick={e => { e.stopPropagation(); onReact("dislike"); }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${myReaction === "dislike" ? "text-red-400" : "text-gray-500 hover:text-red-400"}`}>
+                <Icon name="ThumbsDown" size={14} />{dislikes > 0 && dislikes}
+              </button>
+            </div>
+          ) : null}
+
+          <button onClick={onClick}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-gray-500 hover:text-[#3ca615] hover:bg-gray-50 transition-colors">
+            <Icon name="MessageCircle" size={14} />
+            {post.comment_count ? `${post.comment_count}` : "Комментировать"}
+          </button>
+
+          <span className="ml-auto flex items-center gap-1 text-xs text-gray-400">
+            <Icon name="Eye" size={12} />{post.views}
+          </span>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
