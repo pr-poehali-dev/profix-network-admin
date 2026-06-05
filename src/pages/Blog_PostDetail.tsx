@@ -120,9 +120,14 @@ export function BlogPostDetail({
             {/* Описание / контент */}
             {(post.excerpt || post.content) && (
               <div className="bg-white/5 rounded-2xl p-4 mb-6">
-                {post.excerpt && <p className="text-gray-300 text-sm font-medium mb-2">{post.excerpt}</p>}
+                {post.excerpt && <p className="text-gray-300 text-sm font-medium mb-3">{post.excerpt.replace(/<[^>]+>/g, "")}</p>}
                 {post.content && (
-                  <div className="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{post.content}</div>
+                  <div
+                    className="text-gray-400 text-sm leading-relaxed prose prose-invert prose-sm max-w-none
+                      [&_a]:text-[#3ca615] [&_a]:underline [&_a]:underline-offset-2
+                      [&_p]:mb-3 [&_p:last-child]:mb-0"
+                    dangerouslySetInnerHTML={{ __html: post.content }}
+                  />
                 )}
               </div>
             )}

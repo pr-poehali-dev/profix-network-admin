@@ -86,25 +86,27 @@ export function VideoCard({ post, onClick }: { post: Post; onClick: () => void }
 
 // ── Карточка для новостей/статей ──────────────────────────────────────────────
 export function ArticleCard({ post, onClick }: { post: Post; onClick: () => void }) {
+  const cleanExcerpt = post.excerpt ? post.excerpt.replace(/<[^>]+>/g, "").trim() : "";
   return (
     <button onClick={onClick}
-      className="w-full text-left flex gap-3 p-3 rounded-xl hover:bg-white hover:shadow-sm transition-all group border border-transparent hover:border-gray-100">
-      <div className="w-20 h-16 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-        {post.cover_url ? (
-          <img src={post.cover_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Icon name={TYPE_ICONS[post.type] as "Newspaper"} size={20} className="text-gray-400" />
-          </div>
+      className="w-full text-left bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md hover:border-[#3ca615]/20 transition-all group">
+      {post.cover_url && (
+        <div className="w-full h-40 overflow-hidden bg-gray-100">
+          <img src={post.cover_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        </div>
+      )}
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-bold text-[#3ca615] uppercase tracking-wide bg-[#edf7e8] px-2 py-0.5 rounded-full">{TYPE_LABELS[post.type]}</span>
+          <span className="text-xs text-gray-400">{new Date(post.created_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" })}</span>
+        </div>
+        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug group-hover:text-[#3ca615] transition-colors mb-1">{post.title}</h3>
+        {cleanExcerpt && (
+          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{cleanExcerpt}</p>
         )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <span className="text-[10px] font-bold text-[#3ca615] uppercase tracking-wide">{TYPE_LABELS[post.type]}</span>
-        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug group-hover:text-[#3ca615] transition-colors">{post.title}</h3>
-        <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+        <div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
           <span className="flex items-center gap-1"><Icon name="Eye" size={10} />{post.views}</span>
           <span className="flex items-center gap-1"><Icon name="MessageCircle" size={10} />{post.comment_count || 0}</span>
-          <span>{new Date(post.created_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}</span>
         </div>
       </div>
     </button>

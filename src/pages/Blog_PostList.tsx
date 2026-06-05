@@ -157,8 +157,8 @@ export function BlogPostList({
                   <h2 className="font-oswald text-xl font-bold text-gray-900">Новости и статьи</h2>
                   <button onClick={() => changeFilter("news")} className="text-xs text-[#3ca615] hover:underline font-medium">Смотреть все</button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                  {otherPosts.filter(p => p.type !== "forum").slice(0, 8).map(p => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {otherPosts.filter(p => p.type !== "forum").slice(0, 9).map(p => (
                     <ArticleCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)} />
                   ))}
                 </div>
@@ -210,7 +210,7 @@ export function BlogPostList({
                   <Icon name="Users" size={24} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-base font-bold text-gray-900 mb-1">Присоединяйтесь к сообществу ProFiX</p>
+                  <p className="text-base font-bold text-gray-900 mb-1">Присоединяйтесь к сообществу ПРОФИКС</p>
                   <p className="text-sm text-gray-500">Задавайте вопросы, делитесь опытом и получайте ответы от IT-специалистов Якутска</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -231,7 +231,7 @@ export function BlogPostList({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-w-3xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {posts.map(p => <ArticleCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)} />)}
           </div>
         )}
