@@ -288,7 +288,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
         </button>
 
         {/* Десктоп — меню */}
-        <nav className="hidden md:flex items-center gap-0 justify-center flex-1 min-w-0 overflow-hidden">
+        <nav className="hidden md:flex items-center gap-0 justify-center flex-1 min-w-0">
           {menuItems.map(it => renderDesktopMenuItem(it))}
 
           {/* Партнёры */}
