@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { blogApi, Post } from "@/lib/blog-api";
+import { withEllipsis } from "@/pages/Blog_Cards";
 
 export default function NewsPreview() {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export default function NewsPreview() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {posts.map(post => {
-              const cleanExcerpt = post.excerpt ? post.excerpt.replace(/<[^>]+>/g, "").trim() : "";
+              const cleanExcerpt = withEllipsis(post.excerpt, 120);
               return (
                 <button
                   key={post.id}

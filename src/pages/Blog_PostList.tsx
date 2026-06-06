@@ -125,6 +125,46 @@ export function BlogPostList({
 
       {/* Контент */}
       <main className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex gap-8">
+
+          {/* ── Левая навигационная колонка ─────────────────────────────── */}
+          <aside className="hidden lg:flex flex-col gap-1 w-44 shrink-0 self-start sticky top-20">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-3">Разделы</p>
+            {[
+              { v: "all",     l: "Все публикации", icon: "LayoutGrid" },
+              { v: "news",    l: "Новости",         icon: "Newspaper" },
+              { v: "article", l: "Статьи",          icon: "FileText" },
+              { v: "video",   l: "Видео",           icon: "Play" },
+              { v: "forum",   l: "Форум",           icon: "MessageSquare" },
+            ].map(f => (
+              <button key={f.v} onClick={() => changeFilter(f.v)}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-left transition-all ${
+                  filter === f.v
+                    ? "bg-[#edf7e8] text-[#3ca615] font-semibold"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                }`}>
+                <Icon name={f.icon as "LayoutGrid"} size={15} className={filter === f.v ? "text-[#3ca615]" : "text-gray-400"} />
+                {f.l}
+              </button>
+            ))}
+
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-3">Навигация</p>
+              <button onClick={() => navigate("/")}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors w-full text-left">
+                <Icon name="Home" size={15} className="text-gray-400" />
+                На главную
+              </button>
+              <button onClick={() => navigate("/shop")}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors w-full text-left">
+                <Icon name="ShoppingCart" size={15} className="text-gray-400" />
+                Магазин
+              </button>
+            </div>
+          </aside>
+
+          {/* ── Основной контент ─────────────────────────────────────────── */}
+          <div className="flex-1 min-w-0">
         {loading ? (
           <div className="flex justify-center py-20">
             <Icon name="Loader2" size={32} className="animate-spin text-[#3ca615]" />
@@ -161,7 +201,7 @@ export function BlogPostList({
                   <h2 className="font-oswald text-xl font-bold text-gray-900">Новости и статьи</h2>
                   <button onClick={() => changeFilter("news")} className="text-xs text-[#3ca615] hover:underline font-medium">Смотреть все</button>
                 </div>
-                <div className="flex flex-col gap-4 max-w-2xl">
+                <div className="flex flex-col gap-4">
                   {otherPosts.filter(p => p.type !== "forum").slice(0, 9).map(p => (
                     <ArticleCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)}
                       reactions={reactionsMap[p.id]} myReaction={myReactionsMap[p.id]}
@@ -237,7 +277,7 @@ export function BlogPostList({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+          <div className="flex flex-col gap-4">
             {posts.map(p => (
               <ArticleCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)}
                 reactions={reactionsMap[p.id]} myReaction={myReactionsMap[p.id]}
@@ -245,6 +285,8 @@ export function BlogPostList({
             ))}
           </div>
         )}
+          </div>
+        </div>
       </main>
     </div>
   );

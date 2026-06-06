@@ -3,6 +3,27 @@ import { Post } from "@/lib/blog-api";
 
 export const EMOJI_LIST = ["😀","😂","👍","❤️","🔥","👏","😮","🤔","💡","✅","🙏","💪","📌","⚡","🛠️","💻","📞","🏆"];
 
+export function cleanText(s: string | undefined | null): string {
+  if (!s) return "";
+  return s
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&[a-z#0-9]+;/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+export function withEllipsis(s: string | undefined | null, maxLen = 220): string {
+  const t = cleanText(s);
+  if (!t || t.length <= maxLen) return t;
+  return t.slice(0, maxLen).replace(/[.,;:!?\s]+$/, "") + "…";
+}
+
 export const TYPE_LABELS: Record<string, string> = {
   news: "Новости",
   article: "Статьи",
@@ -95,7 +116,7 @@ export function ArticleCard({
   myReaction?: string | null;
   onReact?: (r: "like" | "dislike") => void;
 }) {
-  const cleanExcerpt = post.excerpt ? post.excerpt.replace(/<[^>]+>/g, "").trim() : "";
+  const cleanExcerpt = withEllipsis(post.excerpt);
   const likes = reactions?.like || 0;
   const dislikes = reactions?.dislike || 0;
 

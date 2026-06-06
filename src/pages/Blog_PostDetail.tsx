@@ -5,7 +5,7 @@ import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import { Post } from "@/lib/blog-api";
 import { CommentSection } from "./Blog_CommentSection";
-import { getYouTubeId, getYouTubeEmbed, formatCount, TYPE_LABELS, TYPE_ICONS } from "./Blog_Cards";
+import { getYouTubeId, getYouTubeEmbed, formatCount, TYPE_LABELS, TYPE_ICONS, cleanText } from "./Blog_Cards";
 
 interface Props {
   post: Post;
@@ -120,7 +120,7 @@ export function BlogPostDetail({
               <div className="mb-6">
                 {post.excerpt && (
                   <p className="text-gray-700 text-sm font-medium mb-4 leading-relaxed border-l-4 border-[#3ca615] pl-4 bg-[#edf7e8] py-3 rounded-r-xl">
-                    {post.excerpt.replace(/<[^>]+>/g, "")}
+                    {cleanText(post.excerpt)}
                   </p>
                 )}
                 {post.content && (
@@ -132,7 +132,14 @@ export function BlogPostDetail({
                       [&_h3]:text-base [&_h3]:font-bold [&_h3]:text-gray-900 [&_h3]:mt-4 [&_h3]:mb-1
                       [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3
                       [&_li]:mb-1"
-                    dangerouslySetInnerHTML={{ __html: post.content }}
+                    dangerouslySetInnerHTML={{
+                      __html: post.content
+                        .replace(/&nbsp;/gi, " ")
+                        .replace(/&amp;/gi, "&")
+                        .replace(/&[a-z#0-9]+;/gi, (m) =>
+                          ["&lt;","&gt;","&quot;","&#39;","&amp;"].includes(m.toLowerCase()) ? m : " "
+                        )
+                    }}
                   />
                 )}
               </div>
