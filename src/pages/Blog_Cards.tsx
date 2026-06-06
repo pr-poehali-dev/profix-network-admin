@@ -104,9 +104,9 @@ export function ArticleCard({
       {/* Картинка */}
       {post.cover_url && (
         <button onClick={onClick} className="block w-full">
-          <div className="w-full overflow-hidden bg-gray-100" style={{ height: "220px" }}>
+          <div className="w-full overflow-hidden bg-gray-100 aspect-video">
             <img src={post.cover_url} alt={post.title}
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+              className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-500" />
           </div>
         </button>
       )}
