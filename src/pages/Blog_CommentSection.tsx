@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { blogApi, Comment } from "@/lib/blog-api";
-import { clientSession, clientApi } from "@/lib/crm-api";
+import { clientSession, clientApi, managerSession, managerApi, techSession, techApi } from "@/lib/crm-api";
 import { EMOJI_LIST } from "./Blog_Cards";
 
 export function CommentSection({ postId, comments: initialComments, commentsMode = "users", onCommentAdded }: {
@@ -24,15 +24,42 @@ export function CommentSection({ postId, comments: initialComments, commentsMode
   const [clientLoading, setClientLoading] = useState(true);
 
   useEffect(() => {
-    const token = clientSession.get();
-    if (token) {
-      clientApi.verifyToken(token)
-        .then(r => { if (r.valid && r.client) setClientName(r.client.name || r.client.phone || "Клиент"); })
-        .catch(() => {})
-        .finally(() => setClientLoading(false));
-    } else {
-      setClientLoading(false);
+    async function resolve() {
+      // 1. Клиент
+      const clientToken = clientSession.get();
+      if (clientToken) {
+        try {
+          const r = await clientApi.verifyToken(clientToken);
+          if (r.valid && r.client) {
+            setClientName(r.client.name || r.client.phone || "Клиент");
+            return;
+          }
+        } catch { /* ignore */ }
+      }
+      // 2. Менеджер / администратор
+      const mgrToken = managerSession.get();
+      if (mgrToken) {
+        try {
+          const r = await managerApi.getManagerProfile();
+          if (r.profile) {
+            setClientName(r.profile.name || "Менеджер");
+            return;
+          }
+        } catch { /* ignore */ }
+      }
+      // 3. Техник/специалист
+      const techToken = techSession.get();
+      if (techToken) {
+        try {
+          const r = await techApi.verifyToken(techToken);
+          if (r.valid) {
+            setClientName(r.name || r.technician?.name || "Специалист");
+            return;
+          }
+        } catch { /* ignore */ }
+      }
     }
+    resolve().finally(() => setClientLoading(false));
   }, []);
 
   async function handleSend() {

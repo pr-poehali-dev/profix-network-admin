@@ -47,6 +47,44 @@ def check_manager(event, conn):
     return row  # (id, name, role) or None
 
 
+def resolve_commenter(token, cur):
+    """По токену определяет автора комментария.
+    Проверяет: клиент → менеджер → техник.
+    Возвращает (author_name, role_label) или None если не найден."""
+    if not token:
+        return None
+    # Клиент
+    cur.execute(
+        f"SELECT c.name, c.phone FROM {SC}.client_sessions cs "
+        f"JOIN {SC}.clients c ON c.id=cs.client_id "
+        f"WHERE cs.token=%s AND cs.expires_at>NOW()",
+        (token,)
+    )
+    row = cur.fetchone()
+    if row:
+        return (row[0] or row[1] or "Клиент", "client")
+    # Менеджер / админ
+    cur.execute(
+        f"SELECT COALESCE(m.name, m.full_name), m.role FROM {SC}.manager_sessions ms "
+        f"JOIN {SC}.managers m ON m.id=ms.manager_id WHERE ms.token=%s AND ms.expires_at>NOW()",
+        (token,)
+    )
+    row = cur.fetchone()
+    if row:
+        label = "Менеджер" if row[1] == "manager" else "Администратор"
+        return (row[0] or label, "manager")
+    # Техник
+    cur.execute(
+        f"SELECT t.name FROM {SC}.technician_sessions ts "
+        f"JOIN {SC}.technicians t ON t.id=ts.technician_id WHERE ts.token=%s AND ts.expires_at>NOW()",
+        (token,)
+    )
+    row = cur.fetchone()
+    if row:
+        return (row[0] or "Специалист", "tech")
+    return None
+
+
 def slugify(text):
     text = text.lower()
     text = re.sub(r'[^a-zа-я0-9\s-]', '', text)
@@ -249,36 +287,20 @@ def handler(event: dict, context) -> dict:
 
             client_id = None
             if comments_mode == "users":
-                # Требуем авторизацию
+                # Требуем авторизацию (клиент, менеджер или техник)
                 if not token:
                     return err("Для комментирования необходимо войти в личный кабинет", 401)
-                cur.execute(
-                    f"SELECT c.id, c.name, c.phone FROM {SC}.client_sessions cs "
-                    f"JOIN {SC}.clients c ON c.id=cs.client_id "
-                    f"WHERE cs.token=%s AND cs.expires_at>NOW()",
-                    (token,)
-                )
-                client_row = cur.fetchone()
-                if not client_row:
+                resolved = resolve_commenter(token, cur)
+                if not resolved:
                     return err("Сессия истекла. Пожалуйста, войдите снова.", 401)
-                client_id = client_row[0]
-                author    = client_row[1] or client_row[2] or "Клиент"
+                author = resolved[0]
             else:
-                # open — пробуем взять имя из токена, иначе "Гость"
-                author = "Гость"
-                if token:
-                    cur.execute(
-                        f"SELECT c.id, c.name, c.phone FROM {SC}.client_sessions cs "
-                        f"JOIN {SC}.clients c ON c.id=cs.client_id "
-                        f"WHERE cs.token=%s AND cs.expires_at>NOW()",
-                        (token,)
-                    )
-                    client_row = cur.fetchone()
-                    if client_row:
-                        client_id = client_row[0]
-                        author    = client_row[1] or client_row[2] or "Клиент"
-                # Имя из тела (для анонимов)
-                author = body.get("author_name", "").strip() or author
+                # open — пробуем взять имя из токена, иначе берём из тела или "Гость"
+                resolved = resolve_commenter(token, cur) if token else None
+                if resolved:
+                    author = resolved[0]
+                else:
+                    author = body.get("author_name", "").strip() or "Гость"
 
             cur.execute(
                 f"""INSERT INTO {SC}.post_comments (post_id, client_id, author_name, text)

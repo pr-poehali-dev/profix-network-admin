@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import SEO from "@/components/SEO";
+import Navbar from "@/components/Navbar";
 import { Post } from "@/lib/blog-api";
 import { CommentSection } from "./Blog_CommentSection";
 import { getYouTubeId, getYouTubeEmbed, formatCount, TYPE_LABELS, TYPE_ICONS } from "./Blog_Cards";
@@ -25,6 +27,14 @@ export function BlogPostDetail({
   const navigate = useNavigate();
   const ytId = post.video_url ? getYouTubeId(post.video_url) : null;
   const embed = post.video_url ? getYouTubeEmbed(post.video_url) : null;
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div className="min-h-screen font-golos bg-white">
@@ -37,26 +47,15 @@ export function BlogPostDetail({
         canonical={`/blog/${post.id}`}
       />
 
-      {/* Навбар — всегда тёмный */}
-      <header className="bg-[#0F0F0F] border-b border-white/10 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
-          <button onClick={() => navigate("/blog")} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
-            <Icon name="ChevronLeft" size={20} />
-          </button>
-          <span className="font-oswald text-lg font-bold">
-            <span className="text-[#3ca615]">ПРО</span>
-            <span className="text-white">ФИКС</span>
-          </span>
-          {youtubeChannel && (
-            <a href={youtubeChannel} target="_blank" rel="noopener noreferrer"
-              className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition">
-              <Icon name="Play" size={13} />Подписаться
-            </a>
-          )}
-        </div>
-      </header>
+      <Navbar
+        scrolled={scrolled}
+        activeSection=""
+        menuOpen={menuOpen}
+        onMenuToggle={() => setMenuOpen(v => !v)}
+        onScrollTo={() => {}}
+      />
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-4 pt-20 pb-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Основной контент */}
           <div className="lg:col-span-2">
