@@ -315,6 +315,38 @@ def handler(event: dict, context) -> dict:
             }})
 
         # ══════════════════════════════════════════════════════════════════════
+        # КОММЕНТАРИИ — редактирование своего
+        # ══════════════════════════════════════════════════════════════════════
+        if resource == "comments" and method == "PUT":
+            headers  = event.get("headers") or {}
+            auth_hdr = headers.get("X-Authorization", "") or headers.get("Authorization", "")
+            token    = auth_hdr.replace("Bearer ", "").strip()
+            if not token:
+                return err("Необходима авторизация", 401)
+            resolved = resolve_commenter(token, cur)
+            if not resolved:
+                return err("Сессия истекла", 401)
+            author_name = resolved[0]
+
+            comment_id = body.get("id")
+            new_text   = body.get("text", "").strip()
+            if not comment_id or not new_text:
+                return err("Укажите id и текст комментария")
+            if len(new_text) > 2000:
+                return err("Комментарий слишком длинный")
+
+            # Разрешаем редактировать только свой комментарий (по имени автора)
+            cur.execute(
+                f"UPDATE {SC}.post_comments SET text=%s WHERE id=%s AND author_name=%s AND is_approved=TRUE RETURNING id",
+                (new_text, comment_id, author_name)
+            )
+            row = cur.fetchone()
+            if not row:
+                return err("Комментарий не найден или нет прав", 403)
+            conn.commit()
+            return ok({"ok": True})
+
+        # ══════════════════════════════════════════════════════════════════════
         # РЕАКЦИИ (лайки/дизлайки)
         # ══════════════════════════════════════════════════════════════════════
         if resource == "reactions" and method == "POST":

@@ -23,9 +23,14 @@ export function CommentSection({ postId, comments: initialComments, commentsMode
   const [clientName, setClientName] = useState("");
   const [clientLoading, setClientLoading] = useState(true);
 
+  // Редактирование комментария
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const editRef = useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => {
     async function resolve() {
-      // 1. Клиент
       const clientToken = clientSession.get();
       if (clientToken) {
         try {
@@ -36,26 +41,18 @@ export function CommentSection({ postId, comments: initialComments, commentsMode
           }
         } catch { /* ignore */ }
       }
-      // 2. Менеджер / администратор
       const mgrToken = managerSession.get();
       if (mgrToken) {
         try {
           const r = await managerApi.getManagerProfile();
-          if (r.profile) {
-            setClientName(r.profile.name || "Менеджер");
-            return;
-          }
+          if (r.profile) { setClientName(r.profile.name || "Менеджер"); return; }
         } catch { /* ignore */ }
       }
-      // 3. Техник/специалист
       const techToken = techSession.get();
       if (techToken) {
         try {
           const r = await techApi.verifyToken(techToken);
-          if (r.valid) {
-            setClientName(r.name || r.technician?.name || "Специалист");
-            return;
-          }
+          if (r.valid) { setClientName(r.name || r.technician?.name || "Специалист"); return; }
         } catch { /* ignore */ }
       }
     }
@@ -74,6 +71,30 @@ export function CommentSection({ postId, comments: initialComments, commentsMode
       }
     } catch { /* ignore */ }
     finally { setSending(false); }
+  }
+
+  function startEdit(c: Comment) {
+    setEditingId(c.id);
+    setEditText(c.text);
+    setTimeout(() => editRef.current?.focus(), 50);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditText("");
+  }
+
+  async function saveEdit(commentId: number) {
+    if (!editText.trim()) return;
+    setEditSaving(true);
+    try {
+      const res = await blogApi.updateComment(commentId, editText.trim());
+      if (res.ok) {
+        setComments(prev => prev.map(c => c.id === commentId ? { ...c, text: editText.trim() } : c));
+        setEditingId(null);
+      }
+    } catch { /* ignore */ }
+    finally { setEditSaving(false); }
   }
 
   function insertEmoji(emoji: string) {
@@ -108,30 +129,78 @@ export function CommentSection({ postId, comments: initialComments, commentsMode
       )}
 
       <div className="space-y-3 mb-6">
-        {comments.map(c => (
-          <div key={c.id} className="bg-gray-50 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 rounded-full bg-[#edf7e8] flex items-center justify-center shrink-0">
-                <Icon name="User" size={13} className="text-[#3ca615]" />
+        {comments.map(c => {
+          const isOwn = clientName && c.author_name === clientName;
+          const isEditing = editingId === c.id;
+
+          return (
+            <div key={c.id} className={`rounded-2xl p-4 transition-colors ${isEditing ? "bg-[#edf7e8] border border-[#3ca615]/30" : "bg-gray-50"}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-full bg-[#edf7e8] flex items-center justify-center shrink-0">
+                  <Icon name="User" size={13} className="text-[#3ca615]" />
+                </div>
+                <span className="text-xs font-semibold text-gray-700">{c.author_name}</span>
+                {isOwn && !isEditing && (
+                  <button
+                    onClick={() => startEdit(c)}
+                    className="ml-1 flex items-center gap-1 text-[10px] text-gray-400 hover:text-[#3ca615] transition-colors px-1.5 py-0.5 rounded-lg hover:bg-white"
+                  >
+                    <Icon name="Pencil" size={10} />
+                    Изменить
+                  </button>
+                )}
+                <span className="text-xs text-gray-400 ml-auto">
+                  {new Date(c.created_at).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                </span>
               </div>
-              <span className="text-xs font-semibold text-gray-700">{c.author_name}</span>
-              <span className="text-xs text-gray-400 ml-auto">
-                {new Date(c.created_at).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-              </span>
+
+              {isEditing ? (
+                <div className="space-y-2">
+                  <textarea
+                    ref={editRef}
+                    value={editText}
+                    onChange={e => setEditText(e.target.value)}
+                    rows={3}
+                    className="w-full border border-[#3ca615]/40 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3ca615] resize-none bg-white"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => saveEdit(c.id)}
+                      disabled={editSaving || !editText.trim()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white text-xs font-semibold disabled:opacity-50 transition"
+                      style={{ backgroundColor: "#3ca615" }}
+                    >
+                      {editSaving ? <Icon name="Loader2" size={12} className="animate-spin" /> : <Icon name="Check" size={12} />}
+                      Сохранить
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                    >
+                      <Icon name="X" size={12} />
+                      Отмена
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.text}</p>
+              )}
+
+              {!isEditing && (
+                <div className="flex items-center gap-3 mt-2">
+                  <button onClick={() => handleReact(c.id, "like")}
+                    className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${myReactions[c.id] === "like" ? "bg-green-100 text-green-700" : "text-gray-400 hover:bg-gray-100"}`}>
+                    <Icon name="ThumbsUp" size={12} />{(reactions[c.id] || {}).like || 0}
+                  </button>
+                  <button onClick={() => handleReact(c.id, "dislike")}
+                    className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${myReactions[c.id] === "dislike" ? "bg-red-100 text-red-700" : "text-gray-400 hover:bg-gray-100"}`}>
+                    <Icon name="ThumbsDown" size={12} />{(reactions[c.id] || {}).dislike || 0}
+                  </button>
+                </div>
+              )}
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.text}</p>
-            <div className="flex items-center gap-3 mt-2">
-              <button onClick={() => handleReact(c.id, "like")}
-                className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${myReactions[c.id] === "like" ? "bg-green-100 text-green-700" : "text-gray-400 hover:bg-gray-100"}`}>
-                <Icon name="ThumbsUp" size={12} />{(reactions[c.id] || {}).like || 0}
-              </button>
-              <button onClick={() => handleReact(c.id, "dislike")}
-                className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${myReactions[c.id] === "dislike" ? "bg-red-100 text-red-700" : "text-gray-400 hover:bg-gray-100"}`}>
-                <Icon name="ThumbsDown" size={12} />{(reactions[c.id] || {}).dislike || 0}
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {commentsMode === "closed" ? (

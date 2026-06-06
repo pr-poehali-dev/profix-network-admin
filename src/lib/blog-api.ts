@@ -81,6 +81,9 @@ export const blogApi = {
   addComment: (postId: number, text: string) =>
     req("comments", "POST", { post_id: postId, text }, undefined, true),
 
+  updateComment: (commentId: number, text: string) =>
+    req("comments", "PUT", { id: commentId, text }, undefined, true),
+
   react: (postId: number | null, reaction: "like" | "dislike", commentId?: number) =>
     req("reactions", "POST", {
       post_id: postId || undefined,

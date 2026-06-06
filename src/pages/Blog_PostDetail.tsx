@@ -178,7 +178,7 @@ export function BlogPostDetail({
                   allowFullScreen />
               </div>
             ) : post.cover_url ? (
-              <div className="rounded-2xl overflow-hidden mb-5" style={{ height: 340 }}>
+              <div className="rounded-2xl overflow-hidden mb-5 aspect-video w-full">
                 <img src={post.cover_url} alt={post.title} className="w-full h-full object-cover object-center" />
               </div>
             ) : null}
