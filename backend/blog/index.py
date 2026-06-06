@@ -138,12 +138,17 @@ def handler(event: dict, context) -> dict:
                     return err("Пост не найден", 404)
                 # Комментарии
                 cur.execute(
-                    f"SELECT id, author_name, text, created_at FROM {SC}.post_comments "
+                    f"SELECT id, author_name, text, created_at, edited_by, is_hidden, hidden_by "
+                    f"FROM {SC}.post_comments "
                     f"WHERE post_id=%s AND is_approved=TRUE ORDER BY created_at ASC",
                     (post_id,)
                 )
-                comments = [{"id": c[0], "author_name": c[1], "text": c[2],
-                             "created_at": str(c[3])} for c in cur.fetchall()]
+                comments = [{"id": c[0], "author_name": c[1],
+                             "text": c[2] if not c[5] else "[Комментарий удалён модератором]",
+                             "created_at": str(c[3]),
+                             "edited_by": c[4],
+                             "is_hidden": bool(c[5]),
+                             "hidden_by": c[6]} for c in cur.fetchall()]
                 # Реакции
                 cur.execute(
                     f"SELECT reaction, COUNT(*) FROM {SC}.post_reactions WHERE post_id=%s GROUP BY reaction",
@@ -326,7 +331,8 @@ def handler(event: dict, context) -> dict:
             resolved = resolve_commenter(token, cur)
             if not resolved:
                 return err("Сессия истекла", 401)
-            author_name = resolved[0]
+            actor_name, actor_role = resolved[0], resolved[1]
+            is_moderator = actor_role == "manager"
 
             comment_id = body.get("id")
             new_text   = body.get("text", "").strip()
@@ -335,11 +341,53 @@ def handler(event: dict, context) -> dict:
             if len(new_text) > 2000:
                 return err("Комментарий слишком длинный")
 
-            # Разрешаем редактировать только свой комментарий (по имени автора)
-            cur.execute(
-                f"UPDATE {SC}.post_comments SET text=%s WHERE id=%s AND author_name=%s AND is_approved=TRUE RETURNING id",
-                (new_text, comment_id, author_name)
-            )
+            if is_moderator:
+                # Модератор может редактировать любой комментарий
+                cur.execute(
+                    f"UPDATE {SC}.post_comments SET text=%s, edited_by=%s WHERE id=%s AND is_approved=TRUE RETURNING id",
+                    (new_text, actor_name, comment_id)
+                )
+            else:
+                # Обычный пользователь — только свой
+                cur.execute(
+                    f"UPDATE {SC}.post_comments SET text=%s, edited_by=%s WHERE id=%s AND author_name=%s AND is_approved=TRUE RETURNING id",
+                    (new_text, actor_name, comment_id, actor_name)
+                )
+            row = cur.fetchone()
+            if not row:
+                return err("Комментарий не найден или нет прав", 403)
+            conn.commit()
+            return ok({"ok": True, "edited_by": actor_name})
+
+        # ══════════════════════════════════════════════════════════════════════
+        # КОММЕНТАРИИ — скрытие (удаление)
+        # ══════════════════════════════════════════════════════════════════════
+        if resource == "comments" and method == "DELETE":
+            headers  = event.get("headers") or {}
+            auth_hdr = headers.get("X-Authorization", "") or headers.get("Authorization", "")
+            token    = auth_hdr.replace("Bearer ", "").strip()
+            if not token:
+                return err("Необходима авторизация", 401)
+            resolved = resolve_commenter(token, cur)
+            if not resolved:
+                return err("Сессия истекла", 401)
+            actor_name, actor_role = resolved[0], resolved[1]
+            is_moderator = actor_role == "manager"
+
+            comment_id = body.get("id")
+            if not comment_id:
+                return err("Укажите id комментария")
+
+            if is_moderator:
+                cur.execute(
+                    f"UPDATE {SC}.post_comments SET is_hidden=TRUE, hidden_by=%s WHERE id=%s AND is_approved=TRUE RETURNING id",
+                    (actor_name, comment_id)
+                )
+            else:
+                cur.execute(
+                    f"UPDATE {SC}.post_comments SET is_hidden=TRUE, hidden_by=%s WHERE id=%s AND author_name=%s AND is_approved=TRUE RETURNING id",
+                    (actor_name, comment_id, actor_name)
+                )
             row = cur.fetchone()
             if not row:
                 return err("Комментарий не найден или нет прав", 403)

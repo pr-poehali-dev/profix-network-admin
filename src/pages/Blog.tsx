@@ -14,7 +14,9 @@ export default function Blog() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [post, setPost]   = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState(searchParams.get("type") || "all");
+  // При возврате из поста — восстанавливаем filter нужного типа
+  const restoredType = sessionStorage.getItem("blog_scroll_type");
+  const [filter, setFilter] = useState(searchParams.get("type") || (restoredType ? restoredType : "all"));
   const [reactions, setReactions] = useState<Record<string, number>>({});
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);

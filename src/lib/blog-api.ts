@@ -62,6 +62,9 @@ export interface Comment {
   author_name: string;
   text: string;
   created_at: string;
+  edited_by?: string | null;
+  is_hidden?: boolean;
+  hidden_by?: string | null;
 }
 
 export const blogApi = {
@@ -83,6 +86,9 @@ export const blogApi = {
 
   updateComment: (commentId: number, text: string) =>
     req("comments", "PUT", { id: commentId, text }, undefined, true),
+
+  removeComment: (commentId: number) =>
+    req("comments", "DELETE", { id: commentId }, undefined, true),
 
   react: (postId: number | null, reaction: "like" | "dislike", commentId?: number) =>
     req("reactions", "POST", {

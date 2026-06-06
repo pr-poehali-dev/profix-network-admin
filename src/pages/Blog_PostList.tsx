@@ -40,17 +40,29 @@ export function BlogPostList({
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  // Скролл к посту при возврате из детальной страницы
+  // Скролл к посту при возврате — retry с нарастающими задержками
   useEffect(() => {
     if (loading || posts.length === 0) return;
     const scrollToId = sessionStorage.getItem("blog_scroll_to");
     if (!scrollToId) return;
     sessionStorage.removeItem("blog_scroll_to");
-    // Небольшая задержка чтобы DOM успел отрисоваться
-    setTimeout(() => {
+    sessionStorage.removeItem("blog_scroll_type");
+
+    let attempts = 0;
+    function tryScroll() {
       const el = document.querySelector(`[data-post-id="${scrollToId}"]`);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 150);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Подсвечиваем карточку на миг
+        (el as HTMLElement).style.outline = "2px solid #3ca615";
+        (el as HTMLElement).style.borderRadius = "16px";
+        setTimeout(() => { (el as HTMLElement).style.outline = ""; }, 1500);
+      } else if (attempts < 5) {
+        attempts++;
+        setTimeout(tryScroll, 200 * attempts);
+      }
+    }
+    setTimeout(tryScroll, 100);
   }, [loading, posts]);
 
   const videoPosts   = posts.filter(p => p.type === "video");

@@ -33,8 +33,8 @@ export function BlogPostDetail({
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   function goBackToBlog() {
-    // Сохраняем id поста чтобы блог-лента прокрутила к нему
     sessionStorage.setItem("blog_scroll_to", String(post.id));
+    sessionStorage.setItem("blog_scroll_type", post.type);
     navigate("/blog");
   }
 
