@@ -44,27 +44,46 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
   const titleLines = str("hero.title", "IT-ПОДДЕРЖКА\nДЛЯ БИЗНЕСА\nИ ЧАСТНЫХ ЛИЦ").split("\n");
   const carouselSpeed = parseInt(str("carousel.speed", "150"), 10);
   const trackRef = useRef<HTMLDivElement>(null);
+  const carouselWrapRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const isHorizontal = useRef<boolean | null>(null);
+
+  // Подключаем passive:false чтобы мочь вызвать preventDefault на touchmove
+  useEffect(() => {
+    const el = carouselWrapRef.current;
+    if (!el) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (isHorizontal.current === true) e.preventDefault();
+    };
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onTouchMove);
+  }, []);
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isHorizontal.current = null;
     if (trackRef.current) trackRef.current.style.animationPlayState = "paused";
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    if (isHorizontal.current === null) {
+      const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
+      const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+      isHorizontal.current = dx > dy;
+    }
   }
 
   function handleTouchEnd(e: React.TouchEvent) {
     if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
     touchStartX.current = null;
-    if (trackRef.current) {
-      // Небольшая задержка перед возобновлением — чтобы свайп ощущался
-      setTimeout(() => {
-        if (trackRef.current) trackRef.current.style.animationPlayState = "running";
-      }, 800);
-    }
-    // Свайп влево — ускоряем, вправо — тормозим (визуальный фидбэк)
-    if (Math.abs(dx) > 30 && trackRef.current) {
-      trackRef.current.style.animationPlayState = "running";
-    }
+    touchStartY.current = null;
+    isHorizontal.current = null;
+    setTimeout(() => {
+      if (trackRef.current) trackRef.current.style.animationPlayState = "running";
+    }, 600);
   }
 
   // Синхронизируем внешний индекс (не используется в marquee, но пропс обязателен)
@@ -211,7 +230,9 @@ const HeroSection = ({ carouselIdx, onSetCarouselIdx, onScrollTo, onQuickOrder }
         `}</style>
 
         <div className="overflow-hidden"
+          ref={carouselWrapRef}
           onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}>
           <div ref={trackRef} className="marquee-track gap-4" style={{ gap: "16px" }}>
             {[...slides, ...slides].map((slide, i) => (

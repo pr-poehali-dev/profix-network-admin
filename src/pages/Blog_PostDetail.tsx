@@ -27,7 +27,7 @@ export function BlogPostDetail({
   const embed = post.video_url ? getYouTubeEmbed(post.video_url) : null;
 
   return (
-    <div className="min-h-screen font-golos" style={{ backgroundColor: blogPageBg }}>
+    <div className="min-h-screen font-golos bg-white">
       <SEO
         title={`${post.title} — ПРОФИКС`}
         description={post.excerpt || post.title}
@@ -67,8 +67,8 @@ export function BlogPostDetail({
                   allowFullScreen />
               </div>
             ) : post.cover_url ? (
-              <div className="rounded-2xl overflow-hidden max-h-96 mb-5">
-                <img src={post.cover_url} alt={post.title} className="w-full object-cover" />
+              <div className="rounded-2xl overflow-hidden mb-5" style={{ height: 340 }}>
+                <img src={post.cover_url} alt={post.title} className="w-full h-full object-cover object-center" />
               </div>
             ) : null}
 
@@ -86,32 +86,31 @@ export function BlogPostDetail({
               </span>
             </div>
 
-            <h1 className="font-oswald text-2xl sm:text-3xl font-bold mb-4 leading-tight"
-              style={{ color: blogDarkHeader ? "white" : "#0D1B2A" }}>{post.title}</h1>
+            <h1 className="font-oswald text-2xl sm:text-3xl font-bold mb-4 leading-tight text-[#0D1B2A]">{post.title}</h1>
 
             {/* Автор + реакции */}
-            <div className="flex items-center gap-3 pb-4 border-b border-white/10 mb-5">
+            <div className="flex items-center gap-3 pb-4 border-b border-gray-200 mb-5">
               <div className="w-9 h-9 rounded-full bg-[#3ca615] flex items-center justify-center">
                 <Icon name="Wrench" size={14} className="text-white" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">ПРОФИКС</p>
-                {subscribersCount && <p className="text-xs text-gray-400">{subscribersCount} подписчиков</p>}
+                <p className="text-sm font-semibold text-gray-900">ПРОФИКС</p>
+                {subscribersCount && <p className="text-xs text-gray-500">{subscribersCount} подписчиков</p>}
               </div>
               {youtubeChannel && (
                 <a href={youtubeChannel} target="_blank" rel="noopener noreferrer"
-                  className="ml-auto px-4 py-2 bg-white text-gray-900 rounded-full text-sm font-semibold hover:bg-gray-100 transition-colors">
+                  className="ml-auto px-4 py-2 bg-[#3ca615] text-white rounded-full text-sm font-semibold hover:bg-[#2d9010] transition-colors">
                   Подписаться
                 </a>
               )}
-              <div className="flex items-center gap-2 bg-white/10 rounded-full px-1">
+              <div className="flex items-center gap-2 bg-gray-100 rounded-full px-1">
                 <button onClick={() => onReact("like")}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-colors ${myReaction === "like" ? "text-[#3ca615]" : "text-white"}`}>
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-colors ${myReaction === "like" ? "text-[#3ca615]" : "text-gray-600"}`}>
                   <Icon name="ThumbsUp" size={15} />{reactions.like || 0}
                 </button>
-                <div className="w-px h-5 bg-white/20" />
+                <div className="w-px h-5 bg-gray-300" />
                 <button onClick={() => onReact("dislike")}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-colors ${myReaction === "dislike" ? "text-red-400" : "text-white"}`}>
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-colors ${myReaction === "dislike" ? "text-red-500" : "text-gray-600"}`}>
                   <Icon name="ThumbsDown" size={15} />{reactions.dislike || 0}
                 </button>
               </div>
@@ -119,13 +118,21 @@ export function BlogPostDetail({
 
             {/* Описание / контент */}
             {(post.excerpt || post.content) && (
-              <div className="bg-white/5 rounded-2xl p-4 mb-6">
-                {post.excerpt && <p className="text-gray-300 text-sm font-medium mb-3">{post.excerpt.replace(/<[^>]+>/g, "")}</p>}
+              <div className="mb-6">
+                {post.excerpt && (
+                  <p className="text-gray-700 text-sm font-medium mb-4 leading-relaxed border-l-4 border-[#3ca615] pl-4 bg-[#edf7e8] py-3 rounded-r-xl">
+                    {post.excerpt.replace(/<[^>]+>/g, "")}
+                  </p>
+                )}
                 {post.content && (
                   <div
-                    className="text-gray-400 text-sm leading-relaxed prose prose-invert prose-sm max-w-none
+                    className="text-gray-800 text-sm leading-relaxed prose prose-sm max-w-none
                       [&_a]:text-[#3ca615] [&_a]:underline [&_a]:underline-offset-2
-                      [&_p]:mb-3 [&_p:last-child]:mb-0"
+                      [&_p]:mb-3 [&_p:last-child]:mb-0
+                      [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:mt-5 [&_h2]:mb-2
+                      [&_h3]:text-base [&_h3]:font-bold [&_h3]:text-gray-900 [&_h3]:mt-4 [&_h3]:mb-1
+                      [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3
+                      [&_li]:mb-1"
                     dangerouslySetInnerHTML={{ __html: post.content }}
                   />
                 )}
@@ -135,7 +142,7 @@ export function BlogPostDetail({
             {post.tags && (
               <div className="flex flex-wrap gap-2 mb-6">
                 {post.tags.split(",").map(tag => tag.trim()).filter(Boolean).map(tag => (
-                  <span key={tag} className="text-xs text-gray-400 bg-white/10 px-2.5 py-1 rounded-full hover:bg-white/20 transition-colors cursor-pointer">#{tag}</span>
+                  <span key={tag} className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full hover:bg-gray-200 transition-colors cursor-pointer">#{tag}</span>
                 ))}
               </div>
             )}
@@ -150,18 +157,18 @@ export function BlogPostDetail({
 
           {/* Боковой список */}
           <div className="space-y-4">
-            <h3 className="text-white font-semibold text-sm">Другие публикации</h3>
-            <div className="space-y-4">
+            <h3 className="text-gray-900 font-bold text-sm">Другие публикации</h3>
+            <div className="space-y-3">
               {posts.slice(0, 8).map(p => {
                 const sid = p.video_url ? getYouTubeId(p.video_url) : null;
                 const sThumb = sid ? `https://img.youtube.com/vi/${sid}/mqdefault.jpg` : p.cover_url;
                 return (
                   <button key={p.id} onClick={() => { navigate(`/blog/${p.id}`); window.scrollTo(0, 0); }}
-                    className="w-full flex gap-2 text-left group">
-                    <div className="w-28 h-16 rounded-lg overflow-hidden bg-gray-800 shrink-0 relative">
-                      {sThumb ? <img src={sThumb} alt={p.title} className="w-full h-full object-cover" /> : (
+                    className="w-full flex gap-3 text-left group hover:bg-gray-50 rounded-xl p-1.5 transition-colors">
+                    <div className="w-24 h-16 rounded-lg overflow-hidden bg-gray-100 shrink-0 relative">
+                      {sThumb ? <img src={sThumb} alt={p.title} className="w-full h-full object-cover object-center" /> : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Icon name="FileText" size={16} className="text-gray-600" />
+                          <Icon name="FileText" size={16} className="text-gray-400" />
                         </div>
                       )}
                       {(sid || p.type === "video") && (
@@ -171,8 +178,8 @@ export function BlogPostDetail({
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-white line-clamp-2 leading-snug group-hover:text-[#3ca615] transition-colors">{p.title}</p>
-                      <p className="text-[10px] text-gray-500 mt-1">ПРОФИКС · {formatCount(p.views || 0)} просм.</p>
+                      <p className="text-xs font-semibold text-gray-900 line-clamp-2 leading-snug group-hover:text-[#3ca615] transition-colors">{p.title}</p>
+                      <p className="text-[10px] text-gray-400 mt-1">{formatCount(p.views || 0)} просм.</p>
                     </div>
                   </button>
                 );

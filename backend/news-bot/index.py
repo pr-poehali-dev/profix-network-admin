@@ -133,10 +133,16 @@ def extract_image_from_entry(entry_elem, ns: dict) -> Optional[str]:
 
 
 def clean_html(text: str) -> str:
-    """Убирает HTML-теги из текста."""
+    """Убирает HTML-теги и HTML-entities из текста."""
     if not text:
         return ""
+    # Раскрываем HTML-entities
+    text = text.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+    text = text.replace("&nbsp;", " ").replace("&quot;", '"').replace("&#39;", "'")
+    # Убираем теги
     text = re.sub(r"<[^>]+>", " ", text)
+    # Убираем оставшиеся entities вида &#123; или &word;
+    text = re.sub(r"&[a-zA-Z#0-9]+;", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
