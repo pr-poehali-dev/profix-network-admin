@@ -40,6 +40,19 @@ export function BlogPostList({
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
+  // Скролл к посту при возврате из детальной страницы
+  useEffect(() => {
+    if (loading || posts.length === 0) return;
+    const scrollToId = sessionStorage.getItem("blog_scroll_to");
+    if (!scrollToId) return;
+    sessionStorage.removeItem("blog_scroll_to");
+    // Небольшая задержка чтобы DOM успел отрисоваться
+    setTimeout(() => {
+      const el = document.querySelector(`[data-post-id="${scrollToId}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+  }, [loading, posts]);
+
   const videoPosts   = posts.filter(p => p.type === "video");
   const otherPosts   = posts.filter(p => p.type !== "video");
   const forumPosts   = posts.filter(p => p.type === "forum");
@@ -176,7 +189,9 @@ export function BlogPostList({
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                   {videoPosts.slice(0, 8).map(p => (
-                    <VideoCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)} />
+                    <div key={p.id} data-post-id={p.id}>
+                      <VideoCard post={p} onClick={() => navigate(`/blog/${p.id}`)} />
+                    </div>
                   ))}
                 </div>
               </section>
@@ -190,9 +205,11 @@ export function BlogPostList({
                 </div>
                 <div className="flex flex-col gap-4">
                   {otherPosts.filter(p => p.type !== "forum").slice(0, 9).map(p => (
-                    <ArticleCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)}
-                      reactions={reactionsMap[p.id]} myReaction={myReactionsMap[p.id]}
-                      onReact={onReact ? (r) => onReact(p.id, r) : undefined} />
+                    <div key={p.id} data-post-id={p.id}>
+                      <ArticleCard post={p} onClick={() => navigate(`/blog/${p.id}`)}
+                        reactions={reactionsMap[p.id]} myReaction={myReactionsMap[p.id]}
+                        onReact={onReact ? (r) => onReact(p.id, r) : undefined} />
+                    </div>
                   ))}
                 </div>
               </section>
@@ -233,7 +250,11 @@ export function BlogPostList({
           </div>
         ) : filter === "video" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {posts.map(p => <VideoCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)} />)}
+            {posts.map(p => (
+              <div key={p.id} data-post-id={p.id}>
+                <VideoCard post={p} onClick={() => navigate(`/blog/${p.id}`)} />
+              </div>
+            ))}
           </div>
         ) : filter === "forum" ? (
           <div>
@@ -260,15 +281,21 @@ export function BlogPostList({
               </div>
             )}
             <div className="space-y-2">
-              {posts.map(p => <ForumCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)} isLoggedIn={isLoggedIn} />)}
+              {posts.map(p => (
+                <div key={p.id} data-post-id={p.id}>
+                  <ForumCard post={p} onClick={() => navigate(`/blog/${p.id}`)} isLoggedIn={isLoggedIn} />
+                </div>
+              ))}
             </div>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
             {posts.map(p => (
-              <ArticleCard key={p.id} post={p} onClick={() => navigate(`/blog/${p.id}`)}
-                reactions={reactionsMap[p.id]} myReaction={myReactionsMap[p.id]}
-                onReact={onReact ? (r) => onReact(p.id, r) : undefined} />
+              <div key={p.id} data-post-id={p.id}>
+                <ArticleCard post={p} onClick={() => navigate(`/blog/${p.id}`)}
+                  reactions={reactionsMap[p.id]} myReaction={myReactionsMap[p.id]}
+                  onReact={onReact ? (r) => onReact(p.id, r) : undefined} />
+              </div>
             ))}
           </div>
         )}

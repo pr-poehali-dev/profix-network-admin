@@ -32,6 +32,12 @@ export function BlogPostDetail({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  function goBackToBlog() {
+    // Сохраняем id поста чтобы блог-лента прокрутила к нему
+    sessionStorage.setItem("blog_scroll_to", String(post.id));
+    navigate("/blog");
+  }
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll);
@@ -39,7 +45,7 @@ export function BlogPostDetail({
   }, []);
 
   return (
-    <div className="min-h-screen font-golos bg-white">
+    <div className="min-h-screen font-golos" style={{ backgroundColor: blogPageBg || "#F7F9FC" }}>
       <SEO
         title={`${post.title} — ПРОФИКС`}
         description={post.excerpt || post.title}
@@ -57,7 +63,20 @@ export function BlogPostDetail({
         onScrollTo={() => {}}
       />
 
-      <div className="max-w-6xl mx-auto px-4 pt-20 pb-10">
+      {/* Кнопка назад */}
+      <div className="max-w-6xl mx-auto px-4 pt-[72px] pb-0">
+        <button
+          onClick={goBackToBlog}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#3ca615] transition-colors py-3 group"
+        >
+          <Icon name="ChevronLeft" size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+          <span>Блог</span>
+          <span className="text-gray-300 mx-1">/</span>
+          <span className="text-gray-400 truncate max-w-xs">{post.title}</span>
+        </button>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 pb-10">
         <div className="flex gap-6 items-start">
 
           {/* ── Левая навигационная панель ─────────────────────────── */}
