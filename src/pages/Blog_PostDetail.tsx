@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import { Post } from "@/lib/blog-api";
 import { CommentSection } from "./Blog_CommentSection";
-import { getYouTubeId, getYouTubeEmbed, formatCount, TYPE_LABELS, TYPE_ICONS, cleanText } from "./Blog_Cards";
+import { getYouTubeId, getYouTubeEmbed, TYPE_LABELS, TYPE_ICONS, cleanText } from "./Blog_Cards";
 
 interface Props {
   post: Post;
@@ -29,6 +29,8 @@ export function BlogPostDetail({
   const embed = post.video_url ? getYouTubeEmbed(post.video_url) : null;
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -56,9 +58,100 @@ export function BlogPostDetail({
       />
 
       <div className="max-w-6xl mx-auto px-4 pt-20 pb-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="flex gap-6 items-start">
+
+          {/* ── Левая навигационная панель ─────────────────────────── */}
+          <aside
+            ref={sidebarRef}
+            className={`hidden lg:flex flex-col self-start sticky top-20 shrink-0 transition-all duration-200 ${sidebarCollapsed ? "w-12" : "w-52"}`}
+          >
+            {/* Кнопка сворачивания */}
+            <button
+              onClick={() => setSidebarCollapsed(v => !v)}
+              title={sidebarCollapsed ? "Развернуть" : "Свернуть"}
+              className="flex items-center justify-center w-8 h-8 rounded-xl bg-gray-100 hover:bg-[#edf7e8] hover:text-[#3ca615] text-gray-400 transition-colors mb-3 self-end"
+            >
+              <Icon name={sidebarCollapsed ? "ChevronRight" : "ChevronLeft"} size={15} />
+            </button>
+
+            {/* Разделы блога */}
+            <div className={`flex flex-col gap-1 ${sidebarCollapsed ? "items-center" : ""}`}>
+              {!sidebarCollapsed && (
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 px-3">Разделы</p>
+              )}
+              {[
+                { path: "/blog",             label: "Все",      icon: "LayoutGrid"    },
+                { path: "/blog?type=news",   label: "Новости",  icon: "Newspaper"     },
+                { path: "/blog?type=article",label: "Статьи",   icon: "FileText"      },
+                { path: "/blog?type=video",  label: "Видео",    icon: "Play"          },
+                { path: "/blog?type=forum",  label: "Форум",    icon: "MessageSquare" },
+              ].map(item => (
+                <button key={item.path}
+                  onClick={() => navigate(item.path)}
+                  title={item.label}
+                  className={`flex items-center gap-2.5 rounded-xl text-sm font-medium transition-all
+                    text-gray-600 hover:bg-[#edf7e8] hover:text-[#3ca615]
+                    ${sidebarCollapsed ? "w-10 h-10 justify-center p-0" : "px-3 py-2 w-full text-left"}`}>
+                  <Icon name={item.icon as "LayoutGrid"} size={15} className="shrink-0" />
+                  {!sidebarCollapsed && item.label}
+                </button>
+              ))}
+
+              {/* Разделитель */}
+              <div className={`my-3 border-t border-gray-100 ${sidebarCollapsed ? "w-8" : "w-full"}`} />
+
+              {/* Другие публикации */}
+              {!sidebarCollapsed && posts.length > 0 && (
+                <>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 px-3">Другие публикации</p>
+                  <div className="flex flex-col gap-1">
+                    {posts.slice(0, 7).map(p => {
+                      const sid = p.video_url ? getYouTubeId(p.video_url) : null;
+                      const sThumb = sid ? `https://img.youtube.com/vi/${sid}/mqdefault.jpg` : p.cover_url;
+                      return (
+                        <button key={p.id}
+                          onClick={() => { navigate(`/blog/${p.id}`); window.scrollTo(0, 0); }}
+                          className="flex gap-2 text-left group hover:bg-gray-50 rounded-xl p-1.5 transition-colors w-full">
+                          <div className="w-12 h-9 rounded-lg overflow-hidden bg-gray-100 shrink-0 relative">
+                            {sThumb
+                              ? <img src={sThumb} alt={p.title} className="w-full h-full object-cover object-center" />
+                              : <div className="w-full h-full flex items-center justify-center"><Icon name="FileText" size={12} className="text-gray-400" /></div>}
+                            {(sid || p.type === "video") && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <Icon name="Play" size={10} className="text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-medium text-gray-800 line-clamp-2 leading-snug group-hover:text-[#3ca615] transition-colors">{p.title}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* В свёрнутом состоянии — иконки других постов */}
+              {sidebarCollapsed && posts.slice(0, 5).map(p => {
+                const sid = p.video_url ? getYouTubeId(p.video_url) : null;
+                const sThumb = sid ? `https://img.youtube.com/vi/${sid}/mqdefault.jpg` : p.cover_url;
+                return (
+                  <button key={p.id}
+                    title={p.title}
+                    onClick={() => { navigate(`/blog/${p.id}`); window.scrollTo(0, 0); }}
+                    className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 shrink-0 hover:ring-2 hover:ring-[#3ca615] transition-all">
+                    {sThumb
+                      ? <img src={sThumb} alt={p.title} className="w-full h-full object-cover object-center" />
+                      : <div className="w-full h-full flex items-center justify-center"><Icon name="FileText" size={12} className="text-gray-400" /></div>}
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
           {/* Основной контент */}
-          <div className="lg:col-span-2">
+          <div className="flex-1 min-w-0">
             {embed ? (
               <div className="rounded-2xl overflow-hidden aspect-video mb-5">
                 <iframe src={embed} title={post.title}
@@ -159,40 +252,8 @@ export function BlogPostDetail({
               commentsMode={post.comments_mode || "users"}
               onCommentAdded={() => {}}
             />
-          </div>
-
-          {/* Боковой список */}
-          <div className="space-y-4">
-            <h3 className="text-gray-900 font-bold text-sm">Другие публикации</h3>
-            <div className="space-y-3">
-              {posts.slice(0, 8).map(p => {
-                const sid = p.video_url ? getYouTubeId(p.video_url) : null;
-                const sThumb = sid ? `https://img.youtube.com/vi/${sid}/mqdefault.jpg` : p.cover_url;
-                return (
-                  <button key={p.id} onClick={() => { navigate(`/blog/${p.id}`); window.scrollTo(0, 0); }}
-                    className="w-full flex gap-3 text-left group hover:bg-gray-50 rounded-xl p-1.5 transition-colors">
-                    <div className="w-24 h-16 rounded-lg overflow-hidden bg-gray-100 shrink-0 relative">
-                      {sThumb ? <img src={sThumb} alt={p.title} className="w-full h-full object-cover object-center" /> : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Icon name="FileText" size={16} className="text-gray-400" />
-                        </div>
-                      )}
-                      {(sid || p.type === "video") && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                          <Icon name="Play" size={14} className="text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-900 line-clamp-2 leading-snug group-hover:text-[#3ca615] transition-colors">{p.title}</p>
-                      <p className="text-[10px] text-gray-400 mt-1">{formatCount(p.views || 0)} просм.</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+          </div>{/* конец основного контента */}
+        </div>{/* конец flex */}
       </div>
     </div>
   );
