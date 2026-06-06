@@ -1,7 +1,8 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import SEO from "@/components/SEO";
+import Navbar from "@/components/Navbar";
 import { Post } from "@/lib/blog-api";
 import { VideoCard, ArticleCard, ForumCard } from "./Blog_Cards";
 
@@ -31,6 +32,13 @@ export function BlogPostList({
   reactionsMap = {}, myReactionsMap = {}, onReact,
 }: BannerProps) {
   const navigate = useNavigate();
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", fn);
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
 
   const videoPosts   = posts.filter(p => p.type === "video");
   const otherPosts   = posts.filter(p => p.type !== "video");
@@ -59,37 +67,16 @@ export function BlogPostList({
         canonical="/blog"
       />
 
-      {/* Навбар — всегда тёмный */}
-      <header className="bg-[#0F0F0F] sticky top-0 z-10 border-b border-white/10">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
-            <Icon name="ChevronLeft" size={20} />
-          </button>
-          <span className="font-oswald text-lg font-bold">
-            <span className="text-[#3ca615]">ПРО</span>
-            <span className="text-white">ФИКС</span>
-          </span>
-          <div className="hidden sm:flex items-center gap-1 ml-4">
-            {FILTERS.map(f => (
-              <button key={f.v} onClick={() => changeFilter(f.v)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === f.v ? "bg-white text-gray-900" : "text-gray-400 hover:text-white"}`}>
-                {f.l}
-              </button>
-            ))}
-          </div>
-          {youtubeChannel && (
-            <a href={youtubeChannel} target="_blank" rel="noopener noreferrer"
-              className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition shrink-0">
-              <Icon name="Play" size={13} />
-              <span className="hidden sm:inline">YouTube канал</span>
-              <span className="sm:hidden">YouTube</span>
-            </a>
-          )}
-        </div>
-      </header>
+      <Navbar
+        scrolled={scrolled}
+        activeSection=""
+        menuOpen={menuOpen}
+        onMenuToggle={() => setMenuOpen(v => !v)}
+        onScrollTo={() => {}}
+      />
 
       {/* Баннер канала */}
-      <div className={`border-b ${blogBannerBg ? "border-black/10" : "bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8] border-gray-200"}`}
+      <div className={`border-b mt-14 ${blogBannerBg ? "border-black/10" : "bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8] border-gray-200"}`}
         style={bannerStyle}>
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="flex items-center gap-5">
@@ -285,8 +272,8 @@ export function BlogPostList({
             ))}
           </div>
         )}
-          </div>
-        </div>
+          </div>{/* flex-1 основной контент */}
+        </div>{/* flex gap-8 */}
       </main>
     </div>
   );

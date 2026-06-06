@@ -6,8 +6,14 @@ function authHeader() {
 }
 
 function clientAuthHeader() {
-  const token = localStorage.getItem("crm_client_token");
-  return token ? { "X-Authorization": `Bearer ${token}` } : {};
+  // Приоритет: клиент → менеджер → техник
+  const clientToken = localStorage.getItem("crm_client_token");
+  if (clientToken) return { "X-Authorization": `Bearer ${clientToken}` };
+  const managerToken = localStorage.getItem("crm_manager_token");
+  if (managerToken) return { "X-Authorization": `Bearer ${managerToken}` };
+  const techToken = localStorage.getItem("crm_tech_token");
+  if (techToken) return { "X-Authorization": `Bearer ${techToken}` };
+  return {};
 }
 
 function getSessionId(): string {

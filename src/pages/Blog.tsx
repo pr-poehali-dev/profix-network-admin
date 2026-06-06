@@ -51,7 +51,15 @@ export default function Blog() {
     } else {
       setLoading(true);
       blogApi.getPosts(filter === "all" ? undefined : filter)
-        .then(r => { if (r.posts) setPosts(r.posts); })
+        .then(r => {
+          if (r.posts) {
+            setPosts(r.posts);
+            // Инициализируем reactionsMap из данных постов
+            const rm: Record<number, Record<string, number>> = {};
+            r.posts.forEach((p: import("@/lib/blog-api").Post) => { if (p.reactions) rm[p.id] = p.reactions; });
+            setReactionsMap(rm);
+          }
+        })
         .finally(() => setLoading(false));
     }
   }, [id, filter]);
