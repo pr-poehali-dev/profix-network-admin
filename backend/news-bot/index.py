@@ -304,6 +304,15 @@ def send_tg_report(published: list, skipped: int, errors: list) -> None:
         pass
 
 
+def load_bot_settings(conn) -> dict:
+    """Загружает настройки news-bot из bot_settings."""
+    cur = conn.cursor()
+    cur.execute(f"SELECT key, value FROM {SC}.bot_settings WHERE key LIKE 'news_bot.%%'")
+    rows = cur.fetchall()
+    cur.close()
+    return {r[0].replace("news_bot.", ""): r[1] for r in rows}
+
+
 def handler(event: dict, context) -> dict:
     """Новостной бот: парсит RSS IT/бухгалтерских источников и публикует 1–2 новости в день."""
     if event.get("httpMethod") == "OPTIONS":
@@ -311,30 +320,61 @@ def handler(event: dict, context) -> dict:
 
     params = event.get("queryStringParameters") or {}
     run = params.get("run", "0")
-    limit = min(int(params.get("limit", str(MAX_POSTS_PER_RUN))), 20)
 
     # Статус — просто проверка что бот жив
     if run != "1":
         return ok({"ok": True, "status": "news-bot ready", "sources": len(RSS_SOURCES)})
 
-    # ── Собираем статьи из всех RSS ───────────────────────────────────────────
+    # ── Читаем настройки из БД ────────────────────────────────────────────────
+    conn = get_conn()
+    settings = load_bot_settings(conn)
+
+    # Если бот отключён — выходим
+    if settings.get("enabled", "true").lower() != "true":
+        conn.close()
+        return ok({"ok": False, "status": "news-bot disabled"})
+
+    limit = min(int(params.get("limit", settings.get("max_per_run", str(MAX_POSTS_PER_RUN)))), 20)
+    require_image = settings.get("require_image", "true").lower() == "true"
+
+    # Дополнительные ключевые слова из настроек
+    extra_keywords = [k.strip().lower() for k in settings.get("keywords", "").split(",") if k.strip()]
+
+    # Фильтрация источников
+    sources_setting = settings.get("sources", "all")
+    if sources_setting == "all":
+        active_sources = RSS_SOURCES
+    else:
+        allowed_tags = {t.strip().lower() for t in sources_setting.split(",")}
+        active_sources = [s for s in RSS_SOURCES if s["tag"].lower() in allowed_tags]
+        if not active_sources:
+            active_sources = RSS_SOURCES
+
+    # ── Собираем статьи из активных RSS ──────────────────────────────────────
     all_articles = []
     errors = []
-    for source in RSS_SOURCES:
+    for source in active_sources:
         try:
             articles = parse_rss(source)
+            # Дополнительный scoring по кастомным ключевым словам
+            if extra_keywords:
+                for a in articles:
+                    t = (a["title"] + " " + a.get("excerpt", "")).lower()
+                    for kw in extra_keywords:
+                        if kw in t:
+                            a["score"] += 8
             all_articles.extend(articles)
         except Exception as e:
             errors.append(f"{source['url']}: {str(e)}")
 
     if not all_articles:
+        conn.close()
         return ok({"ok": False, "error": "Нет статей из RSS", "rss_errors": errors})
 
     # Сортируем: высокий score = высокий приоритет
     all_articles.sort(key=lambda a: -a["score"])
 
-    # ── Публикуем до MAX_POSTS_PER_RUN новых постов ───────────────────────────
-    conn = get_conn()
+    # ── Публикуем до limit новых постов ──────────────────────────────────────
     published = []
     skipped = 0
 
@@ -343,7 +383,7 @@ def handler(event: dict, context) -> dict:
             break
         if not article["title"]:
             continue
-        if not article.get("image_url"):
+        if require_image and not article.get("image_url"):
             skipped += 1
             continue
         if already_published(conn, article["title"], article.get("link", "")):

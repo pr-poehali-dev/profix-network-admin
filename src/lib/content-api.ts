@@ -56,6 +56,29 @@ export async function uploadContentImage(b64: string, type: string): Promise<str
   return data.url || "";
 }
 
+// ── Bot settings ─────────────────────────────────────────────────────────────
+export async function fetchBotSettings(): Promise<Record<string, string>> {
+  const token = localStorage.getItem("crm_manager_token") || "";
+  try {
+    const res = await fetch(CONTENT_URL + "?resource=bot_settings", {
+      headers: { "Authorization": token },
+    });
+    const d = await res.json();
+    return d.settings || {};
+  } catch { return {}; }
+}
+
+export async function saveBotSettings(updates: Record<string, string>): Promise<boolean> {
+  const token = localStorage.getItem("crm_manager_token") || "";
+  const res = await fetch(CONTENT_URL + "?resource=bot_settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": token },
+    body: JSON.stringify({ updates }),
+  });
+  const d = await res.json();
+  return !!d.ok;
+}
+
 // Хелперы для парсинга значений
 export function getString(content: ContentMap, key: string, fallback = ""): string {
   return content[key] ?? fallback;

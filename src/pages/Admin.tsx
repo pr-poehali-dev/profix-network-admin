@@ -17,6 +17,7 @@ import AdminContentEditor from "@/components/admin/AdminContentEditor";
 import AdminPageBuilder from "@/components/admin/AdminPageBuilder";
 import AdminProfile from "@/components/admin/AdminProfile";
 import AdminBlog from "@/components/admin/AdminBlog";
+import AdminBotSettings from "@/components/admin/AdminBotSettings";
 import AdminTheme from "@/components/admin/AdminTheme";
 import AdminStaffHub from "@/components/admin/AdminStaffHub";
 import AdminTariffs from "@/components/admin/AdminTariffs";
@@ -670,6 +671,7 @@ export default function Admin() {
         {section === "content" && <AdminContentEditor />}
         {section === "pages" && <AdminPageBuilder />}
         {section === "blog" && <AdminBlog />}
+        {section === "bots" && <AdminBotSettings />}
         {section === "theme" && <AdminTheme />}
         {section === "tg-chat" && <AdminStaffHub />}
         {section === "tariffs" && <AdminTariffs />}

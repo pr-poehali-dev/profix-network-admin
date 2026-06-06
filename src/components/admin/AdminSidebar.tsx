@@ -70,6 +70,7 @@ export default function AdminSidebar({
       items: [
         { key: "reviews", label: "Отзывы",               icon: "Star" },
         { key: "blog",    label: "Блог",                  icon: "Newspaper" },
+        { key: "bots",    label: "Боты",                  icon: "Bot" },
         { key: "content", label: "Редактор сайта",        icon: "PenLine" },
         { key: "pages",   label: "Конструктор страниц",   icon: "LayoutTemplate" },
         { key: "theme",   label: "Тема сайта",            icon: "Palette" },

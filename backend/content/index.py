@@ -64,6 +64,30 @@ def handler(event: dict, context) -> dict:
         return cur.fetchone() is not None
 
     try:
+        params = event.get("queryStringParameters") or {}
+
+        # GET bot_settings
+        if method == "GET" and params.get("resource") == "bot_settings":
+            cur.execute(f"SELECT key, value FROM {SC}.bot_settings ORDER BY key")
+            return ok({"settings": {row[0]: row[1] for row in cur.fetchall()}})
+
+        # POST bot_settings — сохранение настроек ботов (только авторизованные)
+        if method == "POST" and params.get("resource") == "bot_settings":
+            if not check_auth():
+                return err("Unauthorized", 401)
+            updates = body.get("updates", {})
+            if not updates:
+                return err("Нет данных")
+            for key, value in updates.items():
+                val = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+                cur.execute(
+                    f"INSERT INTO {SC}.bot_settings (key, value) VALUES (%s, %s) "
+                    f"ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                    (key, val)
+                )
+            conn.commit()
+            return ok({"ok": True})
+
         # GET — отдаём весь контент как словарь {key: value}
         if method == "GET":
             cur.execute(f"SELECT key, value FROM {SC}.site_content ORDER BY key")
