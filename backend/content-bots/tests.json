@@ -1,0 +1,28 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET status scheduler",
+      "method": "GET",
+      "path": "/?status=1",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET status news",
+      "method": "GET",
+      "path": "/?bot=news",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET status video",
+      "method": "GET",
+      "path": "/?bot=video",
+      "expectedStatus": 200
+    }
+  ]
+}

@@ -3,9 +3,10 @@ import Icon from "@/components/ui/icon";
 import { fetchBotSettings, saveBotSettings } from "@/lib/content-api";
 import func2url from "../../../backend/func2url.json";
 
-const SCHEDULER_URL = (func2url as Record<string, string>)["scheduler"] || "";
-const NEWS_BOT_URL  = (func2url as Record<string, string>)["news-bot"]  || "";
-const VIDEO_BOT_URL = (func2url as Record<string, string>)["video-bot"] || "";
+const CONTENT_BOTS_URL = (func2url as Record<string, string>)["content-bots"] || "";
+const SCHEDULER_URL = CONTENT_BOTS_URL;
+const NEWS_BOT_URL  = CONTENT_BOTS_URL ? `${CONTENT_BOTS_URL}?bot=news`  : "";
+const VIDEO_BOT_URL = CONTENT_BOTS_URL ? `${CONTENT_BOTS_URL}?bot=video` : "";
 
 const NEWS_SOURCES = [
   { key: "1С",          label: "1С / ИТС" },
@@ -259,7 +260,7 @@ export default function AdminBotSettings() {
     setRunningBot(type);
     setRunResult(null);
     try {
-      const res = await fetch(url + "?run=1");
+      const res = await fetch(url + "&run=1");
       const data = await res.json();
       setRunResult(data);
       // Обновим last_run_at
@@ -517,7 +518,7 @@ export default function AdminBotSettings() {
         <Icon name="Info" size={14} className="shrink-0 mt-0.5" />
         <div>
           <p className="font-semibold mb-1">Как работает расписание</p>
-          <p>Планировщик автоматически проверяется каждый час пока открыта эта страница. Для надёжной работы 24/7 можно настроить внешний пинг: раз в час вызывать <code className="bg-amber-100 px-1 rounded">scheduler/?run=check</code></p>
+          <p>Планировщик автоматически проверяется каждый час пока открыта эта страница. Для надёжной работы 24/7 можно настроить внешний пинг: раз в час вызывать этот адрес функции</p>
         </div>
       </div>
     </div>

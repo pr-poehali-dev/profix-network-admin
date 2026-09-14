@@ -8,8 +8,9 @@ import { CabinetLogin } from "./cabinet/CabinetLogin";
 import { CabinetTicketList, CabinetTicketDetail, CabinetNewTicket, CabinetReview } from "./cabinet/CabinetTickets";
 import { CabinetChat, CabinetOrders, CabinetRequisites } from "./cabinet/CabinetSidePanels";
 
-const CHAT_SEND_URL = "https://functions.poehali.dev/7ced6c8e-b98e-417a-a08d-4647bf83a0b6";
-const CHAT_POLL_URL = "https://functions.poehali.dev/71a8158a-8138-4b57-9de8-9a5262ff38dc";
+const CHAT_URL = "https://functions.poehali.dev/efaf2a46-55d3-4020-9d0f-1d9c4278c537";
+const CHAT_SEND_URL = CHAT_URL;
+const CHAT_POLL_URL = CHAT_URL;
 
 function getSessionId() {
   let sid = localStorage.getItem("profix_chat_session");

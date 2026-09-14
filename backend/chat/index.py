@@ -1,5 +1,6 @@
 import json
 import os
+import socket
 import psycopg2
 from urllib.request import urlopen, Request
 
@@ -29,20 +30,28 @@ def handle_send(body, conn):
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
     if token and chat_id:
-        tg_text = (
-            f"💬 <b>Вопрос из чата сайта ProFiX</b>\n"
-            f"🔑 Сессия: <code>{session_id[:8]}</code>\n\n{text}\n\n"
-            f"<i>Чтобы ответить — ответьте на это сообщение в Telegram</i>"
-        )
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
-        data = json.dumps({"chat_id": chat_id, "text": tg_text, "parse_mode": "HTML"}).encode()
-        req = Request(url, data=data, headers={"Content-Type": "application/json"})
-        resp = urlopen(req, timeout=5)
-        tg_resp = json.loads(resp.read())
-        tg_message_id = tg_resp.get("result", {}).get("message_id")
-        if tg_message_id:
-            cur.execute(f"UPDATE {SC}.chat_sessions SET tg_message_id = %s, updated_at = NOW() WHERE session_id = %s", (tg_message_id, session_id))
-            conn.commit()
+        try:
+            tg_text = (
+                f"💬 <b>Вопрос из чата сайта ProFiX</b>\n"
+                f"🔑 Сессия: <code>{session_id[:8]}</code>\n\n{text}\n\n"
+                f"<i>Чтобы ответить — ответьте на это сообщение в Telegram</i>"
+            )
+            url = f"https://api.telegram.org/bot{token}/sendMessage"
+            data = json.dumps({"chat_id": chat_id, "text": tg_text, "parse_mode": "HTML"}).encode()
+            req = Request(url, data=data, headers={"Content-Type": "application/json"})
+            old_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(3)
+            try:
+                resp = urlopen(req, timeout=3)
+                tg_resp = json.loads(resp.read())
+            finally:
+                socket.setdefaulttimeout(old_timeout)
+            tg_message_id = tg_resp.get("result", {}).get("message_id")
+            if tg_message_id:
+                cur.execute(f"UPDATE {SC}.chat_sessions SET tg_message_id = %s, updated_at = NOW() WHERE session_id = %s", (tg_message_id, session_id))
+                conn.commit()
+        except Exception:
+            pass
     cur.close()
     return {"statusCode": 200, "headers": CORS, "body": json.dumps({"ok": True}, ensure_ascii=False)}
 
