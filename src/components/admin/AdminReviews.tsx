@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { managerSession } from "@/lib/crm-api";
 
-const REVIEWS_URL = "https://functions.poehali.dev/f1f45bf4-6a46-4561-abf6-fedd584fbeec";
+const REVIEWS_URL = "https://functions.poehali.dev/4926fd5b-26a9-4933-86b3-1483acd3b287";
 
 interface Review {
   id: number;

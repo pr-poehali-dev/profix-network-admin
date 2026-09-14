@@ -65,7 +65,7 @@ const Index = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("https://functions.poehali.dev/d9dfa652-a0b7-4233-ba59-2efd338c4f10", {
+      const res = await fetch("https://functions.poehali.dev/cde82119-f6dd-4685-8a59-e3ba775885b4", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

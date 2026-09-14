@@ -1,4 +1,4 @@
-const SHOP_URL = "https://functions.poehali.dev/5fbf0da4-59e1-4a4d-b9d1-c44efe46c9b7";
+const SHOP_URL = "https://functions.poehali.dev/af797564-9d5c-44c8-ad16-72d5be9bdedf";
 
 export interface Category {
   id: number;

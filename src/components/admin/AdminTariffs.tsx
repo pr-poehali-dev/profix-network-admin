@@ -56,7 +56,7 @@ export default function AdminTariffs() {
     setSummaryLoading(true);
     // Загружаем транзакции за период из двух источников
     const token_ = managerSession.get()!;
-    const TICKETS_URL = "https://functions.poehali.dev/80771697-657a-4565-8f5f-b8553431f806";
+    const TICKETS_URL = "https://functions.poehali.dev/c22df67c-856f-4dfc-b856-2a03a8afdc64";
     try {
       const r = await fetch(`${TICKETS_URL}?action=fixies_summary_period&from=${summaryFrom}&to=${summaryTo}`, {
         headers: { "Authorization": `Bearer ${token_}` },

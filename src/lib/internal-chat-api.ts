@@ -1,4 +1,4 @@
-const URL = "https://functions.poehali.dev/3d7bcd5c-ff59-4d17-a884-4590e928d99f";
+const URL = "https://functions.poehali.dev/6536423b-1dd3-45b1-ac9f-4c681e19a3df";
 
 function authHeader(token: string) {
   return { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };

@@ -1,4 +1,4 @@
-const BLOG_URL = "https://functions.poehali.dev/b8a623ee-7434-4b23-bf72-748d4f2582f8";
+const BLOG_URL = "https://functions.poehali.dev/8e78593d-eec2-43e8-9176-c5ca7d3712ca";
 
 function authHeader() {
   const token = localStorage.getItem("crm_manager_token");

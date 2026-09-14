@@ -1,7 +1,7 @@
-const AUTH_URL = "https://functions.poehali.dev/1f14f246-0908-4c88-86de-62840b1d4e1c";
-const TICKETS_URL = "https://functions.poehali.dev/80771697-657a-4565-8f5f-b8553431f806";
-const REVIEWS_URL = "https://functions.poehali.dev/f1f45bf4-6a46-4561-abf6-fedd584fbeec";
-export const PUBLIC_API_URL = "https://functions.poehali.dev/77d76195-5da9-4671-9276-b37153bfe6af";
+const AUTH_URL = "https://functions.poehali.dev/a3decca2-32fb-4b22-afa1-ee84dd376752";
+const TICKETS_URL = "https://functions.poehali.dev/c22df67c-856f-4dfc-b856-2a03a8afdc64";
+const REVIEWS_URL = "https://functions.poehali.dev/4926fd5b-26a9-4933-86b3-1483acd3b287";
+export const PUBLIC_API_URL = "https://functions.poehali.dev/91202ba4-01c6-414c-b3e0-632520396349";
 
 // ── Хранилище токенов ────────────────────────────────────────────────────────
 

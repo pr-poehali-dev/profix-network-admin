@@ -1,4 +1,4 @@
-const BASE = "https://functions.poehali.dev/99e6ebb5-b8c7-4b0b-9e80-26d27bb0213e";
+const BASE = "https://functions.poehali.dev/3f3bcae2-efaf-4121-9bd1-977854e06d2f";
 
 function auth(token: string) {
   return { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };

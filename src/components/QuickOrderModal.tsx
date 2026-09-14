@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { onPhoneChange } from "@/lib/phone";
 
-const SEND_URL = "https://functions.poehali.dev/d9dfa652-a0b7-4233-ba59-2efd338c4f10";
+const SEND_URL = "https://functions.poehali.dev/cde82119-f6dd-4685-8a59-e3ba775885b4";
 
 const PAYMENT_METHODS = [
   { key: "cash", icon: "Banknote", label: "Наличными", desc: "Оплата при получении или в офисе" },

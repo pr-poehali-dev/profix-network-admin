@@ -247,7 +247,7 @@ export default function TechPortal() {
       const dataUrl = ev.target?.result as string;
       try {
         const token = techSession.get()!;
-        const res = await fetch("https://functions.poehali.dev/1f14f246-0908-4c88-86de-62840b1d4e1c", {
+        const res = await fetch("https://functions.poehali.dev/a3decca2-32fb-4b22-afa1-ee84dd376752", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify({ action: "technician_update_cover", cover_url: dataUrl }),
@@ -264,7 +264,7 @@ export default function TechPortal() {
     setCoverUploading(true);
     try {
       const token = techSession.get()!;
-      await fetch("https://functions.poehali.dev/1f14f246-0908-4c88-86de-62840b1d4e1c", {
+      await fetch("https://functions.poehali.dev/a3decca2-32fb-4b22-afa1-ee84dd376752", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ action: "technician_update_cover", cover_url: "" }),

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { PUBLIC_API_URL, managerApi, managerSession } from "@/lib/crm-api";
 
-const AUTH_URL = "https://functions.poehali.dev/1f14f246-0908-4c88-86de-62840b1d4e1c";
+const AUTH_URL = "https://functions.poehali.dev/a3decca2-32fb-4b22-afa1-ee84dd376752";
 
 interface ApiKey {
   id: number;

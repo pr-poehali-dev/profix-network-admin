@@ -290,7 +290,7 @@ export default function AdminStaffHub() {
     return () => clearInterval(t);
   }, []);
 
-  const TICKETS_URL = "https://functions.poehali.dev/80771697-657a-4565-8f5f-b8553431f806";
+  const TICKETS_URL = "https://functions.poehali.dev/c22df67c-856f-4dfc-b856-2a03a8afdc64";
 
   async function postTicket(body: object) {
     const r = await fetch(TICKETS_URL, { method:"POST", headers:{"Content-Type":"application/json","Authorization":`Bearer ${token}`}, body: JSON.stringify(body) });

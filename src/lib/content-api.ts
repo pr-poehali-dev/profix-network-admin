@@ -1,4 +1,4 @@
-const CONTENT_URL = "https://functions.poehali.dev/c21176bb-34b5-4c32-aa88-89ebe97868ce";
+const CONTENT_URL = "https://functions.poehali.dev/6c2255f1-c5fa-43e0-826e-f5e68a052c3a";
 
 type ContentMap = Record<string, string>;
 
