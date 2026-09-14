@@ -125,7 +125,7 @@ export default function AdminSidebar({
         <div className="fixed top-0 left-0 right-0 h-14 bg-[#111827] border-b border-white/10 flex items-center px-4 gap-3 z-40">
           <button onClick={() => onSectionChange("dashboard")} className="flex items-center gap-2">
             <img
-              src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
+              src="/logo.png"
               alt="ПРОФИКС" className="w-7 h-7 object-contain" />
             <span className="text-white font-bold text-base">ПРОФИКС</span>
           </button>
@@ -199,7 +199,7 @@ export default function AdminSidebar({
           title={collapsed ? "Развернуть" : "Свернуть"}>
           {collapsed
             ? <Icon name="PanelLeftOpen" size={17} className="text-white" />
-            : <img src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/e1b11d67-0791-42f4-b42a-074a6bd6b3b9.png"
+            : <img src="/logo.png"
                 alt="ПРОФИКС" className="w-6 h-6 object-contain" />
           }
         </button>
