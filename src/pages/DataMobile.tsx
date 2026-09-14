@@ -5,15 +5,14 @@ import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 import SharedFooter from "@/components/SharedFooter";
 import { useSiteContent } from "@/hooks/useSiteContent";
-
-const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/datamobile";
+import logoDatamobile from "@/assets/partners/datamobile.svg";
 
 const DEFAULT_MAIN_PRODUCTS = [
   {
     id: "standart",
     name: "DataMobile Стандарт",
     price: "от 936 ₽",
-    image: `${CDN}/dm_standart.png`,
+    image: "",
     badge: null,
     description:
       "Начальная версия для терминалов сбора данных и мобильных устройств. Автоматизирует учёт товаров на складе, в магазине и организациях разного профиля.",
@@ -23,7 +22,7 @@ const DEFAULT_MAIN_PRODUCTS = [
     id: "standart_pro",
     name: "DataMobile Стандарт Pro",
     price: "от 1 716 ₽",
-    image: `${CDN}/dm_standart_pro.png`,
+    image: "",
     badge: "Популярный",
     description:
       "Расширяет функционал Стандарта: работа по заданию, загрузка шаблонов этикеток и печать на мобильном принтере. Поддерживает модули Маркировка и RFID.",
@@ -33,7 +32,7 @@ const DEFAULT_MAIN_PRODUCTS = [
     id: "online_lite",
     name: "DataMobile Online Lite",
     price: "2 496 ₽",
-    image: `${CDN}/dm_online_lite.png`,
+    image: "",
     badge: null,
     description:
       "Работа в режиме реального времени с защитой от потери связи. Широкие возможности для работы на складе и в торговом зале.",
@@ -43,7 +42,7 @@ const DEFAULT_MAIN_PRODUCTS = [
     id: "online",
     name: "DataMobile Online",
     price: "от 3 120 ₽",
-    image: `${CDN}/dm_online.png`,
+    image: "",
     badge: "Максимум",
     description:
       "Полноценный онлайн-режим, генерация новых штрихкодов на ТСД, отображение картинок из товароучётной системы. Максимальный функционал для крупного склада.",
@@ -55,14 +54,14 @@ const MODULES = [
   {
     name: "Модуль Маркировка",
     price: "от 1 500 ₽",
-    image: `${CDN}/dm_marking.png`,
+    image: "",
     description:
       'Готовое решение для работы с товарами обязательной маркировки ("Честный Знак", ЕГАИС): табак, алкоголь, обувь, одежда, лекарства. Уникальный механизм проверки кодов маркировки и групповых упаковок.',
   },
   {
     name: "Модуль RFID",
     price: "от 4 500 ₽",
-    image: `${CDN}/dm_rfid.png`,
+    image: "",
     description:
       "Автоматизация учёта по радиочастотным меткам. ТСД с RFID-считывателем распознаёт сотни меток за секунду — складские операции в разы быстрее, чем по штрихкодам.",
   },
@@ -103,15 +102,8 @@ const DataMobilePage = () => {
   const RAW_MODULES  = json("partner.datamobile.modules", MODULES) as typeof MODULES;
   const DYN_SOLUTIONS = json("partner.datamobile.solutions", PROFILE_SOLUTIONS) as typeof PROFILE_SOLUTIONS;
 
-  // Восстанавливаем image из дефолтов, если из БД пришло без картинки
-  const MAIN_PRODUCTS = RAW_PRODUCTS.map((p, i) => ({
-    ...p,
-    image: p.image || DEFAULT_MAIN_PRODUCTS[i]?.image || `${CDN}/dm_standart.png`,
-  }));
-  const DYN_MODULES = RAW_MODULES.map((m, i) => ({
-    ...m,
-    image: m.image || MODULES[i]?.image || "",
-  }));
+  const MAIN_PRODUCTS = RAW_PRODUCTS;
+  const DYN_MODULES = RAW_MODULES;
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos text-[#111827]">
@@ -143,7 +135,7 @@ const DataMobilePage = () => {
           <div className="w-px h-6 bg-gray-200" />
           <div className="flex items-center gap-2">
             <img
-              src="https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners/datamobile_1.svg"
+              src={logoDatamobile}
               alt="DataMobile"
               className="h-7 object-contain"
             />
@@ -192,13 +184,6 @@ const DataMobilePage = () => {
               </a>
             </div>
           </div>
-          <div className="flex-shrink-0 hidden md:block">
-            <img
-              src={`${CDN}/dm_banner2.jpg`}
-              alt="DataMobile"
-              className="w-[380px] rounded-2xl shadow-2xl object-cover"
-            />
-          </div>
         </div>
       </section>
 
@@ -241,11 +226,13 @@ const DataMobilePage = () => {
                   </div>
                 )}
                 <div className="p-5 flex flex-col items-center">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="h-36 object-contain mb-4 group-hover:scale-105 transition-transform duration-300"
-                  />
+                  {product.image && (
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="h-36 object-contain mb-4 group-hover:scale-105 transition-transform duration-300"
+                    />
+                  )}
                   <h3 className="font-bold text-base text-center mb-1">{product.name}</h3>
                   <p className="text-[#1565C0] font-semibold text-sm mb-3">{product.price}</p>
                   <p className="text-gray-500 text-xs text-center leading-relaxed mb-4">{product.description}</p>
@@ -282,11 +269,13 @@ const DataMobilePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {DYN_MODULES.map((mod) => (
               <div key={mod.name} className="flex gap-5 bg-[#F7F9FC] rounded-2xl p-6 border border-gray-100">
-                <img
-                  src={mod.image}
-                  alt={mod.name}
-                  className="h-28 w-24 object-contain shrink-0"
-                />
+                {mod.image && (
+                  <img
+                    src={mod.image}
+                    alt={mod.name}
+                    className="h-28 w-24 object-contain shrink-0"
+                  />
+                )}
                 <div className="flex flex-col">
                   <h3 className="font-bold text-base mb-1">{mod.name}</h3>
                   <p className="text-[#1565C0] font-semibold text-sm mb-2">{mod.price}</p>

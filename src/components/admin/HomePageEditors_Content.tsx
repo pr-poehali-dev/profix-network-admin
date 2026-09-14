@@ -170,7 +170,7 @@ export function AboutEditor({ content, onChange }: { content: ContentMap; onChan
 
       <ImageUpload
         label="Фото справа"
-        value={content["about.image"] || "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/782196eb-d7c0-4190-8b39-b90929fde10b.png"}
+        value={content["about.image"] || ""}
         onChange={v => onChange("about.image", v)}
         maxW={900} maxH={700}
       />

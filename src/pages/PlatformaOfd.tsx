@@ -4,8 +4,7 @@ import Icon from "@/components/ui/icon";
 import PartnerContactForm from "@/components/PartnerContactForm";
 import SharedFooter from "@/components/SharedFooter";
 import { useSiteContent } from "@/hooks/useSiteContent";
-
-const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
+import logoPlatformaOfd from "@/assets/partners/platformaofd.png";
 
 const FEATURES = [
   {
@@ -69,7 +68,7 @@ const PlatformaOfdPage = () => {
           </button>
           <div className="w-px h-6 bg-gray-200" />
           <div className="flex items-center gap-2">
-            <img src={`${CDN}/platformaofd.png`} alt="Платформа ОФД" className="h-7 object-contain" />
+            <img src={logoPlatformaOfd} alt="Платформа ОФД" className="h-7 object-contain" />
           </div>
           <div className="ml-auto">
             <a href="tel:+79142727187" className="hidden sm:flex items-center gap-2 bg-[#3ca615] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2d8a10] transition-colors">
