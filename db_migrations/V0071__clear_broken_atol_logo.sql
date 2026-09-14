@@ -1,0 +1,1 @@
+UPDATE t_p83689144_profix_network_admin.site_content SET value = '' WHERE key = 'partner.atol.logo';

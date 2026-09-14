@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useSiteContent } from "@/hooks/useSiteContent";
+import logoAtol from "@/assets/partners/atol.png";
 import logoDatamobile from "@/assets/partners/datamobile.svg";
 import logoPoscenter from "@/assets/partners/poscenter.png";
 import logo1c from "@/assets/partners/1c.png";
@@ -13,7 +14,7 @@ const PARTNERS_CONFIG = [
   { key: "poscenter",     name: "POSCenter",     url: "/poscenter",     fallback: logoPoscenter,  tag: "POS-оборудование" },
   { key: "1c",            name: "1С Франчайзи",  url: "/1c",            fallback: logo1c,         tag: "Учёт и автоматизация" },
   { key: "dreamkas",      name: "Дримкас",       url: "/dreamkas",      fallback: logoDreamkas,   tag: "Онлайн-кассы" },
-  { key: "atol",          name: "АТОЛ",          url: "/atol",          fallback: "",             tag: "Кассовое оборудование" },
+  { key: "atol",          name: "АТОЛ",          url: "/atol",          fallback: logoAtol,       tag: "Кассовое оборудование" },
   { key: "sbis",          name: "СБИС",          url: "/sbis",          fallback: logoSbis,       tag: "ЭДО и отчётность" },
   { key: "ofd_yandex",    name: "ОФД Яндекс",   url: "/ofd-yandex",    fallback: logoOfdYandex,  tag: "Оператор ФД" },
   { key: "platforma_ofd", name: "Платформа ОФД", url: "/platforma-ofd", fallback: logoPlatformaOfd, tag: "Оператор ФД" },
