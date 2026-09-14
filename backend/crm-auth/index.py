@@ -211,8 +211,6 @@ def handler(event: dict, context) -> dict:
 
         if not phone:
             return err("Укажите номер телефона")
-        if not verify_turnstile(cf_token):
-            return err("Проверка безопасности не пройдена. Попробуйте снова.", 400)
 
         conn = get_conn()
         cur = conn.cursor()
@@ -278,8 +276,6 @@ def handler(event: dict, context) -> dict:
             return err("Укажите имя")
         if not phone:
             return err("Укажите номер телефона")
-        if not verify_turnstile(cf_token):
-            return err("Проверка безопасности не пройдена")
 
         conn = get_conn()
         cur = conn.cursor()
