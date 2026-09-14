@@ -69,7 +69,7 @@ const DreamkasPage = () => {
           </button>
           <div className="w-px h-6 bg-gray-200" />
           <div className="flex items-center gap-2">
-            <img src={logoDreamkas} alt="Дримкас" className="h-7 object-contain" />
+            <img src={str("partner.dreamkas.header_logo", "") || logoDreamkas} alt="Дримкас" className="h-7 object-contain" />
           </div>
           <div className="ml-auto">
             <a href="tel:+79142727187" className="hidden sm:flex items-center gap-2 bg-[#3ca615] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2d8a10] transition-colors">

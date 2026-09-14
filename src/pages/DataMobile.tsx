@@ -135,7 +135,7 @@ const DataMobilePage = () => {
           <div className="w-px h-6 bg-gray-200" />
           <div className="flex items-center gap-2">
             <img
-              src={logoDatamobile}
+              src={str("partner.datamobile.header_logo", "") || logoDatamobile}
               alt="DataMobile"
               className="h-7 object-contain"
             />
@@ -184,6 +184,15 @@ const DataMobilePage = () => {
               </a>
             </div>
           </div>
+          {str("partner.datamobile.banner", "") && (
+            <div className="flex-shrink-0 hidden md:block">
+              <img
+                src={str("partner.datamobile.banner", "")}
+                alt="DataMobile"
+                className="w-[380px] rounded-2xl shadow-2xl object-cover"
+              />
+            </div>
+          )}
         </div>
       </section>
 

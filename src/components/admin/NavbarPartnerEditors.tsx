@@ -309,15 +309,17 @@ const PARTNERS = [
   { key: "onec",         label: "1С Франчайзи",   path: "/1c" },
 ];
 
-function CardList({ label, contentKey, fields, content, onChange }: {
+function CardList({ label, contentKey, fields, content, onChange, withImage }: {
   label: string;
   contentKey: string;
   fields: {key: string; label: string; textarea?: boolean}[];
   content: ContentMap;
   onChange: (key: string, val: string) => void;
+  withImage?: boolean;
 }) {
   const [expanded, setExpanded] = useState<number | null>(null);
-  const emptyItem = Object.fromEntries(fields.map(f => [f.key, ""]));
+  const emptyItem: Record<string,string> = Object.fromEntries(fields.map(f => [f.key, ""]));
+  if (withImage) emptyItem.image = "";
   const items = parseJson<Record<string,string>[]>(content[contentKey] || "", []);
 
   function set(arr: typeof items) { onChange(contentKey, JSON.stringify(arr)); }
@@ -336,6 +338,11 @@ function CardList({ label, contentKey, fields, content, onChange }: {
           <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
             <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 cursor-pointer hover:bg-gray-100"
               onClick={() => setExpanded(expanded === i ? null : i)}>
+              {withImage && (
+                item.image
+                  ? <img src={item.image} alt="" className="w-8 h-8 rounded-lg object-contain bg-white border border-gray-200 shrink-0" />
+                  : <div className="w-8 h-8 rounded-lg bg-gray-200 shrink-0 flex items-center justify-center"><Icon name="Image" size={13} className="text-gray-400" /></div>
+              )}
               <span className="text-sm font-medium text-gray-800 flex-1 truncate">
                 {item.name || item.title || item.icon || `Карточка ${i+1}`}
               </span>
@@ -345,6 +352,10 @@ function CardList({ label, contentKey, fields, content, onChange }: {
             </div>
             {expanded === i && (
               <div className="p-4 space-y-3 border-t border-gray-100">
+                {withImage && (
+                  <ImageUpload label="Картинка" value={item.image || ""}
+                    onChange={v => { const n=[...items]; n[i]={...n[i],image:v}; set(n); }} />
+                )}
                 {fields.map(f => (
                   <Field key={f.key} label={f.label} value={item[f.key] || ""} textarea={f.textarea}
                     onChange={v => { const n=[...items]; n[i]={...n[i],[f.key]:v}; set(n); }} />
@@ -398,6 +409,9 @@ export function PartnerEditor({ content, onChange }: { content: ContentMap; onCh
           <ImageUpload label="Логотип партнёра (карточка на главной странице)"
             value={content[`${prefix}.logo`] || ""}
             onChange={v => onChange(`${prefix}.logo`, v)} />
+          <ImageUpload label="Логотип в шапке страницы партнёра"
+            value={content[`${prefix}.header_logo`] || ""}
+            onChange={v => onChange(`${prefix}.header_logo`, v)} />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Название (карточка на главной)" value={content[`${prefix}.card_name`] || ""}
               onChange={v => onChange(`${prefix}.card_name`, v)} />
@@ -413,9 +427,13 @@ export function PartnerEditor({ content, onChange }: { content: ContentMap; onCh
         {/* DataMobile — три отдельных блока */}
         {isDataMobile ? (
           <div className="space-y-6">
+            <ImageUpload label="Баннер в шапке страницы DataMobile"
+              value={content["partner.datamobile.banner"] || ""}
+              onChange={v => onChange("partner.datamobile.banner", v)} />
             <CardList
               label="Версии DataMobile (карточки с ценами)"
               contentKey="partner.datamobile.main_products"
+              withImage
               fields={[
                 {key:"name", label:"Название"},
                 {key:"price", label:"Цена"},
@@ -428,6 +446,7 @@ export function PartnerEditor({ content, onChange }: { content: ContentMap; onCh
             <CardList
               label="Дополнительные модули"
               contentKey="partner.datamobile.modules"
+              withImage
               fields={[
                 {key:"name", label:"Название"},
                 {key:"price", label:"Цена"},
