@@ -351,8 +351,6 @@ def handler(event: dict, context) -> dict:
 
         if not login or not password:
             return err("Укажите логин и пароль")
-        if not verify_turnstile(cf_token):
-            return err("Проверка безопасности не пройдена. Попробуйте снова.", 400)
 
         conn = get_conn()
         cur = conn.cursor()
