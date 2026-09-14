@@ -90,6 +90,7 @@ def send_email_otp(to_email: str, code: str, phone: str):
     port = int(os.environ["SMTP_PORT"])
     user = os.environ["SMTP_USER"]
     pwd = os.environ["SMTP_PASSWORD"]
+    print(f"[SMTP DIAG] host={host} port={port} user={user} pwd_len={len(pwd)} pwd_has_space={' ' in pwd}")
 
     msg = MIMEText(
         f"<h2>Ваш код для входа в кабинет ProFiX</h2>"
