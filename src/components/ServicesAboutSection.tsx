@@ -116,7 +116,7 @@ const ServicesAboutSection = () => {
     { icon: "Users", text: "Опытная команда" },
     { icon: "Headphones", text: "Поддержка 24/7" },
   ];
-  const aboutImage = str("about.image", "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/782196eb-d7c0-4190-8b39-b90929fde10b.png");
+  const aboutImage = str("about.image", "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/files/a998ecb6-729f-40eb-8290-b6ea2718207a.jpg");
   return (
     <>
       {/* SERVICES */}
