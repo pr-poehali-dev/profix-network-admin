@@ -273,7 +273,7 @@ export default function CustomPageView() {
             <img src="/logo.png"
               alt="ПРОФИКС" className="h-8 w-8 object-contain" />
             <span className="font-oswald text-lg font-bold hidden sm:block">
-              <span style={{ color: "#3ca615" }}>ПРО</span><span className="text-black">ФИКС</span>
+              <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
             </span>
           </button>
           <div className="ml-auto flex items-center gap-3">

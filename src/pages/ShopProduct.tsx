@@ -148,9 +148,12 @@ export default function ShopProduct() {
 
       <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="shrink-0">
+          <button onClick={() => navigate("/")} className="flex items-center gap-1.5 shrink-0">
             <img src="/logo.png"
               alt="ПРОФИКС" className="h-8 w-8 object-contain" />
+            <span className="font-oswald text-lg font-bold tracking-wide hidden sm:block">
+              <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
+            </span>
           </button>
           <button onClick={() => navigate("/shop")}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors">

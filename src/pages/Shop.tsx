@@ -126,7 +126,9 @@ export default function Shop() {
           <button onClick={() => navigate("/")} className="flex items-center gap-2 shrink-0">
             <img src="/logo.png"
               alt="ПРОФИКС" className="h-8 w-8 object-contain" />
-            <span className="font-bold text-[#0D1B2A] hidden sm:block">ПРОФИКС</span>
+            <span className="font-oswald text-lg font-bold tracking-wide hidden sm:block">
+              <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
+            </span>
           </button>
           <span className="text-gray-300 hidden sm:block">|</span>
           <span className="font-semibold text-gray-700 hidden sm:block">Магазин</span>

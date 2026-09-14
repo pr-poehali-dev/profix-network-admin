@@ -311,7 +311,7 @@ export default function Login() {
           <img src="/logo.png"
             alt="ПРОФИКС" className="h-10 w-10 object-contain" />
           <span className="font-oswald text-2xl font-bold tracking-wide">
-            <span className="text-[#3ca615]">ПРО</span><span className="text-gray-900">ФИКС</span>
+            <span className="text-[#3ca615]">ПРО</span><span className="text-black">ФИКС</span>
           </span>
         </div>
         <p className="text-gray-400 text-sm">IT-сервис и автоматизация бизнеса</p>
