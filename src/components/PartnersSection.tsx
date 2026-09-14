@@ -1,17 +1,22 @@
 import { useNavigate } from "react-router-dom";
 import { useSiteContent } from "@/hooks/useSiteContent";
-
-const CDN = "https://cdn.poehali.dev/projects/16dea1b8-f4a6-4881-9a41-93285e290dcb/bucket/partners";
+import logoDatamobile from "@/assets/partners/datamobile.svg";
+import logoPoscenter from "@/assets/partners/poscenter.png";
+import logo1c from "@/assets/partners/1c.png";
+import logoDreamkas from "@/assets/partners/dreamkas.svg";
+import logoSbis from "@/assets/partners/sbis.svg";
+import logoOfdYandex from "@/assets/partners/ofdyandex.png";
+import logoPlatformaOfd from "@/assets/partners/platformaofd.png";
 
 const PARTNERS_CONFIG = [
-  { key: "datamobile",    name: "DataMobile",    url: "/datamobile",    fallback: `${CDN}/datamobile_1.svg`, tag: "ПО для склада" },
-  { key: "poscenter",     name: "POSCenter",     url: "/poscenter",     fallback: `${CDN}/poscenter.png`,    tag: "POS-оборудование" },
-  { key: "1c",            name: "1С Франчайзи",  url: "/1c",            fallback: `${CDN}/1c.svg`,           tag: "Учёт и автоматизация" },
-  { key: "dreamkas",      name: "Дримкас",       url: "/dreamkas",      fallback: `${CDN}/dreamkas.svg`,     tag: "Онлайн-кассы" },
-  { key: "atol",          name: "АТОЛ",          url: "/atol",          fallback: `${CDN}/atol.png`,         tag: "Кассовое оборудование" },
-  { key: "sbis",          name: "СБИС",          url: "/sbis",          fallback: `${CDN}/saby.png`,         tag: "ЭДО и отчётность" },
-  { key: "ofd_yandex",    name: "ОФД Яндекс",   url: "/ofd-yandex",    fallback: `${CDN}/ofdyandex.svg`,    tag: "Оператор ФД" },
-  { key: "platforma_ofd", name: "Платформа ОФД", url: "/platforma-ofd", fallback: `${CDN}/platformaofd.png`, tag: "Оператор ФД" },
+  { key: "datamobile",    name: "DataMobile",    url: "/datamobile",    fallback: logoDatamobile, tag: "ПО для склада" },
+  { key: "poscenter",     name: "POSCenter",     url: "/poscenter",     fallback: logoPoscenter,  tag: "POS-оборудование" },
+  { key: "1c",            name: "1С Франчайзи",  url: "/1c",            fallback: logo1c,         tag: "Учёт и автоматизация" },
+  { key: "dreamkas",      name: "Дримкас",       url: "/dreamkas",      fallback: logoDreamkas,   tag: "Онлайн-кассы" },
+  { key: "atol",          name: "АТОЛ",          url: "/atol",          fallback: "",             tag: "Кассовое оборудование" },
+  { key: "sbis",          name: "СБИС",          url: "/sbis",          fallback: logoSbis,       tag: "ЭДО и отчётность" },
+  { key: "ofd_yandex",    name: "ОФД Яндекс",   url: "/ofd-yandex",    fallback: logoOfdYandex,  tag: "Оператор ФД" },
+  { key: "platforma_ofd", name: "Платформа ОФД", url: "/platforma-ofd", fallback: logoPlatformaOfd, tag: "Оператор ФД" },
 ];
 
 const PartnersSection = () => {
