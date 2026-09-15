@@ -197,11 +197,11 @@ def send_email_status(to_email: str, client_name: str, title: str, status_label:
 
     try:
         if port == 465:
-            with smtplib.SMTP_SSL(host, port) as s:
+            with smtplib.SMTP_SSL(host, port, timeout=10) as s:
                 s.login(user, pwd)
                 s.sendmail(user, to_email, msg.as_string())
         else:
-            with smtplib.SMTP(host, port) as s:
+            with smtplib.SMTP(host, port, timeout=10) as s:
                 s.starttls()
                 s.login(user, pwd)
                 s.sendmail(user, to_email, msg.as_string())

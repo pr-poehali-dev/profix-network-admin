@@ -24,7 +24,7 @@ def send_telegram(token: str, chat_id: str, text: str) -> None:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode()
     req = Request(url, data=data, headers={"Content-Type": "application/json"})
-    urlopen(req, timeout=5)
+    urlopen(req, timeout=3)
 
 
 def handler(event: dict, context) -> dict:
@@ -118,15 +118,7 @@ def handler(event: dict, context) -> dict:
 
     msg.attach(MIMEText(html, "html", "utf-8"))
 
-    if smtp_port == 465:
-        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
-            server.login(smtp_user, smtp_password)
-            server.sendmail(smtp_user, to_email, msg.as_string())
-    else:
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_password)
-            server.sendmail(smtp_user, to_email, msg.as_string())
+    outbox = [(to_email, msg)]
 
     tg_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     tg_chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
@@ -194,23 +186,30 @@ def handler(event: dict, context) -> dict:
           </div>
         </body></html>"""
 
+        cmsg = MIMEMultipart("alternative")
+        cmsg["Subject"] = f"Заявка принята — {company}"
+        cmsg["From"] = smtp_user
+        cmsg["To"] = email
+        cmsg.attach(MIMEText(client_html, "html", "utf-8"))
+        outbox.append((email, cmsg))
+
+    if smtp_port == 465:
+        server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
+    else:
+        server = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
+        server.starttls()
+    try:
+        server.login(smtp_user, smtp_password)
+        for rcpt, m in outbox:
+            try:
+                server.sendmail(smtp_user, rcpt, m.as_string())
+            except Exception:
+                pass
+    finally:
         try:
-            cmsg = MIMEMultipart("alternative")
-            cmsg["Subject"] = f"Заявка принята — {company}"
-            cmsg["From"] = smtp_host and os.environ["SMTP_USER"]
-            cmsg["To"] = email
-            cmsg.attach(MIMEText(client_html, "html", "utf-8"))
-            if smtp_port == 465:
-                with smtplib.SMTP_SSL(smtp_host, smtp_port) as srv:
-                    srv.login(os.environ["SMTP_USER"], os.environ["SMTP_PASSWORD"])
-                    srv.sendmail(os.environ["SMTP_USER"], email, cmsg.as_string())
-            else:
-                with smtplib.SMTP(smtp_host, smtp_port) as srv:
-                    srv.starttls()
-                    srv.login(os.environ["SMTP_USER"], os.environ["SMTP_PASSWORD"])
-                    srv.sendmail(os.environ["SMTP_USER"], email, cmsg.as_string())
+            server.quit()
         except Exception:
-            pass  # не блокируем успех если клиентское письмо не ушло
+            pass
 
     return {
         "statusCode": 200,

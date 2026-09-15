@@ -103,11 +103,11 @@ def send_email_otp(to_email: str, code: str, phone: str):
     msg["To"] = to_email
 
     if port == 465:
-        with smtplib.SMTP_SSL(host, port) as s:
+        with smtplib.SMTP_SSL(host, port, timeout=10) as s:
             s.login(user, pwd)
             s.sendmail(user, to_email, msg.as_string())
     else:
-        with smtplib.SMTP(host, port) as s:
+        with smtplib.SMTP(host, port, timeout=10) as s:
             s.starttls()
             s.login(user, pwd)
             s.sendmail(user, to_email, msg.as_string())
@@ -132,10 +132,10 @@ def send_email_2fa(to_email: str, code: str, name: str):
     msg["From"] = user
     msg["To"] = to_email
     if port == 465:
-        with smtplib.SMTP_SSL(host, port) as s:
+        with smtplib.SMTP_SSL(host, port, timeout=10) as s:
             s.login(user, pwd); s.sendmail(user, to_email, msg.as_string())
     else:
-        with smtplib.SMTP(host, port) as s:
+        with smtplib.SMTP(host, port, timeout=10) as s:
             s.starttls(); s.login(user, pwd); s.sendmail(user, to_email, msg.as_string())
 
 
@@ -158,10 +158,10 @@ def send_email_reset(to_email: str, token: str, role: str):
     msg["From"] = user
     msg["To"] = to_email
     if port == 465:
-        with smtplib.SMTP_SSL(host, port) as s:
+        with smtplib.SMTP_SSL(host, port, timeout=10) as s:
             s.login(user, pwd); s.sendmail(user, to_email, msg.as_string())
     else:
-        with smtplib.SMTP(host, port) as s:
+        with smtplib.SMTP(host, port, timeout=10) as s:
             s.starttls(); s.login(user, pwd); s.sendmail(user, to_email, msg.as_string())
 
 
@@ -843,9 +843,9 @@ def handler(event: dict, context) -> dict:
             msg["Subject"] = f"Код смены пароля ProFiX: {code}"
             msg["From"] = user; msg["To"] = client_email
             if port == 465:
-                with smtplib.SMTP_SSL(host, port) as s: s.login(user, pwd); s.sendmail(user, client_email, msg.as_string())
+                with smtplib.SMTP_SSL(host, port, timeout=10) as s: s.login(user, pwd); s.sendmail(user, client_email, msg.as_string())
             else:
-                with smtplib.SMTP(host, port) as s: s.starttls(); s.login(user, pwd); s.sendmail(user, client_email, msg.as_string())
+                with smtplib.SMTP(host, port, timeout=10) as s: s.starttls(); s.login(user, pwd); s.sendmail(user, client_email, msg.as_string())
         except Exception as e:
             import traceback; print(f"[SMTP ERROR] {e}\n{traceback.format_exc()}")
             return err(f"Ошибка отправки письма: {str(e)}")
@@ -915,9 +915,9 @@ def handler(event: dict, context) -> dict:
             msg["Subject"] = f"Код подтверждения email ProFiX: {code}"
             msg["From"] = user; msg["To"] = new_email
             if port == 465:
-                with smtplib.SMTP_SSL(host, port) as s: s.login(user, pwd); s.sendmail(user, new_email, msg.as_string())
+                with smtplib.SMTP_SSL(host, port, timeout=10) as s: s.login(user, pwd); s.sendmail(user, new_email, msg.as_string())
             else:
-                with smtplib.SMTP(host, port) as s: s.starttls(); s.login(user, pwd); s.sendmail(user, new_email, msg.as_string())
+                with smtplib.SMTP(host, port, timeout=10) as s: s.starttls(); s.login(user, pwd); s.sendmail(user, new_email, msg.as_string())
         except Exception as e:
             import traceback; print(f"[SMTP ERROR] {e}\n{traceback.format_exc()}")
             return err(f"Ошибка отправки письма: {str(e)}")
@@ -996,9 +996,9 @@ def handler(event: dict, context) -> dict:
             msg["Subject"] = f"Код смены телефона ProFiX: {code}"
             msg["From"] = user; msg["To"] = send_to
             if port == 465:
-                with smtplib.SMTP_SSL(host, port) as s: s.login(user, pwd); s.sendmail(user, send_to, msg.as_string())
+                with smtplib.SMTP_SSL(host, port, timeout=10) as s: s.login(user, pwd); s.sendmail(user, send_to, msg.as_string())
             else:
-                with smtplib.SMTP(host, port) as s: s.starttls(); s.login(user, pwd); s.sendmail(user, send_to, msg.as_string())
+                with smtplib.SMTP(host, port, timeout=10) as s: s.starttls(); s.login(user, pwd); s.sendmail(user, send_to, msg.as_string())
         except Exception as e:
             import traceback; print(f"[SMTP ERROR] {e}\n{traceback.format_exc()}")
             return err(f"Ошибка отправки письма: {str(e)}")

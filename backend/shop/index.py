@@ -54,11 +54,11 @@ def _send_email_order(ticket_id: int, name: str, phone: str, email: str,
     try:
         smtp_port = int(smtp_port_str)
         if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_host, smtp_port) as s:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=6) as s:
                 s.login(smtp_user, smtp_password)
                 s.sendmail(smtp_user, to_email, msg.as_string())
         else:
-            with smtplib.SMTP(smtp_host, smtp_port) as s:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as s:
                 s.starttls()
                 s.login(smtp_user, smtp_password)
                 s.sendmail(smtp_user, to_email, msg.as_string())
@@ -75,7 +75,7 @@ def _send_tg(chat_id: str, text: str) -> None:
     data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode()
     req = URequest(url, data=data, headers={"Content-Type": "application/json"})
     try:
-        urlopen(req, timeout=5)
+        urlopen(req, timeout=3)
     except Exception:
         pass
 
