@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
+import { toast } from "sonner";
 import { techApi, techSession, Ticket, fixiesApi } from "@/lib/crm-api";
 import TotpBlock from "@/components/TotpBlock";
 import AdminNotificationPanel from "@/components/admin/AdminNotificationPanel";
@@ -253,7 +254,10 @@ export default function TechPortal() {
           body: JSON.stringify({ action: "technician_update_cover", cover_url: dataUrl }),
         }).then(r => r.json());
         if (res.updated) setTech(t => t ? { ...t, cover_url: res.cover_url } : t);
-      } catch { /* ignore */ }
+        else toast.error(res.error || "Не удалось загрузить фон");
+      } catch {
+        toast.error("Не удалось загрузить фон");
+      }
       finally { setCoverUploading(false); }
     };
     reader.readAsDataURL(file);

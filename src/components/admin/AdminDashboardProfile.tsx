@@ -119,7 +119,7 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
         setProfile(p => p ? { ...p, avatar_url: res.manager.avatar_url } : p);
         if (res.manager) onManagerUpdate(res.manager);
         flash("Фото обновлено");
-      }
+      } else flash(res.error || "Не удалось загрузить фото", false);
       setAU(false);
     };
     reader.readAsDataURL(file);

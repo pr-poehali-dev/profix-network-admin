@@ -32,6 +32,16 @@ def err(msg: str, code: int = 400):
             "body": json.dumps({"error": msg}, ensure_ascii=False)}
 
 
+def storage_error_text(e: Exception) -> str:
+    msg = str(e)
+    if "402" in msg or "Payment Required" in msg:
+        return ("Файловое хранилище недоступно: исчерпан лимит места. "
+                "Пополните хранилище в настройках проекта — после этого загрузка заработает.")
+    if "403" in msg or "AccessDenied" in msg:
+        return "Нет доступа к файловому хранилищу. Проверьте настройки проекта."
+    return f"Не удалось сохранить изображение: {msg}"
+
+
 def hash_password(pw: str) -> str:
     return hashlib.sha256(pw.encode()).hexdigest()
 
@@ -629,6 +639,8 @@ def handler(event: dict, context) -> dict:
                     sets.append("cover_url = %s"); vals.append(saved_cover)
                 except Exception as e:
                     print(f"[COVER ERROR] {e}")
+                    conn.close()
+                    return err(storage_error_text(e), 507)
             elif cover_url.startswith("https://"):
                 sets.append("cover_url = %s"); vals.append(cover_url)
         sets.append("updated_at = NOW()")
@@ -683,7 +695,8 @@ def handler(event: dict, context) -> dict:
             conn.commit(); cur.close(); conn.close()
             return ok({"avatar_url": avatar_url})
         except Exception as e:
-            conn.close(); return err(f"Ошибка загрузки: {str(e)}")
+            print(f"[AVATAR ERROR] {e}")
+            conn.close(); return err(storage_error_text(e), 507)
 
     # ── МЕНЕДЖЕР: обновление профиля (имя, логин, email, пароль) ────────────
     if action == "manager_update_profile":
@@ -762,6 +775,8 @@ def handler(event: dict, context) -> dict:
                     sets += ["avatar_url=%s"]; vals += [saved_avatar_url]
                 except Exception as e:
                     print(f"[AVATAR ERROR] {e}")
+                    conn.close()
+                    return err(storage_error_text(e), 507)
             elif raw_avatar.startswith("https://"):
                 sets += ["avatar_url=%s"]; vals += [raw_avatar]
 
@@ -785,6 +800,8 @@ def handler(event: dict, context) -> dict:
                     sets += ["cover_url=%s"]; vals += [cover_url]
                 except Exception as e:
                     print(f"[COVER ERROR] {e}")
+                    conn.close()
+                    return err(storage_error_text(e), 507)
             elif raw_cover.startswith("https://"):
                 sets += ["cover_url=%s"]; vals += [raw_cover]
 
@@ -1396,9 +1413,14 @@ def handler(event: dict, context) -> dict:
             s3 = boto3.client("s3", endpoint_url="https://bucket.poehali.dev",
                 aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
                 aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
-            s3.put_object(Bucket="files", Key=key, Body=raw, ContentType=body["avatar_mime"])
-            avatar_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
-            sets.append("avatar_url=%s"); vals.append(avatar_url)
+            try:
+                s3.put_object(Bucket="files", Key=key, Body=raw, ContentType=body["avatar_mime"])
+                avatar_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+                sets.append("avatar_url=%s"); vals.append(avatar_url)
+            except Exception as e:
+                print(f"[AVATAR ERROR] {e}")
+                conn.close()
+                return err(storage_error_text(e), 507)
         if not sets:
             conn.close(); return err("Нечего обновлять")
         vals.append(tech_id)
@@ -1532,7 +1554,8 @@ def handler(event: dict, context) -> dict:
                 conn.commit(); cur.close(); conn.close()
                 return ok({"updated": True, "cover_url": cover_url})
             except Exception as e:
-                conn.close(); return err(f"Ошибка загрузки: {str(e)}")
+                print(f"[COVER ERROR] {e}")
+                conn.close(); return err(storage_error_text(e), 507)
         elif raw_cover.startswith("https://"):
             cur.execute(f"UPDATE {SC}.technicians SET cover_url=%s WHERE id=%s", (raw_cover, tech_id))
             conn.commit(); cur.close(); conn.close()

@@ -44,8 +44,13 @@ export default function AdminProfile({ manager, onManagerUpdate, onBack }: Props
         const res = await managerApi.updateProfile({ avatar_url: `data:${file.type};base64,${b64}` });
         if (res.updated && res.manager?.avatar_url) {
           setAvatarUrl(res.manager.avatar_url);
+          setError("");
+        } else {
+          setError(res.error || "Не удалось загрузить фото");
         }
-      } catch { /* ignore */ }
+      } catch {
+        setError("Не удалось загрузить фото");
+      }
       finally { setAvatarUploading(false); }
     };
     reader.readAsDataURL(file);
