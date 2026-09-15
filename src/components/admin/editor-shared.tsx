@@ -104,9 +104,13 @@ export function ImageUpload({
       const { b64, mime } = await resizeImage(pendingFile, cropW, cropH);
       setPreview(`data:${mime};base64,${b64}`);
       const url = await uploadContentImage(b64, mime);
+      if (!url) throw new Error("Не удалось загрузить изображение");
       onChange(url);
       setPreview(null); setPendingFile(null); setPendingPreview(null);
-    } catch { /* ignore */ }
+    } catch (err) {
+      setPreview(null);
+      alert(err instanceof Error ? err.message : "Не удалось загрузить изображение");
+    }
     setUploading(false);
   }
 

@@ -30,16 +30,28 @@ def err(msg, code=400):
             "body": json.dumps({"error": msg}, ensure_ascii=False)}
 
 
+MAX_INLINE_IMAGE_BYTES = 900 * 1024
+
+
 def upload_image(b64: str, content_type: str = "image/jpeg") -> str:
-    import boto3
-    s3 = boto3.client("s3",
-        endpoint_url="https://bucket.poehali.dev",
-        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+    """Кладёт картинку в хранилище, а если оно недоступно — прямо в БД (data-URL)."""
+    data = base64.b64decode(b64)
     ext = content_type.split("/")[-1].replace("jpeg", "jpg")
-    key = f"pages/{uuid.uuid4()}.{ext}"
-    s3.put_object(Bucket="files", Key=key, Body=base64.b64decode(b64), ContentType=content_type)
-    return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+    try:
+        import boto3
+        s3 = boto3.client("s3",
+            endpoint_url="https://bucket.poehali.dev",
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+        key = f"pages/{uuid.uuid4()}.{ext}"
+        s3.put_object(Bucket="files", Key=key, Body=data, ContentType=content_type)
+        return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+    except Exception as e:
+        print(f"[STORAGE FALLBACK] pages: {e}")
+
+    if len(data) > MAX_INLINE_IMAGE_BYTES:
+        raise ValueError("Файл слишком большой. Загрузите изображение до 900 КБ.")
+    return f"data:{content_type};base64,{b64}"
 
 
 def row_to_page(row, cols):
@@ -80,7 +92,10 @@ def handler(event: dict, context) -> dict:
         if body.get("action") == "upload_image":
             if not check_auth():
                 return err("Unauthorized", 401)
-            url = upload_image(body["image_b64"], body.get("image_type", "image/jpeg"))
+            try:
+                url = upload_image(body["image_b64"], body.get("image_type", "image/jpeg"))
+            except ValueError as e:
+                return err(str(e))
             return ok({"ok": True, "url": url})
 
         # ── GET — список или одна страница ────────────────────────────────────

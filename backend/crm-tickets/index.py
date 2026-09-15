@@ -141,9 +141,9 @@ def send_tg(chat_id: int, text: str) -> None:
     data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode()
     req = URequest(url, data=data, headers={"Content-Type": "application/json"})
     try:
-        urlopen(req, timeout=5)
-    except Exception:
-        pass
+        urlopen(req, timeout=2)
+    except Exception as e:
+        print(f"[TG ERROR] {type(e).__name__}: {e}")
 
 
 def send_email_status(to_email: str, client_name: str, title: str, status_label: str, emoji: str, ticket_id: int) -> None:

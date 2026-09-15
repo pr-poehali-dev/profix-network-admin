@@ -75,9 +75,9 @@ def _send_tg(chat_id: str, text: str) -> None:
     data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode()
     req = URequest(url, data=data, headers={"Content-Type": "application/json"})
     try:
-        urlopen(req, timeout=3)
-    except Exception:
-        pass
+        urlopen(req, timeout=2)
+    except Exception as e:
+        print(f"[TG ERROR] {type(e).__name__}: {e}")
 
 SC = os.environ.get("MAIN_DB_SCHEMA") or "t_p83689144_profix_network_admin"
 
@@ -135,19 +135,30 @@ def ensure_tables(conn):
     cur.close()
 
 
+MAX_INLINE_IMAGE_BYTES = 900 * 1024
+
+
 def upload_image(b64data: str, content_type: str = "image/jpeg") -> str:
-    import boto3
-    s3 = boto3.client(
-        "s3",
-        endpoint_url="https://bucket.poehali.dev",
-        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-    )
-    ext = content_type.split("/")[-1].replace("jpeg", "jpg")
-    key = f"shop/{uuid.uuid4()}.{ext}"
+    """Кладёт картинку в хранилище, а если оно недоступно — прямо в БД (data-URL)."""
     data = base64.b64decode(b64data)
-    s3.put_object(Bucket="files", Key=key, Body=data, ContentType=content_type)
-    return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+    ext = content_type.split("/")[-1].replace("jpeg", "jpg")
+    try:
+        import boto3
+        s3 = boto3.client(
+            "s3",
+            endpoint_url="https://bucket.poehali.dev",
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+        )
+        key = f"shop/{uuid.uuid4()}.{ext}"
+        s3.put_object(Bucket="files", Key=key, Body=data, ContentType=content_type)
+        return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+    except Exception as e:
+        print(f"[STORAGE FALLBACK] shop: {e}")
+
+    if len(data) > MAX_INLINE_IMAGE_BYTES:
+        raise ValueError("Файл слишком большой. Загрузите изображение до 900 КБ.")
+    return f"data:{content_type};base64,{b64data}"
 
 
 def slugify(text: str) -> str:
@@ -388,7 +399,10 @@ def handler(event: dict, context) -> dict:
 
                 image_url = None
                 if body.get("image_b64"):
-                    image_url = upload_image(body["image_b64"], body.get("image_type", "image/jpeg"))
+                    try:
+                        image_url = upload_image(body["image_b64"], body.get("image_type", "image/jpeg"))
+                    except ValueError as e:
+                        return err(str(e))
 
                 cur.execute(f"""
                     INSERT INTO {SC}.shop_products
@@ -419,7 +433,10 @@ def handler(event: dict, context) -> dict:
 
                 image_url = body.get("image_url")
                 if body.get("image_b64"):
-                    image_url = upload_image(body["image_b64"], body.get("image_type", "image/jpeg"))
+                    try:
+                        image_url = upload_image(body["image_b64"], body.get("image_type", "image/jpeg"))
+                    except ValueError as e:
+                        return err(str(e))
 
                 cur.execute(f"""
                     UPDATE {SC}.shop_products SET
@@ -632,7 +649,10 @@ def handler(event: dict, context) -> dict:
                 pid = body.get("product_id")
                 if not pid:
                     return err("Нет product_id")
-                image_url = upload_image(body["image_b64"], body.get("image_type", "image/jpeg"))
+                try:
+                    image_url = upload_image(body["image_b64"], body.get("image_type", "image/jpeg"))
+                except ValueError as e:
+                    return err(str(e))
                 cur.execute(
                     f"INSERT INTO {SC}.shop_product_images (product_id, image_url, sort_order) VALUES (%s, %s, (SELECT COALESCE(MAX(sort_order),0)+1 FROM {SC}.shop_product_images WHERE product_id=%s)) RETURNING id",
                     (pid, image_url, pid)
@@ -759,17 +779,10 @@ def handler(event: dict, context) -> dict:
                 return err("Счёт не найден", 404)
             ticket_id = row[0]
 
-            # Загружаем в S3
-            s3 = boto3.client(
-                "s3",
-                endpoint_url="https://bucket.poehali.dev",
-                aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-                aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-            )
-            ext = "jpg" if "jpeg" in mime else mime.split("/")[-1]
-            key = f"payment_proofs/{inv}_{uuid.uuid4().hex[:8]}.{ext}"
-            s3.put_object(Bucket="files", Key=key, Body=base64.b64decode(b64), ContentType=mime)
-            proof_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+            try:
+                proof_url = upload_image(b64, mime)
+            except ValueError as e:
+                return err(str(e))
 
             cur.execute(
                 f"UPDATE {SC}.tickets SET payment_proof_url=%s, payment_status='proof_uploaded' WHERE id=%s",

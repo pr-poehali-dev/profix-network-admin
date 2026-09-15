@@ -53,6 +53,7 @@ export async function uploadContentImage(b64: string, type: string): Promise<str
     body: JSON.stringify({ action: "upload_image", image_b64: b64, image_type: type }),
   });
   const data = await res.json();
+  if (!data.url && data.error) throw new Error(data.error);
   return data.url || "";
 }
 

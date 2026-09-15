@@ -53,17 +53,24 @@ def send_tg_photo(chat_id, photo_url, caption=""):
         pass
 
 def upload_file(b64_data, filename, content_type):
-    """Загружает файл в S3, возвращает CDN URL."""
-    import boto3
+    """Кладёт файл в хранилище, а если оно недоступно — возвращает data-URL для БД."""
     raw = base64.b64decode(b64_data)
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
-    key = f"staff-chat/{uuid.uuid4()}.{ext}"
-    s3 = boto3.client("s3",
-        endpoint_url="https://bucket.poehali.dev",
-        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
-    s3.put_object(Bucket="files", Key=key, Body=raw, ContentType=content_type)
-    return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+    try:
+        import boto3
+        key = f"staff-chat/{uuid.uuid4()}.{ext}"
+        s3 = boto3.client("s3",
+            endpoint_url="https://bucket.poehali.dev",
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+        s3.put_object(Bucket="files", Key=key, Body=raw, ContentType=content_type)
+        return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+    except Exception as e:
+        print(f"[STORAGE FALLBACK] staff-chat: {e}")
+
+    if len(raw) > 900 * 1024:
+        raise ValueError("Файл слишком большой. Загрузите файл до 900 КБ.")
+    return f"data:{content_type};base64,{b64_data}"
 
 def verify_manager(event, conn):
     headers = event.get("headers") or {}

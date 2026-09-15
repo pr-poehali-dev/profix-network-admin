@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { shopApi, Category, Product, ProductImage, ProductReview } from "@/lib/shop-api";
+import { compressImage, stripDataUrl } from "@/lib/image-compress";
 
 // ── Вспомогательные компоненты ────────────────────────────────────────────────
 
@@ -36,17 +37,14 @@ function ProductForm({
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImageType(file.type);
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const result = ev.target?.result as string;
-      setPreview(result);
-      setImageB64(result.split(",")[1]);
-    };
-    reader.readAsDataURL(file);
+    e.target.value = "";
+    const dataUrl = await compressImage(file, "cover");
+    setImageType("image/jpeg");
+    setPreview(dataUrl);
+    setImageB64(stripDataUrl(dataUrl));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -235,21 +233,20 @@ function ProductExtras({ product }: { product: Product }) {
 
   useEffect(() => { loadExtras(); }, [product.id]);
 
-  function handleImgUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImgUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      const result = ev.target?.result as string;
-      const b64 = result.split(",")[1];
-      const type = file.type;
-      await shopApi.uploadImage(product.id, b64, type);
-      await loadExtras();
-      setUploading(false);
-    };
-    reader.readAsDataURL(file);
     e.target.value = "";
+    setUploading(true);
+    try {
+      const dataUrl = await compressImage(file, "cover");
+      const res = await shopApi.uploadImage(product.id, stripDataUrl(dataUrl), "image/jpeg");
+      if (res?.error) alert(res.error);
+      else await loadExtras();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Не удалось загрузить фото");
+    }
+    setUploading(false);
   }
 
   async function handleDeleteImg(id: number) {

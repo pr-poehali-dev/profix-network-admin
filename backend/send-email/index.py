@@ -24,7 +24,7 @@ def send_telegram(token: str, chat_id: str, text: str) -> None:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode()
     req = Request(url, data=data, headers={"Content-Type": "application/json"})
-    urlopen(req, timeout=3)
+    urlopen(req, timeout=2)
 
 
 def handler(event: dict, context) -> dict:
