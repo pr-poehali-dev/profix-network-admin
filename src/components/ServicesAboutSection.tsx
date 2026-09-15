@@ -103,7 +103,7 @@ const DEFAULT_SERVICES = [
 const ServicesAboutSection = () => {
   const { ref: servicesRef, inView: servicesInView } = useInView();
   const { str, json } = useSiteContent();
-  const services = json<{icon:string;title:string;desc:string}[]>("services.items", DEFAULT_SERVICES);
+  const services = json<{icon:string;title:string;desc:string;img?:string}[]>("services.items", DEFAULT_SERVICES);
   type OnecItem = { icon: string; title: string; desc: string; img: string };
   const cmsOnecItems = json<OnecItem[]>("onec.items", []);
   const displayOnecItems: OnecItem[] = cmsOnecItems.length > 0 ? cmsOnecItems : onecServices;
@@ -138,9 +138,16 @@ const ServicesAboutSection = () => {
                   transitionDelay: `${i * 0.1}s`,
                 }}
               >
-                <div className="w-12 h-12 rounded-xl bg-[#edf7e8] group-hover:bg-[#3ca615] flex items-center justify-center mb-4 transition-colors">
-                  <Icon name={s.icon} size={22} className="text-[#3ca615] group-hover:text-white transition-colors" fallback="Settings" />
-                </div>
+                {s.img ? (
+                  <div className="rounded-xl overflow-hidden mb-4 aspect-[16/9] bg-[#edf7e8]">
+                    <img src={s.img} alt={s.title} loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-[#edf7e8] group-hover:bg-[#3ca615] flex items-center justify-center mb-4 transition-colors">
+                    <Icon name={s.icon} size={22} className="text-[#3ca615] group-hover:text-white transition-colors" fallback="Settings" />
+                  </div>
+                )}
                 <h3 className="font-oswald text-xl font-semibold text-[#0D1B2A] mb-2">{s.title}</h3>
                 <p className="text-[#6B7280] text-sm leading-relaxed">{s.desc}</p>
               </div>

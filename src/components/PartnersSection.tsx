@@ -12,7 +12,7 @@ import logoPlatformaOfd from "@/assets/partners/platformaofd.png";
 const PARTNERS_CONFIG = [
   { key: "datamobile",    name: "DataMobile",    url: "/datamobile",    fallback: logoDatamobile, tag: "ПО для склада" },
   { key: "poscenter",     name: "POSCenter",     url: "/poscenter",     fallback: logoPoscenter,  tag: "POS-оборудование" },
-  { key: "1c",            name: "1С Франчайзи",  url: "/1c",            fallback: logo1c,         tag: "Учёт и автоматизация" },
+  { key: "onec",          name: "1С Франчайзи",  url: "/1c",            fallback: logo1c,         tag: "Учёт и автоматизация" },
   { key: "dreamkas",      name: "Дримкас",       url: "/dreamkas",      fallback: logoDreamkas,   tag: "Онлайн-кассы" },
   { key: "atol",          name: "АТОЛ",          url: "/atol",          fallback: logoAtol,       tag: "Кассовое оборудование" },
   { key: "sbis",          name: "СБИС",          url: "/sbis",          fallback: logoSbis,       tag: "ЭДО и отчётность" },

@@ -100,7 +100,7 @@ export function CarouselEditor({ content, onChange }: { content: ContentMap; onC
 // ── Секция: Услуги ────────────────────────────────────────────────────────────
 
 export function ServicesEditor({ content, onChange }: { content: ContentMap; onChange: (key: string, val: string) => void }) {
-  const items = parseJson<{icon:string;title:string;desc:string}[]>(content["services.items"] || "", []);
+  const items = parseJson<{icon:string;title:string;desc:string;img?:string}[]>(content["services.items"] || "", []);
   const [expanded, setExpanded] = useState<number | null>(null);
 
   function set(arr: typeof items) { onChange("services.items", JSON.stringify(arr)); }
@@ -136,6 +136,20 @@ export function ServicesEditor({ content, onChange }: { content: ContentMap; onC
                   </div>
                   <Field label="Описание" value={item.desc} textarea
                     onChange={v => { const n=[...items]; n[i]={...n[i],desc:v}; set(n); }} />
+                  <ImageUpload
+                    label="Картинка услуги (необязательно — без неё показывается иконка)"
+                    value={item.img || ""}
+                    onChange={url => { const n=[...items]; n[i]={...n[i],img:url}; set(n); }}
+                    maxW={800} maxH={500} aspect="16/9"
+                  />
+                  {item.img && (
+                    <button
+                      onClick={() => { const n=[...items]; n[i]={...n[i],img:""}; set(n); }}
+                      className="text-xs text-gray-500 hover:text-red-500"
+                    >
+                      Убрать картинку и вернуть иконку
+                    </button>
+                  )}
                 </div>
               )}
             </div>
