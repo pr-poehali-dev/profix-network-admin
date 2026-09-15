@@ -90,9 +90,6 @@ def send_email_otp(to_email: str, code: str, phone: str):
     port = int(os.environ["SMTP_PORT"])
     user = os.environ["SMTP_USER"]
     pwd = os.environ["SMTP_PASSWORD"]
-    import hashlib
-    _fp = hashlib.sha256(pwd.encode()).hexdigest()[:8]
-    print(f"[SMTP DIAG] host={host} port={port} user={user} pwd_len={len(pwd)} pwd_fp={_fp}")
 
     msg = MIMEText(
         f"<h2>Ваш код для входа в кабинет ProFiX</h2>"
@@ -107,11 +104,6 @@ def send_email_otp(to_email: str, code: str, phone: str):
 
     if port == 465:
         with smtplib.SMTP_SSL(host, port) as s:
-            try:
-                s.ehlo()
-                print(f"[SMTP DIAG] esmtp_features={s.esmtp_features}")
-            except Exception as diag_e:
-                print(f"[SMTP DIAG] ehlo error: {diag_e}")
             s.login(user, pwd)
             s.sendmail(user, to_email, msg.as_string())
     else:
