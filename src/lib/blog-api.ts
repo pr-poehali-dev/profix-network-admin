@@ -1,11 +1,11 @@
 const BLOG_URL = "https://functions.poehali.dev/8e78593d-eec2-43e8-9176-c5ca7d3712ca";
 
-function authHeader() {
+function authHeader(): Record<string, string> {
   const token = localStorage.getItem("crm_manager_token");
   return token ? { "Authorization": token } : {};
 }
 
-function clientAuthHeader() {
+function clientAuthHeader(): Record<string, string> {
   // Приоритет: клиент → менеджер → техник
   const clientToken = localStorage.getItem("crm_client_token");
   if (clientToken) return { "X-Authorization": `Bearer ${clientToken}` };
@@ -22,19 +22,53 @@ function getSessionId(): string {
   return id;
 }
 
+// Лента новостей меняется редко — кэшируем на 3 минуты и склеиваем
+// одновременные запросы, чтобы не дёргать сервер при каждом переходе.
+const CACHE_TTL = 3 * 60 * 1000;
+const _cache = new Map<string, { at: number; data: unknown }>();
+const _inflight = new Map<string, Promise<unknown>>();
+
+export function invalidateBlogCache() {
+  _cache.clear();
+  _inflight.clear();
+}
+
 async function req(resource: string, method = "GET", body?: object, extra?: Record<string, string>, useClientAuth = false) {
   const url = new URL(BLOG_URL);
   url.searchParams.set("resource", resource);
   if (extra) Object.entries(extra).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString(), {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(useClientAuth ? clientAuthHeader() : authHeader()),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  return res.json();
+  const key = url.toString();
+
+  // Кэшируем только публичные списки постов (не админку и не детали с комментариями)
+  const cacheable = method === "GET" && resource === "posts" && !extra?.id;
+
+  if (cacheable) {
+    const hit = _cache.get(key);
+    if (hit && Date.now() - hit.at < CACHE_TTL) return hit.data;
+    const flying = _inflight.get(key);
+    if (flying) return flying;
+  }
+
+  const run = (async () => {
+    const res = await fetch(key, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(useClientAuth ? clientAuthHeader() : authHeader()),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json();
+    if (cacheable) _cache.set(key, { at: Date.now(), data });
+    return data;
+  })();
+
+  if (cacheable) {
+    _inflight.set(key, run);
+    try { return await run; } finally { _inflight.delete(key); }
+  }
+  if (method !== "GET") invalidateBlogCache();
+  return run;
 }
 
 export interface Post {

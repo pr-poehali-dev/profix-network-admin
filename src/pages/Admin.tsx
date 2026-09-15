@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession, reviewsApi, Ticket, Client, Technician } from "@/lib/crm-api";
+import { useSmartPoll } from "@/hooks/useSmartPoll";
 import AdminLogin from "@/components/admin/AdminLogin";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import {
@@ -62,7 +63,6 @@ export default function Admin() {
   const lastCommentIdRef = useRef<number>(0);
   const lastTicketIdRef = useRef<number>(0);
   const lastReviewIdRef = useRef<number>(0);
-  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [editFields, setEditFields] = useState<EditFields>({
     status: "",
     priority: "",
@@ -328,11 +328,10 @@ export default function Admin() {
       Notification.requestPermission();
     }
 
-    pollIntervalRef.current = setInterval(pollNewComments, 15000);
-    return () => {
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    };
-  }, [loggedIn, pollNewComments]);
+  }, [loggedIn]);
+
+  // Фоновая проверка новых заявок: не работает при свёрнутой вкладке
+  useSmartPoll(pollNewComments, { interval: 20000, enabled: loggedIn });
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 

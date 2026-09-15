@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession, Ticket, STATUS_COLORS, fixiesApi } from "@/lib/crm-api";
 import { shopApi } from "@/lib/shop-api";
+import { useSmartPoll } from "@/hooks/useSmartPoll";
 
 const STATUS_LABELS: Record<string, string> = {
   new: "Новая", in_progress: "В работе", waiting: "Ожидание",
@@ -251,7 +252,6 @@ export default function ManagerApp() {
   const [notifBadge, setNotifBadge] = useState(0);
   const lastTicketIdRef = useRef(0);
   const lastCommentIdRef = useRef(0);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [fixiesBalance, setFixiesBalance] = useState<number | null>(null);
   const [tariffInfo, setTariffInfo] = useState<{name:string;speed_tiers?:{hours:number;fixies:number}[]} | null>(null);
   const [showFixies, setShowFixies] = useState(false);
@@ -296,9 +296,10 @@ export default function ManagerApp() {
   useEffect(() => {
     if (!loggedIn) return;
     if (Notification.permission === "default") Notification.requestPermission();
-    pollRef.current = setInterval(poll, 15000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [loggedIn, poll]);
+  }, [loggedIn]);
+
+  // Фоновая проверка: пауза при свёрнутой вкладке
+  useSmartPoll(poll, { interval: 20000, enabled: loggedIn });
 
   // Проверка токена
   useEffect(() => {

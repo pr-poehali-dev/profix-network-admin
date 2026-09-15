@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { clientApi, clientSession, reviewsApi, Ticket } from "@/lib/crm-api";
+import { useSmartPoll } from "@/hooks/useSmartPoll";
 import CabinetProfile from "@/components/cabinet/CabinetProfile";
 
 import { CabinetLogin } from "./cabinet/CabinetLogin";
@@ -54,7 +55,6 @@ export default function Cabinet() {
   const chatLastIdRef = useRef(0);
   const chatSessionId = useRef(getSessionId());
   const chatBottomRef = useRef<HTMLDivElement>(null);
-  const chatPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
   const [reviewTicketId, setReviewTicketId] = useState<number | undefined>();
@@ -333,16 +333,19 @@ export default function Cabinet() {
         }))]);
         chatLastIdRef.current = data.messages[data.messages.length - 1].id;
         setChatUnread(prev => prev + data.messages.length);
+        return true;
       }
     } catch { /* ignore */ }
+    return false;
   }, []);
 
-  useEffect(() => {
-    if (step !== "cabinet") return;
-    // Чат открыт — чаще (8с), в других разделах — реже (30с)
-    chatPollRef.current = setInterval(pollChat, view === "chat" ? 8000 : 30000);
-    return () => { if (chatPollRef.current) clearInterval(chatPollRef.current); };
-  }, [step, pollChat, view]);
+  // Опрос идёт только при активной вкладке и сам замедляется в тишине
+  useSmartPoll(pollChat, {
+    interval: view === "chat" ? 8000 : 45000,
+    enabled: step === "cabinet",
+    idleSlowdownAfter: view === "chat" ? 120000 : 60000,
+    maxInterval: view === "chat" ? 30000 : 240000,
+  });
 
   useEffect(() => {
     if (view === "chat") {

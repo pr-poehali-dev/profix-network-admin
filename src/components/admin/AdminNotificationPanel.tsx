@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Icon from "@/components/ui/icon";
 import { internalChatApi } from "@/lib/internal-chat-api";
+import { useSmartPoll } from "@/hooks/useSmartPoll";
 
 interface Contact {
   id: number;
@@ -50,7 +51,6 @@ export default function AdminNotificationPanel({ token, role, userId, userName }
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const afterIdRef = useRef(0);
   const clientAfterIdRef = useRef(0);
 
@@ -100,11 +100,10 @@ export default function AdminNotificationPanel({ token, role, userId, userName }
     } catch { /* ignore */ }
   }, [token]);
 
-  useEffect(() => {
-    pollCount();
-    pollRef.current = setInterval(pollCount, 20000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [pollCount]);
+  useEffect(() => { pollCount(); }, [pollCount]);
+
+  // Счётчик уведомлений: при закрытой панели проверяем реже
+  useSmartPoll(pollCount, { interval: open ? 20000 : 45000 });
 
   // Загрузить контакты
   async function loadContacts() {
@@ -153,37 +152,49 @@ export default function AdminNotificationPanel({ token, role, userId, userName }
   }
 
   // Polling новых сообщений в открытом диалоге
-  useEffect(() => {
-    if (!activeContact) return;
-    const t = setInterval(async () => {
-      try {
-        const r = await internalChatApi.getHistory(token, activeContact.role, activeContact.id, afterIdRef.current);
-        const newMsgs: Message[] = r.messages ?? [];
-        if (newMsgs.length) {
-          setMessages(prev => [...prev, ...newMsgs]);
-          afterIdRef.current = newMsgs[newMsgs.length - 1].id;
-          scrollBottom();
-        }
-      } catch { /* ignore */ }
-    }, 8000);
-    return () => clearInterval(t);
+  const pollContactMessages = useCallback(async () => {
+    if (!activeContact) return false;
+    try {
+      const r = await internalChatApi.getHistory(token, activeContact.role, activeContact.id, afterIdRef.current);
+      const newMsgs: Message[] = r.messages ?? [];
+      if (newMsgs.length) {
+        setMessages(prev => [...prev, ...newMsgs]);
+        afterIdRef.current = newMsgs[newMsgs.length - 1].id;
+        scrollBottom();
+        return true;
+      }
+    } catch { /* ignore */ }
+    return false;
   }, [activeContact, token]);
 
-  useEffect(() => {
-    if (!activeSession) return;
-    const t = setInterval(async () => {
-      try {
-        const r = await internalChatApi.getClientHistory(token, activeSession.session_id, clientAfterIdRef.current);
-        const newMsgs: Message[] = r.messages ?? [];
-        if (newMsgs.length) {
-          setClientMessages(prev => [...prev, ...newMsgs]);
-          clientAfterIdRef.current = newMsgs[newMsgs.length - 1].id;
-          scrollBottom();
-        }
-      } catch { /* ignore */ }
-    }, 8000);
-    return () => clearInterval(t);
+  useSmartPoll(pollContactMessages, {
+    interval: 8000,
+    enabled: !!activeContact,
+    idleSlowdownAfter: 120000,
+    maxInterval: 30000,
+  });
+
+  const pollClientMessages = useCallback(async () => {
+    if (!activeSession) return false;
+    try {
+      const r = await internalChatApi.getClientHistory(token, activeSession.session_id, clientAfterIdRef.current);
+      const newMsgs: Message[] = r.messages ?? [];
+      if (newMsgs.length) {
+        setClientMessages(prev => [...prev, ...newMsgs]);
+        clientAfterIdRef.current = newMsgs[newMsgs.length - 1].id;
+        scrollBottom();
+        return true;
+      }
+    } catch { /* ignore */ }
+    return false;
   }, [activeSession, token]);
+
+  useSmartPoll(pollClientMessages, {
+    interval: 8000,
+    enabled: !!activeSession,
+    idleSlowdownAfter: 120000,
+    maxInterval: 30000,
+  });
 
   async function sendInternal() {
     if (!text.trim() || !activeContact || sending) return;

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Icon from "@/components/ui/icon";
 import { managerSession } from "@/lib/crm-api";
 import { tgStaffApi, TechContact, TgMessage } from "@/lib/tg-staff-api";
+import { useSmartPoll } from "@/hooks/useSmartPoll";
 
 function timeAgo(iso: string) {
   const d = new Date(iso);
@@ -38,7 +39,7 @@ export default function AdminTgChat() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastMsgIdRef = useRef(0);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickRef = useRef(0);
 
   const loadTechs = useCallback(async () => {
     const res = await tgStaffApi.list(token);
@@ -79,15 +80,16 @@ export default function AdminTgChat() {
   }, [messages]);
 
   // Polling новых сообщений
-  useEffect(() => {
-    if (!activeTech) { if (pollRef.current) clearInterval(pollRef.current); return; }
-    if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(() => {
-      loadHistory(activeTech.id, lastMsgIdRef.current);
-      loadTechs(); // обновляем счётчики
-    }, 10000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  const pollChat = useCallback(async () => {
+    if (!activeTech) return false;
+    await loadHistory(activeTech.id, lastMsgIdRef.current);
+    // Счётчики обновляем реже — раз в три цикла, они не критичны ко времени
+    tickRef.current = (tickRef.current + 1) % 3;
+    if (tickRef.current === 0) await loadTechs();
+    return false;
   }, [activeTech, loadHistory, loadTechs]);
+
+  useSmartPoll(pollChat, { interval: 12000, enabled: !!activeTech });
 
   function selectTech(tech: TechContact) {
     setActiveTech(tech);

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Icon from "@/components/ui/icon";
 import { managerSession } from "@/lib/crm-api";
 import { tgStaffApi, TechContact, TgMessage, StaffTask } from "@/lib/tg-staff-api";
+import { useSmartPoll } from "@/hooks/useSmartPoll";
 
 // ── утилиты ──────────────────────────────────────────────────────────────────
 function timeAgo(iso: string) {
@@ -70,7 +71,7 @@ export default function AdminStaffHub() {
   const [pendingFile, setPendingFile] = useState<{ b64: string; name: string; mime: string; preview?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastMsgIdRef   = useRef(0);
-  const pollRef        = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickRef        = useRef(0);
   const fileInputRef   = useRef<HTMLInputElement>(null);
 
   // ── Задачи ────────────────────────────────────────────────────────────────
@@ -145,17 +146,18 @@ export default function AdminStaffHub() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  useEffect(() => {
-    const active = chatMode === "group" || activeTech;
-    if (!active || activeTab !== "chat") { if (pollRef.current) clearInterval(pollRef.current); return; }
-    if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(() => {
-      const techId = chatMode === "group" ? null : activeTech?.id ?? null;
-      if (techId !== null || chatMode === "group") loadHistory(techId, lastMsgIdRef.current);
-      loadTechs();
-    }, 10000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [activeTech, chatMode, activeTab, loadHistory, loadTechs]);
+  const chatActive = (chatMode === "group" || !!activeTech) && activeTab === "chat";
+
+  const pollChat = useCallback(async () => {
+    const techId = chatMode === "group" ? null : activeTech?.id ?? null;
+    if (techId !== null || chatMode === "group") await loadHistory(techId, lastMsgIdRef.current);
+    // Счётчики обновляем раз в три цикла — они не критичны ко времени
+    tickRef.current = (tickRef.current + 1) % 3;
+    if (tickRef.current === 0) await loadTechs();
+    return false;
+  }, [activeTech, chatMode, loadHistory, loadTechs]);
+
+  useSmartPoll(pollChat, { interval: 12000, enabled: chatActive });
 
   function selectTech(tech: TechContact) {
     setChatMode("tech"); setActiveTech(tech); setMessages([]); lastMsgIdRef.current = 0; setChatText(""); setPendingFile(null);

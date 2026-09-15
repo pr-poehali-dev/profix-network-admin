@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Icon from "@/components/ui/icon";
+import { useSmartPoll } from "@/hooks/useSmartPoll";
+
+const CHAT_STARTED_KEY = "profix_chat_started";
 
 interface Message {
   id?: number;
@@ -52,10 +55,14 @@ const ChatWidget = () => {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [hasNew, setHasNew] = useState(false);
+  // Пока посетитель не написал ни одного сообщения, отвечать ему некому —
+  // значит и опрашивать сервер незачем.
+  const [conversationStarted, setConversationStarted] = useState(
+    () => localStorage.getItem(CHAT_STARTED_KEY) === "1",
+  );
   const lastIdRef = useRef(0);
   const sessionId = useRef(getSessionId());
   const bottomRef = useRef<HTMLDivElement>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -79,21 +86,30 @@ const ChatWidget = () => {
         ]);
         lastIdRef.current = data.messages[data.messages.length - 1].id;
         if (!open) setHasNew(true);
+        return true;
       }
     } catch (_e) { /* ignore */ }
+    return false;
   }, [open]);
 
-  useEffect(() => {
-    // Чат открыт — опрашиваем чаще (8с), закрыт — редко (30с), чтобы экономить вычисления
-    pollRef.current = setInterval(pollMessages, open ? 8000 : 30000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [pollMessages, open]);
+  // Опрашиваем сервер только когда есть смысл: вкладка активна и разговор начат.
+  // Пока посетитель молчит — интервал сам растягивается, экономя вызовы.
+  useSmartPoll(pollMessages, {
+    interval: open ? 8000 : 45000,
+    enabled: conversationStarted,
+    idleSlowdownAfter: open ? 120000 : 60000,
+    maxInterval: open ? 30000 : 240000,
+  });
 
   useEffect(() => {
     if (open) setHasNew(false);
   }, [open]);
 
   const sendToBackend = (text: string) => {
+    if (!conversationStarted) {
+      setConversationStarted(true);
+      localStorage.setItem(CHAT_STARTED_KEY, "1");
+    }
     fetch(CHAT_SEND_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

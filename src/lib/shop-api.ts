@@ -51,21 +51,56 @@ export interface CartItem {
   qty: number;
 }
 
-function authHeader() {
+function authHeader(): Record<string, string> {
   const token = localStorage.getItem("crm_manager_token");
   return token ? { "Authorization": token } : {};
+}
+
+// Кэш витрины: товары и категории меняются редко, а страницы магазина
+// открывают часто. Держим ответ 3 минуты и склеиваем одновременные запросы.
+const CACHE_TTL = 3 * 60 * 1000;
+const _cache = new Map<string, { at: number; data: unknown }>();
+const _inflight = new Map<string, Promise<unknown>>();
+
+/** Сбрасывает кэш витрины — вызывается после любого изменения в админке */
+export function invalidateShopCache() {
+  _cache.clear();
+  _inflight.clear();
 }
 
 async function req(type: string, method = "GET", body?: object, extra?: Record<string, string>) {
   const url = new URL(SHOP_URL);
   url.searchParams.set("type", type);
   if (extra) Object.entries(extra).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString(), {
-    method,
-    headers: { "Content-Type": "application/json", ...authHeader() },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  return res.json();
+
+  // Кэшируем только публичное чтение витрины (не админку)
+  const cacheable = method === "GET" && !extra?.admin && !authHeader().Authorization;
+  const key = url.toString();
+
+  if (cacheable) {
+    const hit = _cache.get(key);
+    if (hit && Date.now() - hit.at < CACHE_TTL) return hit.data;
+    const flying = _inflight.get(key);
+    if (flying) return flying;
+  }
+
+  const run = (async () => {
+    const res = await fetch(key, {
+      method,
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json();
+    if (cacheable) _cache.set(key, { at: Date.now(), data });
+    return data;
+  })();
+
+  if (cacheable) {
+    _inflight.set(key, run);
+    try { return await run; } finally { _inflight.delete(key); }
+  }
+  if (method !== "GET") invalidateShopCache();
+  return run;
 }
 
 export const shopApi = {

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/image-compress";
+import { useSmartPoll } from "@/hooks/useSmartPoll";
 import { techApi, techSession, Ticket, fixiesApi } from "@/lib/crm-api";
 import TotpBlock from "@/components/TotpBlock";
 import AdminNotificationPanel from "@/components/admin/AdminNotificationPanel";
@@ -52,7 +53,6 @@ export default function TechPortal() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
   const coverRef = useRef<HTMLInputElement>(null);
-  const pollTicketRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const selectedTicketIdRef = useRef<number | null>(null);
 
   // PWA установка
@@ -209,27 +209,29 @@ export default function TechPortal() {
     selectedTicketIdRef.current = selectedTicket?.id ?? null;
   }, [selectedTicket?.id]);
 
-  useEffect(() => {
-    if (!selectedTicket) {
-      if (pollTicketRef.current) clearInterval(pollTicketRef.current);
-      return;
-    }
-    pollTicketRef.current = setInterval(async () => {
-      const id = selectedTicketIdRef.current;
-      if (!id) return;
-      try {
-        const res = await techApi.getTicket(id);
-        if (res.ticket) {
-          const newComments = res.ticket.comments?.length ?? 0;
-          const oldComments = selectedTicket?.comments?.length ?? 0;
-          if (newComments > oldComments) {
-            setSelectedTicket(res.ticket);
-          }
+  const pollTicket = useCallback(async () => {
+    const id = selectedTicketIdRef.current;
+    if (!id) return false;
+    try {
+      const res = await techApi.getTicket(id);
+      if (res.ticket) {
+        const newComments = res.ticket.comments?.length ?? 0;
+        const oldComments = selectedTicket?.comments?.length ?? 0;
+        if (newComments > oldComments) {
+          setSelectedTicket(res.ticket);
+          return true;
         }
-      } catch { /* ignore */ }
-    }, 20000);
-    return () => { if (pollTicketRef.current) clearInterval(pollTicketRef.current); };
-  }, [selectedTicket?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+      }
+    } catch { /* ignore */ }
+    return false;
+  }, [selectedTicket?.comments?.length]);
+
+  useSmartPoll(pollTicket, {
+    interval: 20000,
+    enabled: !!selectedTicket,
+    idleSlowdownAfter: 180000,
+    maxInterval: 60000,
+  });
 
   function handleLogout() {
     techSession.clear();
