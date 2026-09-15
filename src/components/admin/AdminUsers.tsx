@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession } from "@/lib/crm-api";
 import { saveContent, fetchContent } from "@/lib/content-api";
+import { compressImage, stripDataUrl } from "@/lib/image-compress";
 
 interface Manager {
   id: number; login: string; name: string; role: string;
@@ -219,16 +220,15 @@ export default function AdminUsers({ currentManagerRole }: { currentManagerRole?
     setEditData(d);
   }
 
-  function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const dataUrl = ev.target?.result as string;
-      const b64 = dataUrl.split(",")[1];
-      setPendingAvatar({ b64, mime: file.type, preview: dataUrl });
-    };
-    reader.readAsDataURL(file);
     e.target.value = "";
+    try {
+      const dataUrl = await compressImage(file, "avatar");
+      setPendingAvatar({ b64: stripDataUrl(dataUrl), mime: "image/jpeg", preview: dataUrl });
+    } catch (err) {
+      flash(err instanceof Error ? err.message : "Не удалось обработать фото", false);
+    }
   }
 
   async function saveEdit() {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession } from "@/lib/crm-api";
 import { tgStaffApi } from "@/lib/tg-staff-api";
+import { compressImage } from "@/lib/image-compress";
 
 interface Profile {
   id: number; role: string; name: string; login: string;
@@ -110,37 +111,37 @@ export default function AdminDashboardProfile({ manager, onManagerUpdate, onSect
 
   async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
+    e.target.value = "";
     setAU(true);
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      const b64 = (ev.target?.result as string).split(",")[1];
-      const res = await managerApi.updateProfile({ avatar_url: `data:${file.type};base64,${b64}` });
+    try {
+      const dataUrl = await compressImage(file, "avatar");
+      const res = await managerApi.updateProfile({ avatar_url: dataUrl });
       if (res.updated && res.manager?.avatar_url) {
         setProfile(p => p ? { ...p, avatar_url: res.manager.avatar_url } : p);
         if (res.manager) onManagerUpdate(res.manager);
         flash("Фото обновлено");
       } else flash(res.error || "Не удалось загрузить фото", false);
-      setAU(false);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
+    } catch (err) {
+      flash(err instanceof Error ? err.message : "Не удалось загрузить фото", false);
+    }
+    setAU(false);
   }
 
   async function handleCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
+    e.target.value = "";
     setCU(true);
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      const dataUrl = ev.target?.result as string;
+    try {
+      const dataUrl = await compressImage(file, "cover");
       const res = await managerApi.updateProfile({ cover_url: dataUrl });
       if (res.updated && res.manager?.cover_url) {
         setProfile(p => p ? { ...p, cover_url: res.manager.cover_url } : p);
         flash("Шапка обновлена");
       } else flash(res.error || "Ошибка загрузки", false);
-      setCU(false);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
+    } catch (err) {
+      flash(err instanceof Error ? err.message : "Ошибка загрузки", false);
+    }
+    setCU(false);
   }
 
   async function handleCoverReset() {

@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { clientApi } from "@/lib/crm-api";
 import { onPhoneChange } from "@/lib/phone";
+import { compressImage, stripDataUrl } from "@/lib/image-compress";
 import TotpBlock from "@/components/TotpBlock";
 
 const BOT_USERNAME = "ProFiXBot";
@@ -79,46 +80,42 @@ export default function CabinetProfile({ client, onBack, onClientUpdate }: Props
   async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setAvatarUploading(true);
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      const b64 = (ev.target?.result as string).split(",")[1];
-      try {
-        const res = await clientApi.uploadAvatar(b64, file.type);
-        if (res.avatar_url) {
-          setAvatarUrl(res.avatar_url);
-          onClientUpdate({ ...client, avatar_url: res.avatar_url });
-        } else {
-          setSaveError(res.error || "Ошибка загрузки аватара");
-        }
-      } catch {
-        setSaveError("Ошибка соединения при загрузке аватара");
-      }
-      finally { setAvatarUploading(false); }
-    };
-    reader.readAsDataURL(file);
     e.target.value = "";
+    setAvatarUploading(true);
+    try {
+      const dataUrl = await compressImage(file, "avatar");
+      const res = await clientApi.uploadAvatar(stripDataUrl(dataUrl), "image/jpeg");
+      if (res.avatar_url) {
+        setAvatarUrl(res.avatar_url);
+        onClientUpdate({ ...client, avatar_url: res.avatar_url });
+        setSaveError("");
+      } else {
+        setSaveError(res.error || "Ошибка загрузки аватара");
+      }
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Ошибка загрузки аватара");
+    }
+    setAvatarUploading(false);
   }
 
   // ── Обложка (шапка профиля) ───────────────────────────────────────────────
   async function handleCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setCoverUploading(true);
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      const dataUrl = ev.target?.result as string;
-      try {
-        const res = await clientApi.updateProfile({ cover_url: dataUrl });
-        if (res.client?.cover_url) {
-          setCoverUrl(res.client.cover_url);
-          onClientUpdate({ ...client, cover_url: res.client.cover_url });
-        } else setSaveError(res.error || "Ошибка загрузки шапки");
-      } catch { setSaveError("Ошибка соединения при загрузке шапки"); }
-      finally { setCoverUploading(false); }
-    };
-    reader.readAsDataURL(file);
     e.target.value = "";
+    setCoverUploading(true);
+    try {
+      const dataUrl = await compressImage(file, "cover");
+      const res = await clientApi.updateProfile({ cover_url: dataUrl });
+      if (res.client?.cover_url) {
+        setCoverUrl(res.client.cover_url);
+        onClientUpdate({ ...client, cover_url: res.client.cover_url });
+        setSaveError("");
+      } else setSaveError(res.error || "Ошибка загрузки шапки");
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Ошибка загрузки шапки");
+    }
+    setCoverUploading(false);
   }
 
   async function handleCoverReset() {

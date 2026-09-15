@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/image-compress";
 import { techApi, techSession, Ticket, fixiesApi } from "@/lib/crm-api";
 import TotpBlock from "@/components/TotpBlock";
 import AdminNotificationPanel from "@/components/admin/AdminNotificationPanel";
@@ -242,26 +243,22 @@ export default function TechPortal() {
 
   async function handleCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
-    setCoverUploading(true);
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      const dataUrl = ev.target?.result as string;
-      try {
-        const token = techSession.get()!;
-        const res = await fetch("https://functions.poehali.dev/a3decca2-32fb-4b22-afa1-ee84dd376752", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify({ action: "technician_update_cover", cover_url: dataUrl }),
-        }).then(r => r.json());
-        if (res.updated) setTech(t => t ? { ...t, cover_url: res.cover_url } : t);
-        else toast.error(res.error || "Не удалось загрузить фон");
-      } catch {
-        toast.error("Не удалось загрузить фон");
-      }
-      finally { setCoverUploading(false); }
-    };
-    reader.readAsDataURL(file);
     e.target.value = "";
+    setCoverUploading(true);
+    try {
+      const dataUrl = await compressImage(file, "cover");
+      const token = techSession.get()!;
+      const res = await fetch("https://functions.poehali.dev/a3decca2-32fb-4b22-afa1-ee84dd376752", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ action: "technician_update_cover", cover_url: dataUrl }),
+      }).then(r => r.json());
+      if (res.updated) setTech(t => t ? { ...t, cover_url: res.cover_url } : t);
+      else toast.error(res.error || "Не удалось загрузить фон");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Не удалось загрузить фон");
+    }
+    setCoverUploading(false);
   }
 
   async function handleCoverReset() {

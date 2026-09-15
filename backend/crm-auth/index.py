@@ -42,6 +42,61 @@ def storage_error_text(e: Exception) -> str:
     return f"Не удалось сохранить изображение: {msg}"
 
 
+MAX_INLINE_IMAGE_BYTES = 700 * 1024
+
+
+def save_image(data_url_or_b64: str, key_prefix: str, mime_hint: str = "") -> str:
+    """Сохраняет картинку: сначала в S3, при отказе — прямо в БД (data-URL).
+
+    Принимает data-URL ("data:image/png;base64,....") или чистый base64 вместе
+    с mime_hint. Возвращает строку для записи в колонку: ссылку на CDN либо
+    сам data-URL. Бросает ValueError с понятным текстом, если сохранить нельзя.
+    """
+    import base64 as _b64, uuid as _uuid
+
+    raw_value = (data_url_or_b64 or "").strip()
+    if not raw_value:
+        raise ValueError("Нет изображения")
+
+    if raw_value.startswith("data:"):
+        header, b64data = raw_value.split(",", 1)
+        mime = header.split(":")[1].split(";")[0]
+    else:
+        b64data = raw_value
+        mime = mime_hint or "image/jpeg"
+
+    try:
+        binary = _b64.b64decode(b64data)
+    except Exception:
+        raise ValueError("Файл повреждён или имеет неверный формат")
+
+    if not binary:
+        raise ValueError("Нет изображения")
+
+    ext = "jpg" if "jpeg" in mime else mime.split("/")[-1]
+
+    try:
+        import boto3 as _boto3
+        s3 = _boto3.client(
+            "s3", endpoint_url="https://bucket.poehali.dev",
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+        )
+        key = f"{key_prefix}_{_uuid.uuid4().hex[:8]}.{ext}"
+        s3.put_object(Bucket="files", Key=key, Body=binary, ContentType=mime)
+        return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+    except Exception as e:
+        print(f"[STORAGE FALLBACK] {key_prefix}: {e}")
+
+    if len(binary) > MAX_INLINE_IMAGE_BYTES:
+        raise ValueError(
+            "Файл слишком большой. Загрузите изображение поменьше — "
+            "до 700 КБ."
+        )
+
+    return f"data:{mime};base64,{b64data}"
+
+
 def hash_password(pw: str) -> str:
     return hashlib.sha256(pw.encode()).hexdigest()
 
@@ -619,28 +674,26 @@ def handler(event: dict, context) -> dict:
         if socials is not None:
             sets.append("socials = %s"); vals.append(json.dumps(socials, ensure_ascii=False))
         if avatar_url is not None:
-            sets.append("avatar_url = %s"); vals.append(avatar_url or None)
-        # Обложка профиля — data-URL (загружаем в S3), https URL или пустая строка (сброс)
+            if avatar_url == "":
+                sets.append("avatar_url = %s"); vals.append(None)
+            elif avatar_url.startswith("data:"):
+                try:
+                    sets.append("avatar_url = %s")
+                    vals.append(save_image(avatar_url, f"avatars/client_{client_id}"))
+                except ValueError as e:
+                    conn.close(); return err(str(e))
+            else:
+                sets.append("avatar_url = %s"); vals.append(avatar_url)
+        # Обложка профиля — data-URL, https URL или пустая строка (сброс)
         if cover_url is not None:
             if cover_url == "":
                 sets.append("cover_url = %s"); vals.append(None)
             elif cover_url.startswith("data:"):
-                import base64 as _b64cl, boto3 as _boto3cl, uuid as _uuidcl
                 try:
-                    header, b64data = cover_url.split(",", 1)
-                    mime = header.split(":")[1].split(";")[0]
-                    ext = "jpg" if "jpeg" in mime else mime.split("/")[-1]
-                    key = f"covers/client_{client_id}_{_uuidcl.uuid4().hex[:8]}.{ext}"
-                    s3 = _boto3cl.client("s3", endpoint_url="https://bucket.poehali.dev",
-                        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-                        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
-                    s3.put_object(Bucket="files", Key=key, Body=_b64cl.b64decode(b64data), ContentType=mime)
-                    saved_cover = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
-                    sets.append("cover_url = %s"); vals.append(saved_cover)
-                except Exception as e:
-                    print(f"[COVER ERROR] {e}")
-                    conn.close()
-                    return err(storage_error_text(e), 507)
+                    sets.append("cover_url = %s")
+                    vals.append(save_image(cover_url, f"covers/client_{client_id}"))
+                except ValueError as e:
+                    conn.close(); return err(str(e))
             elif cover_url.startswith("https://"):
                 sets.append("cover_url = %s"); vals.append(cover_url)
         sets.append("updated_at = NOW()")
@@ -664,8 +717,6 @@ def handler(event: dict, context) -> dict:
 
     # ── КЛИЕНТ: загрузка аватара ─────────────────────────────────────────────
     if action == "client_upload_avatar":
-        import base64 as b64mod
-        import boto3, uuid as uuidmod
         auth = (event.get("headers") or {}).get("X-Authorization", "") or \
                (event.get("headers") or {}).get("Authorization", "")
         token = auth.replace("Bearer ", "").strip()
@@ -682,21 +733,12 @@ def handler(event: dict, context) -> dict:
         if not image_b64:
             conn.close(); return err("Нет изображения")
         try:
-            s3 = boto3.client(
-                "s3", endpoint_url="https://bucket.poehali.dev",
-                aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-                aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
-            )
-            ext = "jpg" if "jpeg" in image_type else image_type.split("/")[-1]
-            key = f"avatars/client_{client_id}_{uuidmod.uuid4().hex[:8]}.{ext}"
-            s3.put_object(Bucket="files", Key=key, Body=b64mod.b64decode(image_b64), ContentType=image_type)
-            avatar_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
-            cur.execute(f"UPDATE {SC}.clients SET avatar_url=%s WHERE id=%s", (avatar_url, client_id))
-            conn.commit(); cur.close(); conn.close()
-            return ok({"avatar_url": avatar_url})
-        except Exception as e:
-            print(f"[AVATAR ERROR] {e}")
-            conn.close(); return err(storage_error_text(e), 507)
+            avatar_url = save_image(image_b64, f"avatars/client_{client_id}", image_type)
+        except ValueError as e:
+            conn.close(); return err(str(e))
+        cur.execute(f"UPDATE {SC}.clients SET avatar_url=%s WHERE id=%s", (avatar_url, client_id))
+        conn.commit(); cur.close(); conn.close()
+        return ok({"avatar_url": avatar_url})
 
     # ── МЕНЕДЖЕР: обновление профиля (имя, логин, email, пароль) ────────────
     if action == "manager_update_profile":
@@ -761,22 +803,11 @@ def handler(event: dict, context) -> dict:
         saved_avatar_url = None
         if raw_avatar:
             if raw_avatar.startswith("data:"):
-                import base64 as _b64, boto3 as _boto3, uuid as _uuid
                 try:
-                    header, b64data = raw_avatar.split(",", 1)
-                    mime = header.split(":")[1].split(";")[0]
-                    ext = "jpg" if "jpeg" in mime else mime.split("/")[-1]
-                    key = f"avatars/mgr_{mgr_id}_{_uuid.uuid4().hex[:8]}.{ext}"
-                    s3 = _boto3.client("s3", endpoint_url="https://bucket.poehali.dev",
-                        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-                        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
-                    s3.put_object(Bucket="files", Key=key, Body=_b64.b64decode(b64data), ContentType=mime)
-                    saved_avatar_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
+                    saved_avatar_url = save_image(raw_avatar, f"avatars/mgr_{mgr_id}")
                     sets += ["avatar_url=%s"]; vals += [saved_avatar_url]
-                except Exception as e:
-                    print(f"[AVATAR ERROR] {e}")
-                    conn.close()
-                    return err(storage_error_text(e), 507)
+                except ValueError as e:
+                    conn.close(); return err(str(e))
             elif raw_avatar.startswith("https://"):
                 sets += ["avatar_url=%s"]; vals += [raw_avatar]
 
@@ -786,22 +817,11 @@ def handler(event: dict, context) -> dict:
             if raw_cover == "":
                 sets += ["cover_url=%s"]; vals += [None]
             elif raw_cover.startswith("data:"):
-                import base64 as _b64c, boto3 as _boto3c, uuid as _uuidc
                 try:
-                    header, b64data = raw_cover.split(",", 1)
-                    mime = header.split(":")[1].split(";")[0]
-                    ext = "jpg" if "jpeg" in mime else mime.split("/")[-1]
-                    key = f"covers/mgr_{mgr_id}_{_uuidc.uuid4().hex[:8]}.{ext}"
-                    s3 = _boto3c.client("s3", endpoint_url="https://bucket.poehali.dev",
-                        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-                        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
-                    s3.put_object(Bucket="files", Key=key, Body=_b64c.b64decode(b64data), ContentType=mime)
-                    cover_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
-                    sets += ["cover_url=%s"]; vals += [cover_url]
-                except Exception as e:
-                    print(f"[COVER ERROR] {e}")
-                    conn.close()
-                    return err(storage_error_text(e), 507)
+                    sets += ["cover_url=%s"]
+                    vals += [save_image(raw_cover, f"covers/mgr_{mgr_id}")]
+                except ValueError as e:
+                    conn.close(); return err(str(e))
             elif raw_cover.startswith("https://"):
                 sets += ["cover_url=%s"]; vals += [raw_cover]
 
@@ -1406,21 +1426,11 @@ def handler(event: dict, context) -> dict:
                     sets.append(f"{col}=%s"); vals.append(body[f])
         # Аватар
         if body.get("avatar_b64") and body.get("avatar_mime"):
-            import base64 as _b64, uuid as _uuid, boto3
-            raw = _b64.b64decode(body["avatar_b64"])
-            ext = body["avatar_mime"].split("/")[-1]
-            key = f"avatars/tech_{tech_id}_{_uuid.uuid4()}.{ext}"
-            s3 = boto3.client("s3", endpoint_url="https://bucket.poehali.dev",
-                aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-                aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
             try:
-                s3.put_object(Bucket="files", Key=key, Body=raw, ContentType=body["avatar_mime"])
-                avatar_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
-                sets.append("avatar_url=%s"); vals.append(avatar_url)
-            except Exception as e:
-                print(f"[AVATAR ERROR] {e}")
-                conn.close()
-                return err(storage_error_text(e), 507)
+                sets.append("avatar_url=%s")
+                vals.append(save_image(body["avatar_b64"], f"avatars/tech_{tech_id}", body["avatar_mime"]))
+            except ValueError as e:
+                conn.close(); return err(str(e))
         if not sets:
             conn.close(); return err("Нечего обновлять")
         vals.append(tech_id)
@@ -1539,23 +1549,13 @@ def handler(event: dict, context) -> dict:
             conn.commit(); cur.close(); conn.close()
             return ok({"updated": True, "cover_url": None})
         elif raw_cover.startswith("data:"):
-            import base64 as _b64t, boto3 as _boto3t, uuid as _uuidt
             try:
-                header, b64data = raw_cover.split(",", 1)
-                mime = header.split(":")[1].split(";")[0]
-                ext = "jpg" if "jpeg" in mime else mime.split("/")[-1]
-                key = f"covers/tech_{tech_id}_{_uuidt.uuid4().hex[:8]}.{ext}"
-                s3 = _boto3t.client("s3", endpoint_url="https://bucket.poehali.dev",
-                    aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-                    aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
-                s3.put_object(Bucket="files", Key=key, Body=_b64t.b64decode(b64data), ContentType=mime)
-                cover_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
-                cur.execute(f"UPDATE {SC}.technicians SET cover_url=%s WHERE id=%s", (cover_url, tech_id))
-                conn.commit(); cur.close(); conn.close()
-                return ok({"updated": True, "cover_url": cover_url})
-            except Exception as e:
-                print(f"[COVER ERROR] {e}")
-                conn.close(); return err(storage_error_text(e), 507)
+                cover_url = save_image(raw_cover, f"covers/tech_{tech_id}")
+            except ValueError as e:
+                conn.close(); return err(str(e))
+            cur.execute(f"UPDATE {SC}.technicians SET cover_url=%s WHERE id=%s", (cover_url, tech_id))
+            conn.commit(); cur.close(); conn.close()
+            return ok({"updated": True, "cover_url": cover_url})
         elif raw_cover.startswith("https://"):
             cur.execute(f"UPDATE {SC}.technicians SET cover_url=%s WHERE id=%s", (raw_cover, tech_id))
             conn.commit(); cur.close(); conn.close()

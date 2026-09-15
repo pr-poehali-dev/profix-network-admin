@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession } from "@/lib/crm-api";
 import { onPhoneChange } from "@/lib/phone";
+import { compressImage } from "@/lib/image-compress";
 import TotpBlock from "@/components/TotpBlock";
 
 type Manager = { id: number; name: string; role: string };
@@ -36,25 +37,21 @@ export default function AdminProfile({ manager, onManagerUpdate, onBack }: Props
   async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setAvatarUploading(true);
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      const b64 = (ev.target?.result as string).split(",")[1];
-      try {
-        const res = await managerApi.updateProfile({ avatar_url: `data:${file.type};base64,${b64}` });
-        if (res.updated && res.manager?.avatar_url) {
-          setAvatarUrl(res.manager.avatar_url);
-          setError("");
-        } else {
-          setError(res.error || "Не удалось загрузить фото");
-        }
-      } catch {
-        setError("Не удалось загрузить фото");
-      }
-      finally { setAvatarUploading(false); }
-    };
-    reader.readAsDataURL(file);
     e.target.value = "";
+    setAvatarUploading(true);
+    try {
+      const dataUrl = await compressImage(file, "avatar");
+      const res = await managerApi.updateProfile({ avatar_url: dataUrl });
+      if (res.updated && res.manager?.avatar_url) {
+        setAvatarUrl(res.manager.avatar_url);
+        setError("");
+      } else {
+        setError(res.error || "Не удалось загрузить фото");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось загрузить фото");
+    }
+    setAvatarUploading(false);
   }
 
   async function handleSave() {
