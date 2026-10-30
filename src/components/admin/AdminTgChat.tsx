@@ -61,7 +61,7 @@ export default function AdminTgChat() {
       } else {
         setMessages(prev => {
           const ids = new Set(prev.map(m => m.id));
-          const newMsgs = res.messages.filter(m => !ids.has(m.id));
+          const newMsgs = (res.messages as TgMessage[]).filter(m => !ids.has(m.id));
           if (newMsgs.length) {
             lastMsgIdRef.current = newMsgs[newMsgs.length - 1].id;
             // Обновляем счётчик unread в списке спецов

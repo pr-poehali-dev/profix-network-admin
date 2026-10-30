@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import { shopApi, cart, Product } from "@/lib/shop-api";
 import CartDrawer from "@/components/CartDrawer";
@@ -71,10 +71,11 @@ export default function ShopPreview() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(cart.count());
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     const reload = () => setCartCount(cart.count());
+    reload();
     window.addEventListener("cart-updated", reload);
     return () => window.removeEventListener("cart-updated", reload);
   }, []);

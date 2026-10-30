@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import { PUBLIC_API_URL, managerApi, managerSession } from "@/lib/crm-api";
 
@@ -164,7 +164,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function ApiDocs() {
   const navigate = useNavigate();
-  const isManager = !!managerSession.get();
+  const [isManager, setIsManager] = useState(false);
+  useEffect(() => { setIsManager(!!managerSession.get()); }, []);
 
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loadingKeys, setLoadingKeys] = useState(false);

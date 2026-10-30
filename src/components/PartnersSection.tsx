@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import logoAtol from "@/assets/partners/atol.png";
 import logoDatamobile from "@/assets/partners/datamobile.svg";

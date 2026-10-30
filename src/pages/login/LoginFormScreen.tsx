@@ -1,7 +1,7 @@
 import Icon from "@/components/ui/icon";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { onPhoneChange } from "@/lib/phone";
-import { Role, AuthMethod } from "./LoginTypes";
+import { Role, AuthMethod, Screen } from "./LoginTypes";
 
 interface Props {
   role: Role;
@@ -62,7 +62,7 @@ interface Props {
   handleTechPasswordLogin: () => void;
 
   setError: (v: string) => void;
-  setScreen: (s: string) => void;
+  setScreen: (s: Screen) => void;
   back: () => void;
 }
 

@@ -302,7 +302,7 @@ export function applyTheme(theme: SiteTheme) {
   root.style.setProperty("--accent", hsl);
   root.style.setProperty("--radius", `${theme.radius}rem`);
   root.style.setProperty("--profix-color", theme.primaryHex);
-  (window as Record<string, unknown>).__PROFIX_PRIMARY = theme.primaryHex;
+  (window as unknown as Record<string, unknown>).__PROFIX_PRIMARY = theme.primaryHex;
 
   // 3. Патч inline-стилей + observer
   const run = () => {

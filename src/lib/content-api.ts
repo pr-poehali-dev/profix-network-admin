@@ -15,20 +15,22 @@ export async function fetchContent(): Promise<ContentMap> {
   // Запрос уже летит — ждём его, не плодим дубли
   if (_inflight) return _inflight;
 
-  _inflight = (async () => {
+  const p: Promise<ContentMap> = (async () => {
     try {
       const res = await fetch(CONTENT_URL);
       const d = await res.json();
-      _cache = d.content || {};
+      const content: ContentMap = d.content || {};
+      _cache = content;
       _cacheTime = Date.now();
-      return _cache;
+      return content;
     } catch {
       return _cache || {};
     } finally {
       _inflight = null;
     }
   })();
-  return _inflight;
+  _inflight = p;
+  return p;
 }
 
 export function invalidateContent() { _cache = null; _cacheTime = 0; }

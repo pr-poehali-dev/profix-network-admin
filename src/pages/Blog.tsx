@@ -1,23 +1,28 @@
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "@/lib/router-compat";
 import { blogApi, Post } from "@/lib/blog-api";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { clientSession, clientApi } from "@/lib/crm-api";
 import { BlogPostDetail } from "./Blog_PostDetail";
 import { BlogPostList } from "./Blog_PostList";
 
-export default function Blog() {
+export default function Blog({ initialPost = null }: { initialPost?: Post | null }) {
   const { id } = useParams<{ id?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { str } = useSiteContent();
 
   const [posts, setPosts] = useState<Post[]>([]);
-  const [post, setPost]   = useState<Post | null>(null);
+  const [post, setPost]   = useState<Post | null>(initialPost);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState(searchParams.get("type") || "all");
   // При возврате из поста — восстанавливаем filter нужного типа
-  const restoredType = sessionStorage.getItem("blog_scroll_type");
-  const [filter, setFilter] = useState(searchParams.get("type") || (restoredType ? restoredType : "all"));
-  const [reactions, setReactions] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (searchParams.get("type")) return;
+    const restoredType = sessionStorage.getItem("blog_scroll_type");
+    if (restoredType) setFilter(restoredType);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [reactions, setReactions] = useState<Record<string, number>>(initialPost?.reactions || {});
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [reactionsMap, setReactionsMap] = useState<Record<number, Record<string, number>>>({});
@@ -51,9 +56,11 @@ export default function Blog() {
         .then(r => { if (r.post) { setPost(r.post); setReactions(r.post.reactions || {}); } })
         .finally(() => setLoading(false));
     } else {
+      let cancelled = false;
       setLoading(true);
       blogApi.getPosts(filter === "all" ? undefined : filter)
         .then(r => {
+          if (cancelled) return;
           if (r.posts) {
             setPosts(r.posts);
             // Инициализируем reactionsMap из данных постов
@@ -62,7 +69,8 @@ export default function Blog() {
             setReactionsMap(rm);
           }
         })
-        .finally(() => setLoading(false));
+        .finally(() => { if (!cancelled) setLoading(false); });
+      return () => { cancelled = true; };
     }
   }, [id, filter]);
 

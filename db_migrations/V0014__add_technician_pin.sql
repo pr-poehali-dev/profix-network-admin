@@ -1,1 +1,0 @@
-ALTER TABLE technicians ADD COLUMN IF NOT EXISTS pin_code VARCHAR(6);

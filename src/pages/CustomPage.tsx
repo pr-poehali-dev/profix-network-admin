@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import { useParams, useNavigate } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import { pagesApi, CustomPage, PageBlock } from "@/lib/pages-api";
 import CartDrawer from "@/components/CartDrawer";
@@ -228,20 +227,25 @@ function RenderBlock({ block, accent }: { block: PageBlock; accent: string }) {
 
 // ── Страница ──────────────────────────────────────────────────────────────────
 
-export default function CustomPageView() {
+export default function CustomPageView({ initialPage = null }: { initialPage?: CustomPage | null }) {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [page, setPage] = useState<CustomPage | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState<CustomPage | null>(initialPage);
+  const [loading, setLoading] = useState(!initialPage);
   const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
+    if (initialPage && initialPage.slug === slug) {
+      setPage(initialPage);
+      setLoading(false);
+      return;
+    }
     pagesApi.get(slug).then(r => {
       if (r.page) setPage(r.page);
       setLoading(false);
     });
-  }, [slug]);
+  }, [slug, initialPage]);
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[#F7F9FC]">
@@ -261,10 +265,6 @@ export default function CustomPageView() {
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos">
-      <Helmet>
-        <title>{page.title} — ПРОФИКС</title>
-        {page.meta_desc && <meta name="description" content={page.meta_desc} />}
-      </Helmet>
 
       {/* Шапка */}
       <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-30">

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import { fetchContent } from "@/lib/content-api";
 import { clientSession, clientApi, managerSession, managerApi } from "@/lib/crm-api";
@@ -62,7 +62,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
   const [managerAvatar, setManagerAvatar] = useState<string | null>(null);
   const [managerRole, setManagerRole] = useState<string | null>(null);
   const [phoneHref, setPhoneHref] = useState("tel:+79142727187");
-  const [cartCount, setCartCount] = useState(cart.count());
+  const [cartCount, setCartCount] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
 
   const navigate = useNavigate();
@@ -73,6 +73,7 @@ const Navbar = ({ scrolled, activeSection, menuOpen, onMenuToggle, onScrollTo }:
 
   useEffect(() => {
     const update = () => setCartCount(cart.count());
+    update();
     window.addEventListener("cart-updated", update);
     return () => window.removeEventListener("cart-updated", update);
   }, []);

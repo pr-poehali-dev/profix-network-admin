@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import { useNavigate } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import { shopApi, cart, Category, Product } from "@/lib/shop-api";
 import SharedFooter from "@/components/SharedFooter";
@@ -79,11 +78,12 @@ export default function Shop() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(cart.count());
+  const [cartCount, setCartCount] = useState(0);
 
   function reloadCart() { setCartCount(cart.count()); }
 
   useEffect(() => {
+    reloadCart();
     window.addEventListener("cart-updated", reloadCart);
     return () => window.removeEventListener("cart-updated", reloadCart);
   }, []);
@@ -115,10 +115,6 @@ export default function Shop() {
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos">
-      <Helmet>
-        <title>Магазин — ПРОФИКС</title>
-        <meta name="description" content="Интернет-магазин ПРОФИКС: кассовое оборудование, сканеры, ПО и расходные материалы" />
-      </Helmet>
 
       {/* Шапка */}
       <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-30">

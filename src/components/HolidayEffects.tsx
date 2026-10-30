@@ -45,11 +45,12 @@ const FALL_VARIANTS = [
 ];
 
 export default function HolidayEffects() {
-  const [holiday, setHoliday] = useState<string>(() => loadTheme().holiday);
+  const [holiday, setHoliday] = useState<string>("none");
   const [particles, setParticles] = useState<Particle[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setHoliday(loadTheme().holiday);
     // BroadcastChannel — мгновенная реакция внутри браузера (другие вкладки и та же вкладка)
     let bc: BroadcastChannel | null = null;
     try {

@@ -15,7 +15,7 @@ interface ChatProps {
   chatInput: string;
   setChatInput: (v: string) => void;
   chatSending: boolean;
-  chatBottomRef: RefObject<HTMLDivElement>;
+  chatBottomRef: RefObject<HTMLDivElement | null>;
   sendChatMessage: () => void;
 }
 

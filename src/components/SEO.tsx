@@ -1,6 +1,8 @@
-import { Helmet } from "react-helmet-async";
+// SEO-теги страниц формируются в head() маршрутов через seoHead() —
+// так они попадают в HTML уже при серверном рендере.
+// Компонент <SEO> оставлен для совместимости со страницами и ничего не рендерит.
 
-interface SEOProps {
+export interface SEOProps {
   title: string;
   description: string;
   keywords?: string;
@@ -63,50 +65,44 @@ const LOCAL_BUSINESS_SCHEMA = {
   ]
 };
 
-const SEO = ({ title, description, keywords, canonical, image, type = "website", publishedTime, schema }: SEOProps) => {
+export function seoHead({ title, description, keywords, canonical, image, type = "website", publishedTime, schema }: SEOProps) {
   const fullTitle = `${title} | ${BASE}`;
   const canonicalUrl = canonical ? `${SITE_URL}${canonical}` : SITE_URL;
   const ogImage = image || DEFAULT_IMAGE;
-
   const pageSchema = schema || LOCAL_BUSINESS_SCHEMA;
 
-  return (
-    <Helmet>
-      <title>{fullTitle}</title>
-      <meta name="description" content={description} />
-      {keywords && <meta name="keywords" content={keywords} />}
-      <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-      <meta name="author" content="ПРОФИКС" />
-      <meta name="geo.region" content="RU-SA" />
-      <meta name="geo.placename" content="Якутск" />
-      <meta name="geo.position" content="62.0286;129.7325" />
-      <meta name="ICBM" content="62.0286, 129.7325" />
-      <html lang="ru" />
+  return {
+    meta: [
+      { title: fullTitle },
+      { name: "description", content: description },
+      ...(keywords ? [{ name: "keywords", content: keywords }] : []),
+      { name: "robots", content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" },
+      { name: "author", content: "ПРОФИКС" },
+      { name: "geo.region", content: "RU-SA" },
+      { name: "geo.placename", content: "Якутск" },
+      { name: "geo.position", content: "62.0286;129.7325" },
+      { name: "ICBM", content: "62.0286, 129.7325" },
+      { property: "og:title", content: fullTitle },
+      { property: "og:description", content: description },
+      { property: "og:type", content: type },
+      { property: "og:locale", content: "ru_RU" },
+      { property: "og:url", content: canonicalUrl },
+      { property: "og:image", content: ogImage },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:site_name", content: "ПРОФИКС" },
+      ...(publishedTime ? [{ property: "article:published_time", content: publishedTime }] : []),
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: fullTitle },
+      { name: "twitter:description", content: description },
+      { name: "twitter:image", content: ogImage },
+    ],
+    links: [{ rel: "canonical", href: canonicalUrl }],
+    scripts: [{ type: "application/ld+json", children: JSON.stringify(pageSchema) }],
+  };
+}
 
-      <link rel="canonical" href={canonicalUrl} />
-
-      {/* Open Graph */}
-      <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={description} />
-      <meta property="og:type" content={type} />
-      <meta property="og:locale" content="ru_RU" />
-      <meta property="og:url" content={canonicalUrl} />
-      <meta property="og:image" content={ogImage} />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="630" />
-      <meta property="og:site_name" content="ПРОФИКС" />
-      {publishedTime && <meta property="article:published_time" content={publishedTime} />}
-
-      {/* Twitter */}
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={ogImage} />
-
-      {/* Schema.org JSON-LD */}
-      <script type="application/ld+json">{JSON.stringify(pageSchema)}</script>
-    </Helmet>
-  );
-};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const SEO = (_props: SEOProps) => null;
 
 export default SEO;

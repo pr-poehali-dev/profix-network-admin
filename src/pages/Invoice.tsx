@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "@/lib/router-compat";
 import { QRCodeSVG } from "qrcode.react";
 import Icon from "@/components/ui/icon";
 import { shopApi } from "@/lib/shop-api";

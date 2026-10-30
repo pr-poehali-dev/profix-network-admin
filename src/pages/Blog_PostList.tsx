@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";

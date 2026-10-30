@@ -1,7 +1,7 @@
 import Icon from "@/components/ui/icon";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { onPhoneChange } from "@/lib/phone";
-import { Role } from "./LoginTypes";
+import { Role, Screen, AuthMethod } from "./LoginTypes";
 
 // ── 2FA менеджер ────────────────────────────────────────────────────────────
 
@@ -12,7 +12,7 @@ interface MfaProps {
   mfaError: string;
   mfaLoading: boolean;
   handleMfaVerify: () => void;
-  setScreen: (s: string) => void;
+  setScreen: (s: Screen) => void;
 }
 
 export function LoginMfaScreen({ mfaEmailMasked, mfaCode, setMfaCode, mfaError, mfaLoading, handleMfaVerify, setScreen }: MfaProps) {
@@ -81,7 +81,7 @@ interface TotpProps {
   totpError: string;
   totpLoading: boolean;
   handleTotpVerify: () => void;
-  setScreen: (s: string) => void;
+  setScreen: (s: Screen) => void;
   setTotpError: (v: string) => void;
 }
 
@@ -155,7 +155,7 @@ interface RegisterProps {
   cfToken: string;
   setCfToken: (v: string) => void;
   handleRegister: () => void;
-  setScreen: (s: string) => void;
+  setScreen: (s: Screen) => void;
   setRegError: (v: string) => void;
 }
 
@@ -249,7 +249,7 @@ export function LoginRegisterScreen({
 // ── Успешная регистрация ─────────────────────────────────────────────────────
 
 interface RegisterDoneProps {
-  setScreen: (s: string) => void;
+  setScreen: (s: Screen) => void;
 }
 
 export function LoginRegisterDoneScreen({ setScreen }: RegisterDoneProps) {
@@ -278,7 +278,7 @@ interface ForgotProps {
   error: string;
   loading: boolean;
   handleForgot: () => void;
-  setScreen: (s: string) => void;
+  setScreen: (s: Screen) => void;
   setError: (v: string) => void;
 }
 
@@ -321,7 +321,7 @@ export function LoginForgotScreen({ forgotEmail, setForgotEmail, error, loading,
 // ── Письмо отправлено ────────────────────────────────────────────────────────
 
 interface ResetSentProps {
-  setScreen: (s: string) => void;
+  setScreen: (s: Screen) => void;
   setError: (v: string) => void;
 }
 
@@ -409,9 +409,9 @@ export function LoginResetConfirmScreen({
 
 interface ResetDoneProps {
   savedResetRole: Role;
-  setScreen: (s: string) => void;
+  setScreen: (s: Screen) => void;
   setRole: (r: Role) => void;
-  setMethod: (m: string) => void;
+  setMethod: (m: AuthMethod) => void;
   setError: (v: string) => void;
 }
 

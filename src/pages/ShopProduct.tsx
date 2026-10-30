@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import { useParams, useNavigate } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import { shopApi, cart, Product, ProductReview } from "@/lib/shop-api";
 import CartDrawer from "@/components/CartDrawer";
@@ -82,26 +81,28 @@ function ReviewForm({ productId, onDone }: { productId: number; onDone: () => vo
   );
 }
 
-export default function ShopProduct() {
+export default function ShopProduct({ initialProduct = null }: { initialProduct?: Product | null }) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<Product | null>(initialProduct);
+  const [loading, setLoading] = useState(!initialProduct);
   const [activeImg, setActiveImg] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(cart.count());
+  const [cartCount, setCartCount] = useState(0);
   const [added, setAdded] = useState(false);
 
   function reloadCart() { setCartCount(cart.count()); }
   useEffect(() => {
+    reloadCart();
     window.addEventListener("cart-updated", reloadCart);
     return () => window.removeEventListener("cart-updated", reloadCart);
   }, []);
 
   async function load() {
     if (!id) return;
-    setLoading(true);
+    // Товар уже пришёл с сервера — обновляем без спиннера
+    if (!product || String(product.id) !== id) setLoading(true);
     const res = await shopApi.getProduct(Number(id));
     if (res.product) setProduct(res.product);
     setLoading(false);
@@ -141,10 +142,6 @@ export default function ShopProduct() {
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos">
-      <Helmet>
-        <title>{product.name} — ПРОФИКС</title>
-        <meta name="description" content={product.description?.slice(0, 160) || product.name} />
-      </Helmet>
 
       <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">

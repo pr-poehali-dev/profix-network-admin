@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import { blogApi, Post } from "@/lib/blog-api";
 import { withEllipsis } from "@/pages/Blog_Cards";
@@ -12,6 +12,7 @@ export default function NewsPreview() {
   useEffect(() => {
     blogApi.getPosts("news", 3)
       .then(r => { if (r.posts) setPosts(r.posts.slice(0, 3)); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

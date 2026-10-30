@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Helmet } from "react-helmet-async";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession, Ticket, STATUS_COLORS, fixiesApi } from "@/lib/crm-api";
 import { shopApi } from "@/lib/shop-api";
@@ -203,7 +202,7 @@ function TicketDetail({ ticket, onBack, onRefresh }: {
             <p className="text-xs text-gray-400 text-center py-2">Нет комментариев</p>
           )}
           <div className="space-y-3 mb-4">
-            {(ticket.comments || []).map((c: {id:number; author_name:string; author_role:string; text:string; created_at:string}) => (
+            {(ticket.comments || []).map((c) => (
               <div key={c.id} className={`rounded-xl p-3 ${c.author_role === "technician" ? "bg-blue-50 border border-blue-100" : "bg-gray-50"}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
@@ -280,7 +279,7 @@ export default function ManagerApp() {
       for (const t of all) {
         for (const c of (t.comments || [])) {
           const cid = c.id || 0;
-          if (cid > maxCid) { maxCid = cid; if (lastCommentIdRef.current > 0) { newCmts++; lastTitle = t.title; lastAuthor = c.author || "Специалист"; } }
+          if (cid > maxCid) { maxCid = cid; if (lastCommentIdRef.current > 0) { newCmts++; lastTitle = t.title; lastAuthor = c.author_name || "Специалист"; } }
         }
       }
       if (lastCommentIdRef.current === 0) lastCommentIdRef.current = maxCid;
@@ -359,7 +358,7 @@ export default function ManagerApp() {
   // Экран входа
   if (!loggedIn) return (
     <div className="min-h-screen bg-gradient-to-br from-[#edf7e8] via-[#F7F9FC] to-[#d4f0c8] flex items-center justify-center px-4">
-      <Helmet><title>ПРОФИКС Manager</title></Helmet>
+      <title>ПРОФИКС Manager</title>
       <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 w-full max-w-sm">
         <div className="text-center mb-7">
           <img src="https://cdn.poehali.dev/files/14883a12-7574-4223-bfd4-68dc3e490534.png"
@@ -387,7 +386,7 @@ export default function ManagerApp() {
   // Детали заявки
   if (selectedTicket) return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos flex flex-col max-w-lg mx-auto">
-      <Helmet><title>Заявка #{selectedTicket.id} — ПРОФИКС</title></Helmet>
+      <title>{`Заявка #${selectedTicket.id} — ПРОФИКС`}</title>
       <TicketDetail
         ticket={selectedTicket}
         onBack={() => setSelectedTicket(null)}
@@ -399,7 +398,7 @@ export default function ManagerApp() {
   // Главный экран
   return (
     <div className="min-h-screen bg-[#F7F9FC] font-golos flex flex-col max-w-lg mx-auto">
-      <Helmet><title>ПРОФИКС Менеджер</title></Helmet>
+      <title>ПРОФИКС Менеджер</title>
 
       {/* Шапка */}
       <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-30">

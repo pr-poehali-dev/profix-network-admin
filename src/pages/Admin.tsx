@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import { managerApi, managerSession, reviewsApi, Ticket, Client, Technician } from "@/lib/crm-api";
 import { useSmartPoll } from "@/hooks/useSmartPoll";
@@ -256,7 +256,7 @@ export default function Admin() {
             if (lastCommentIdRef.current > 0) {
               newComments++;
               lastTicketTitle = t.title;
-              lastAuthor = c.author ?? "Специалист";
+              lastAuthor = c.author_name ?? "Специалист";
             }
           }
         }

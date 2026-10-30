@@ -1,6 +1,6 @@
 const PAGES_URL = "https://functions.poehali.dev/21b48158-a13f-47cd-86a7-475df63bc60e";
 
-function authHeader() {
+function authHeader(): Record<string, string> {
   const token = localStorage.getItem("crm_manager_token") || "";
   return token ? { "Authorization": token } : {};
 }

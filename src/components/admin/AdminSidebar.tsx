@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import AdminNotificationPanel from "@/components/admin/AdminNotificationPanel";
 import { managerSession } from "@/lib/crm-api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 
 interface MenuItem {
   key: string;

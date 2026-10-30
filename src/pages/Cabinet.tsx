@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import { clientApi, clientSession, reviewsApi, Ticket } from "@/lib/crm-api";
 import { useSmartPoll } from "@/hooks/useSmartPoll";

@@ -57,12 +57,15 @@ const ChatWidget = () => {
   const [hasNew, setHasNew] = useState(false);
   // Пока посетитель не написал ни одного сообщения, отвечать ему некому —
   // значит и опрашивать сервер незачем.
-  const [conversationStarted, setConversationStarted] = useState(
-    () => localStorage.getItem(CHAT_STARTED_KEY) === "1",
-  );
+  const [conversationStarted, setConversationStarted] = useState(false);
   const lastIdRef = useRef(0);
-  const sessionId = useRef(getSessionId());
+  const sessionId = useRef("");
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    sessionId.current = getSessionId();
+    if (localStorage.getItem(CHAT_STARTED_KEY) === "1") setConversationStarted(true);
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
